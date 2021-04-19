@@ -1,3 +1,8 @@
+<p align="center">
+  <img width="50%" src="./.source/_static/deepchain.png">
+</p>
+
+
 # Description
 bio-transformers is a wrapper on top of the ESM/Protbert model, trained on millions on proteins and used to predict embeddings.
 This package provide other functionalities (like compute the loglikelihood of a protein) or compute embeddings on multiple-gpu.
