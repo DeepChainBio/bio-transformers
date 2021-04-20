@@ -18,17 +18,17 @@ from .transformers_wrappers import (
 
 # List all ESM models
 esm_list = [
-    "esm1_t34_670M_UR50S",
-    "esm1_t34_670M_UR50D",
+    # "esm1_t34_670M_UR50S",
+    # "esm1_t34_670M_UR50D",
     "esm1_t34_670M_UR100",
-    "esm1_t12_85M_UR50S",
+    # "esm1_t12_85M_UR50S",
     "esm1_t6_43M_UR50S",
     "esm1b_t33_650M_UR50S",
     "esm_msa1_t12_100M_UR50S",
 ]
 
 # Define a default ESM model
-DEFAULT_MODEL = "esm1b_t33_650M_UR50S"
+DEFAULT_MODEL = "esm1_t34_670M_UR100"
 
 
 class ESMWrapper(TransformersWrapper):
@@ -222,8 +222,8 @@ class ESMWrapper(TransformersWrapper):
 
     def _compute_forward_output(
         self,
-        sequences_list: list,
-        batch_size: int,
+        sequences_list: List[str],
+        batch_size: int = 1,
     ) -> Dict[torch.tensor, torch.tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,

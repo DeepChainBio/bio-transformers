@@ -5,52 +5,21 @@ It allows to derive probabilities, embeddings and log-likelihoods based on input
 sequences, and displays some properties of the transformer model.
 """
 
-import pickle
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
+from .utils import (
+    TransformersInferenceConfig,
+    TransformersModelProperties,
+    _check_sequence,
+)
+
 Probs = Dict[str, float]
 SequenceProbs = List[Probs]
 NATURAL_AAS = "ACDEFGHIKLMNPQRSTVWY"
-
-
-@dataclass
-class TransformersModelProperties:
-    """Class to describe some model properties"""
-
-    num_sep_tokens: int  # Number of separation tokens (beginning+end)
-    begin_token: bool  # Whether there is a beginning of sentence token
-    end_token: bool  # Whether there is an end of sentence token
-
-
-@dataclass
-class TransformersInferenceConfig:
-    """
-    Class to describe the inference configuration.
-    - mask_bool: whether to compute a masked inference (masked_bool=True), or a forward
-    ingerence (mask_bool=False)
-
-    - mutation_dicts_list: list of dictionnary, which indicates, for each sequence, the
-    position of the amino-acids which were mutated. This allows to compute "local"
-     embeddings and probabilities only (on mutated amino-acids only).
-     eg [{1: ('A', 'C')}, {1: ('A', 'W'), '4': ('W', 'C')}] means that in the first
-     sequence, the position 1 in the original amino-acid was an 'A', now replaced by a
-     'C', and in the second sequence two mutations happened, at the positions 1 and 4.
-     See the extract_mutations_dict method of TransformersWrapper.
-
-    - all_masks_forward_local_bool: whether to mask all amino-acids when a local forward
-    approach is used.
-    """
-
-    mask_bool: bool
-    mutation_dicts_list: List[dict] = None
-    all_masks_forward_local_bool: bool = 0
 
 
 class TransformersWrapper(ABC):
@@ -74,9 +43,7 @@ class TransformersWrapper(ABC):
             vocab_token_list (List[str], optional): . Defaults to list(NATURAL_AAS).
             mask_bool (bool, optional): Wether to use mask or not for inference.
         """
-        import torch
 
-        # Define device
         if _device is not None:
             print("Requested device: ", _device)
             if "cuda" in _device:
@@ -90,7 +57,6 @@ class TransformersWrapper(ABC):
         self._device = torch.device(_device)
 
         self.model_dir = model_dir
-        self.vocab_token_list = vocab_token_list
         self.mask_bool = mask_bool
         self.vocab_token_list = (
             list(NATURAL_AAS) if vocab_token_list is None else vocab_token_list
@@ -146,7 +112,7 @@ class TransformersWrapper(ABC):
         """Returns a function which maps tokens to IDs"""
 
     @staticmethod
-    def softmaxbh(x: np.array) -> np.array:
+    def softmaxbh(x: Union[np.array, torch.Tensor]) -> Union[np.array, torch.Tensor]:
         """
         Compute softmax values for each sets of scores in x. The max is computed
         on the last dimension.
@@ -172,7 +138,7 @@ class TransformersWrapper(ABC):
 
     @abstractmethod
     def _compute_forward_output(
-        self, sequences_list: list, batch_size: int = 1
+        self, sequences_list: List[str], batch_size: int = 1
     ) -> Dict[torch.tensor, torch.tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
@@ -243,6 +209,19 @@ class TransformersWrapper(ABC):
         for i in range(0, len(sequences_list), batch_size):
             yield sequences_list[i : (i + batch_size)]
 
+    def _generate_dict_chunks(
+        self, sequence_dict: Dict[str, Any], batch_size: int
+    ) -> Dict[str, Iterable]:
+        """Yield a dictionnary of tensor"""
+
+        first_key = list(sequence_dict.keys())[0]
+        len_sequence = len(sequence_dict[first_key])
+        for i in range(0, len_sequence, batch_size):
+            batch_sequence = {
+                key: value[i : (i + batch_size)] for key, value in sequence_dict.items()
+            }
+            yield batch_sequence
+
     def _compute_probabilities_and_embeddings(
         self, sequences_list: List[str], batch_size: int
     ) -> Tuple[SequenceProbs, List[np.array]]:
@@ -261,9 +240,6 @@ class TransformersWrapper(ABC):
                 of length len(sequence) with the probabilities
                 for each standard amino acid of the corresponding sequence
         """
-        # seqs_list_len = list(set([len(seq) for seq in sequences_list]))
-        # if len(seqs_list_len) > 1:
-        #     seqs_list_len.sort(reverse=True)
 
         if self.mask_bool:
             output_dict = self._compute_masked_output(sequences_list, batch_size)
@@ -307,7 +283,7 @@ class TransformersWrapper(ABC):
         Returns:
             List[float]: [description]
         """
-
+        _check_sequence(sequences_list, self.model_dir, 1024)
         probs_list, _ = self._compute_probabilities_and_embeddings(
             sequences_list, batch_size=batch_size
         )
@@ -344,45 +320,11 @@ class TransformersWrapper(ABC):
 
         return log_likelihood
 
-    def filter_oov_embeddings(
-        self, sequences_list: List[str], embedding_list: List[np.array]
-    ) -> List[np.array]:
-        """
-        Function to filter out embeddings that are not part of the allowed vocabulary
-
-        Caution: the mapping to the token induced by the sequence order is lost, this
-        function is rather used before pooling all sequence embeddings into one.
-
-
-        Args:
-            sequences_list (List[str]): [description]
-            embedding_list (List[np.array]): [description]
-
-        Returns:
-            [type]: [description]
-        """
-        updated_embedding_list = []
-        for seq_id, sequence in enumerate(sequences_list):
-            # Add the beginning token if it exists and if it is part of the vocabulary
-            if self.model_property.begin_token:
-                in_vocab_tokens = (
-                    [True] if self.begin_token in self.model_vocab_tokens else [False]
-                )
-            else:
-                in_vocab_tokens = []
-            # Only keep the embeddings corresponding to amino-acids in our vocabulary
-            in_vocab_tokens += [aa in self.vocab_token_list for aa in sequence]
-            # Add the end token if it exists and if it is part of the vocabulary
-            if self.model_property.end_token:
-                in_vocab_tokens += (
-                    [True] if self.end_token in self.model_vocab_tokens else [False]
-                )
-            updated_embedding_list.append(embedding_list[seq_id][in_vocab_tokens])
-
-        return updated_embedding_list
-
-    def pool_sequence_embeddings(
-        self, embeddings_matrix: np.array, pooling_list: List[str], axis: int
+    def _pool_sequence_embeddings(
+        self,
+        embeddings_matrix: np.array,
+        pooling_list: List[str],
+        return_sequence=False,
     ) -> Dict:
         """
         Function which pools the embeddings of a sequence (all of its position) based
@@ -390,7 +332,7 @@ class TransformersWrapper(ABC):
 
         Args:
             embeddings_matrix (np.array): [description]
-            pooling_tuple (tuple): [description]
+            pooling_list (tuple): [description]
 
         Returns:
             Dict: Dictionnary with all specific pooling function as key,
@@ -402,29 +344,17 @@ class TransformersWrapper(ABC):
         pool_dict["cls"] = embeddings_matrix[0, :]
         embeddings_matrix = embeddings_matrix[1:, :]
 
-        find_pool = False
         if ("mean" in pooling_list) | ("average" in pooling_list):
-            pool_dict["mean"] = np.mean(embeddings_matrix, axis=axis)
-            find_pool = True
-
-        if ("concat" in pooling_list) | ("concatenate" in pooling_list):
-            pool_dict["concat"] = embeddings_matrix.flatten()
-            find_pool = True
+            pool_dict["mean"] = np.mean(embeddings_matrix, axis=0)
 
         if ("min" in pooling_list) | ("minimum" in pooling_list):
-            pool_dict["min"] = np.min(embeddings_matrix, axis=axis)
-            find_pool = True
+            pool_dict["min"] = np.min(embeddings_matrix, axis=0)
 
         if ("max" in pooling_list) | ("maximum" in pooling_list):
-            pool_dict["max"] = np.max(embeddings_matrix, axis=axis)
-            find_pool = True
+            pool_dict["max"] = np.max(embeddings_matrix, axis=0)
 
-        if not find_pool:
-            print(
-                UserWarning(
-                    "No correct pooling provided. Using CLS pooling as default."
-                )
-            )
+        if return_sequence:
+            pool_dict["sequence"] = embeddings_matrix
 
         return pool_dict
 
@@ -432,9 +362,9 @@ class TransformersWrapper(ABC):
         self,
         sequences_list: List[str],
         batch_size: int = 1,
-        pooling_list: List = None,
-        axis: int = 0,
-    ) -> Dict:
+        pooling_list: Optional[List] = None,
+        return_sequence: bool = False,
+    ) -> Dict[str, np.array]:
         """
         Compute of embeddings for a list of sequence.
         Can provide multiple pooling function to aggregate the embedding
@@ -443,15 +373,15 @@ class TransformersWrapper(ABC):
         Args:
             sequences_list (List[str]): [description]
             batch_size (int, optional): [description]. Defaults to 1.
-            pooling_tuple (tuple, optional): [description]. Defaults to ("mean",).
-            axis (int,optionl): the axis on which the pooling is done.
-                                - 0 to aggregate the token
-                                - 1 to aggregate the embedding
+            pooling_tuple (tuple, optional): [description]. Defaults to [].
+
 
         Returns:
             List[Dict]: The embeddings dictionnary is composed of the <CLS>  embedding
                          and with the pool function provided (ie: mean, max, min)
         """
+        _check_sequence(sequences_list, self.model_dir, 1024)
+
         if pooling_list is None:
             pooling_list = []
         pooling_dict = dict()
@@ -461,7 +391,7 @@ class TransformersWrapper(ABC):
         )
 
         pool_list = [
-            self.pool_sequence_embeddings(embedding, pooling_list, axis=axis)
+            self._pool_sequence_embeddings(embedding, pooling_list, return_sequence)
             for embedding in embedding_list
         ]
 
@@ -475,5 +405,7 @@ class TransformersWrapper(ABC):
                     for pool_key in pooling_list
                 }
             )
+        if return_sequence:
+            pooling_dict.update({"sequence": [emb["sequence"] for emb in pool_list]})
 
         return pooling_dict

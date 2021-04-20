@@ -3,9 +3,13 @@
 from typing import List
 
 from .esm_wrappers import ESMWrapper, esm_list
-from .rostlab_wrapper import RostlabWrapper, rostlab_list
+from .rostlab_wrapper import RostlabWrapper
 
-MODEL_LIST = esm_list + rostlab_list
+MAPPING_PROTBERT = {
+    "protbert": "Rostlab/prot_bert",
+    "protbert_bfd": "Rostlab/prot_bert_bfd",
+}
+BACKEND_LIST = esm_list + list(MAPPING_PROTBERT.keys())
 
 
 class BioTransformers:
@@ -14,14 +18,25 @@ class BioTransformers:
     Abstract method are implemented in transformers
     """
 
-    def __init__(self, device: str, model_dir: str = "esm1_t6_43M_UR50S"):
+    def __init__(
+        self,
+        backend: str = "esm1_t6_43M_UR50S",
+        device: str = None,
+    ):
         pass
 
-    def __new__(cls, device: str = None, model_dir: str = "esm1_t6_43M_UR50S"):
-        if model_dir.__contains__("esm"):
-            instance = ESMWrapper(model_dir, device=device)
+    def __new__(
+        cls,
+        backend: str = "esm1_t6_43M_UR50S",
+        device: str = None,
+    ):
+        format_list = "\n".join(format_backend(BACKEND_LIST))
+        assert backend in BACKEND_LIST, f"Choose backend in \n\n{format_list}"
+
+        if backend.__contains__("esm"):
+            instance = ESMWrapper(backend, device=device)
         else:
-            instance = RostlabWrapper(model_dir, device=device)
+            instance = RostlabWrapper(MAPPING_PROTBERT[backend], device=device)
         return instance
 
     @staticmethod
@@ -29,7 +44,7 @@ class BioTransformers:
         """Get all possible backend for the model"""
         print(
             "Use backend in this list :\n\n",
-            "\n".join(format_backend(MODEL_LIST)),
+            "\n".join(format_backend(BACKEND_LIST)),
             sep="",
         )
 

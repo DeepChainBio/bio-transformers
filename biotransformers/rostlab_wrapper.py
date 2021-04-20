@@ -44,7 +44,10 @@ class RostlabWrapper(TransformersWrapper):
             model_dir, do_lower_case=False, padding=True
         )
         self.model_dir = model_dir
-        self.model = None
+        self.model = (
+            BertForMaskedLM.from_pretrained(self.model_dir).eval().to(self._device)
+        )
+
         self.mask_pipeline = None
 
     @property
@@ -101,12 +104,6 @@ class RostlabWrapper(TransformersWrapper):
 
     def inference_config(self) -> TransformersInferenceConfig:
         return TransformersInferenceConfig(False)
-
-    def load_model(self):
-        """Load model as attribute"""
-        if self.model is None:
-            self.model = BertForMaskedLM.from_pretrained(self.model_dir)
-            self.model = self.model.eval().to(self._device)
 
     def load_pipeline(self):
         """Load pipeline as attribute"""
@@ -240,7 +237,7 @@ class RostlabWrapper(TransformersWrapper):
     def _compute_forward_output(
         self,
         sequences_list: List[str],
-        batch_size: int,
+        batch_size: int = 1,
     ) -> Dict[torch.tensor, torch.tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
@@ -250,7 +247,6 @@ class RostlabWrapper(TransformersWrapper):
         Args:
             sequences_list (list): [description]
             batch_size (int): [description]
-            inference_config (TransformersInferenceConfig): [description]
 
         Returns:
             Dict[torch.tensor, torch.tensor]:
@@ -258,15 +254,12 @@ class RostlabWrapper(TransformersWrapper):
                 - Embeddings: [num_seqs, max_len_seqs+2, embedding_size]
         """
 
-        # Load model and transfer to device
-        self.load_model()
-
         # If local mutations only, for each sequence replace all mutated amino-acids
         # by a mask (there may be several masks in the same sentence)
         inference_config = self.inference_config()
 
         if (inference_config.mutation_dicts_list is not None) & (
-            inference_config.all_masks_forward_local_bool is True
+            inference_config.all_masks_forward_local_bool
         ):
             input_list = list(sequences_list)
             for seq_id in range(len(sequences_list)):
@@ -281,7 +274,6 @@ class RostlabWrapper(TransformersWrapper):
         else:
             input_list = list(sequences_list)
 
-        num_seqs = len(sequences_list)
         if inference_config.mutation_dicts_list is not None:
             print(
                 "Mask all mutated tokens at once"
@@ -289,9 +281,7 @@ class RostlabWrapper(TransformersWrapper):
                 else "All mutated tokens visible"
             )
 
-        batch_size = num_seqs if num_seqs < batch_size else batch_size
-        num_batch_iter = int(np.ceil(num_seqs / batch_size))
-
+        num_batch_iter = int(np.ceil(len(sequences_list) / batch_size))
         logits = torch.Tensor()  # [num_seqs, max_len_seqs+2, vocab_size]
         embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+2, embedding_size]
 
@@ -300,13 +290,13 @@ class RostlabWrapper(TransformersWrapper):
             input_sep_sequences_list, return_tensors="pt", padding=True
         )
 
-        for batch_iter in tqdm(range(num_batch_iter)):
+        for batch_encoded in tqdm(
+            self._generate_dict_chunks(encoded_inputs, batch_size), total=num_batch_iter
+        ):
             batch_encoded_inputs = {
-                key: value[batch_iter * batch_size : (batch_iter + 1) * batch_size].to(
-                    self._device
-                )
-                for key, value in encoded_inputs.items()
+                key: value.to(self._device) for key, value in batch_encoded.items()
             }
+
             output = self.model(**batch_encoded_inputs, output_hidden_states=True)
             new_logits = output.logits.detach().cpu()
             logits = torch.cat((logits, new_logits), dim=0)
