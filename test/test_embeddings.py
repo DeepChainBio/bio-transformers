@@ -9,5 +9,5 @@ test_sequences = [
 
 def test_esm_embeddings():
     test_trans = BioTransformers()
-    embedding_1 = test_trans.compute_embeddings(test_sequences)
-    assert isinstance(embedding_1, dict)
+    embedding = test_trans.compute_embeddings(test_sequences)
+    assert isinstance(embedding, dict)
