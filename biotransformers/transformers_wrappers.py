@@ -4,7 +4,6 @@ specific to a given transformers implementation can inherit.
 It allows to derive probabilities, embeddings and log-likelihoods based on inputs
 sequences, and displays some properties of the transformer model.
 """
-
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -159,7 +158,6 @@ class TransformersWrapper(ABC):
         self,
         sequences_list: list,
         batch_size: int,
-        inference_config: TransformersInferenceConfig,
     ) -> Dict[torch.tensor, torch.tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
@@ -204,14 +202,16 @@ class TransformersWrapper(ABC):
 
         return mutation_dicts_list
 
-    def _generate_chunks(self, sequences_list: List[str], batch_size: int) -> List[str]:
+    def _generate_chunks(
+        self, sequences_list: List[str], batch_size: int
+    ) -> Iterable[List[str]]:
         """Build a generator to yield protein sequences batch"""
         for i in range(0, len(sequences_list), batch_size):
             yield sequences_list[i : (i + batch_size)]
 
     def _generate_dict_chunks(
         self, sequence_dict: Dict[str, Any], batch_size: int
-    ) -> Dict[str, Iterable]:
+    ) -> Iterable[Dict[str, List]]:
         """Yield a dictionnary of tensor"""
 
         first_key = list(sequence_dict.keys())[0]
@@ -339,7 +339,7 @@ class TransformersWrapper(ABC):
                   and embedding vector as value. Always return BEGIN token
                   by default.
         """
-        pool_dict = dict()
+        pool_dict = {}
 
         pool_dict["cls"] = embeddings_matrix[0, :]
         embeddings_matrix = embeddings_matrix[1:, :]
@@ -384,7 +384,7 @@ class TransformersWrapper(ABC):
 
         if pooling_list is None:
             pooling_list = []
-        pooling_dict = dict()
+        pooling_dict = {}
 
         _, embedding_list = self._compute_probabilities_and_embeddings(
             sequences_list, batch_size=batch_size

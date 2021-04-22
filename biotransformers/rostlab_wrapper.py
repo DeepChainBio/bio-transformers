@@ -5,6 +5,7 @@ hugging face
 - ProtBert: https://huggingface.co/Rostlab/prot_bert
 - ProtBert BFD: https://huggingface.co/Rostlab/prot_bert_bfd
 """
+from copy import deepcopy
 from typing import Dict, List
 
 import numpy as np
@@ -13,7 +14,6 @@ from tqdm import tqdm
 from transformers import BertForMaskedLM, BertTokenizer, pipeline
 
 from .transformers_wrappers import (
-    NATURAL_AAS,
     TransformersInferenceConfig,
     TransformersModelProperties,
     TransformersWrapper,
@@ -163,7 +163,6 @@ class RostlabWrapper(TransformersWrapper):
         self,
         sequences_list: List[str],
         batch_size: int,
-        inference_config: TransformersInferenceConfig,
     ) -> Dict[torch.tensor, torch.tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
@@ -194,9 +193,7 @@ class RostlabWrapper(TransformersWrapper):
         # Loop over sequences
         for seq_id, sequence in tqdm(enumerate(sequences_list)):
 
-            masks = self.compute_masked_input(
-                sequence=sequence, seq_id=seq_id, inference_config=inference_config
-            )
+            masks = self.compute_masked_input(sequence=sequence, seq_id=seq_id)
 
             # Define batch size and number of iterations for each sequence
             batch_size = len(masks) if len(masks) < batch_size else batch_size
@@ -261,7 +258,7 @@ class RostlabWrapper(TransformersWrapper):
         if (inference_config.mutation_dicts_list is not None) & (
             inference_config.all_masks_forward_local_bool
         ):
-            input_list = list(sequences_list)
+            input_list = deepcopy(sequences_list)
             for seq_id in range(len(sequences_list)):
                 if len(inference_config.mutation_dicts_list[seq_id]) > 0:
                     mutated_tokens = inference_config.mutation_dicts_list[seq_id].keys()
@@ -272,7 +269,7 @@ class RostlabWrapper(TransformersWrapper):
                         )
                     input_list[seq_id] = masked_seq
         else:
-            input_list = list(sequences_list)
+            input_list = deepcopy(sequences_list)
 
         if inference_config.mutation_dicts_list is not None:
             print(

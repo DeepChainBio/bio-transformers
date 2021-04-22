@@ -1,4 +1,3 @@
-import functools
 from dataclasses import dataclass
 from typing import List
 
@@ -55,4 +54,4 @@ class TransformersInferenceConfig:
 
     mask_bool: bool
     mutation_dicts_list: List[dict] = None
-    all_masks_forward_local_bool: bool = 0
+    all_masks_forward_local_bool: bool = False
