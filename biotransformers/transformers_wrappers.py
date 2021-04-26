@@ -155,7 +155,15 @@ class TransformersWrapper(ABC):
     def _repeat_and_mask_inputs(
         self, model_inputs: Dict[str, torch.Tensor]
     ) -> Tuple[Dict[str, torch.Tensor], List[List]]:
-        """Function that takes input tensor and create new one by masking and repeat"""
+        """Create new tensor by masking each token and repeating sequence
+
+        Args:
+            model_inputs[str] (torch.Tensor): shape -> (num_seqs, max_seq_len)
+
+        Returns:
+            model_inputs (torch.Tensor): shape -> (sum_tokens, max_seq_len)
+            masked_ids_list (List[List]) : len -> (num_seqs)
+        """
         new_input_ids = []
         new_attention_mask = []
         new_token_type_ids = []
@@ -186,7 +194,15 @@ class TransformersWrapper(ABC):
     def _gather_masked_outputs(
         self, model_outputs: torch.Tensor, masked_ids_list: List[List]
     ) -> torch.Tensor:
-        """Function that gathers all the masked outputs to original tensor shape"""
+        """Gather all the masked outputs to get original tensor shape
+
+        Args:
+            model_outputs (torch.Tensor): shape -> (sum_tokens, max_seq_len, vocab_size)
+            masked_ids_list (List[List]) : len -> (num_seqs)
+
+        Returns:
+            model_outputs (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+        """
         max_length = model_outputs.shape[1]
         inf_tensor = -float("Inf") * torch.ones(
             [1, model_outputs.shape[2]], dtype=torch.float32
@@ -217,7 +233,17 @@ class TransformersWrapper(ABC):
     def _filter_logits(
         self, logits: torch.Tensor, labels: torch.Tensor, tokens: List[int],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Function to process logits by removing unconsidered tokens"""
+        """Remove unconsidered tokens from sequences and logits
+
+        Args:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+            labels (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            tokens (List[int]): len -> (num_considered_token)
+
+        Returns:
+            logits (torch.Tensor): shape -> (sum_considered_token, num_considered_token)
+            labels (torch.Tensor): shape -> (sum_considered_token,)
+        """
         mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
         for token_id in tokens:
             mask_filter += labels == token_id
@@ -229,7 +255,16 @@ class TransformersWrapper(ABC):
     def _filter_loglikelihoods(
         self, logits: torch.Tensor, labels: torch.Tensor, tokens: List[int],
     ) -> torch.Tensor:
-        """Function to process loglikelihoods by removing unconsidered tokens"""
+        """Remove unconsidered tokens from sequences and logits
+        
+        Args:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+            labels (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            tokens (List[int]): len -> (num_considered_token)
+
+        Returns:
+            loglikelihoods (torch.Tensor): shape -> (num_seqs)
+        """
         log_softmax = torch.nn.LogSoftmax(dim=1)
 
         mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
@@ -257,7 +292,17 @@ class TransformersWrapper(ABC):
         tokens: List[int],
         pool_mode: List[str] = ["cls", "mean"],
     ) -> Dict[str, torch.Tensor]:
-        """Function to process embeddings by removing unconsidered tokens and pooling"""
+        """Remove unconsidered tokens from sequences and pool embeddings
+        
+        Args:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+            labels (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            tokens (List[int]): len -> (num_considered_token)
+            pool_mode (List[str]):
+
+        Returns:
+            embeddings[str] (torch.Tensor): shape -> (num_seqs, emb_size)
+        """
 
         # tokens filtering
         mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
@@ -287,7 +332,16 @@ class TransformersWrapper(ABC):
     def _compute_logits(
         self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str
     ) -> torch.Tensor:
-        """Intermediate function to compute logits"""
+        """Intermediate function to compute logits
+
+        Args:
+            model_inputs[str] (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            batch_size (int)
+            pass_mode (str)
+
+        Returns:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+        """
         if pass_mode == "masked":
             model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
             logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size)
@@ -299,12 +353,28 @@ class TransformersWrapper(ABC):
     def _compute_embeddings(
         self, model_inputs: Dict[str, torch.Tensor], batch_size: int
     ) -> torch.Tensor:
-        """Intermediate function to compute embeddings"""
+        """Intermediate function to compute embeddings
+
+        Args:
+            model_inputs[str] (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            batch_size (int)
+
+        Returns:
+            embeddings (torch.Tensor): shape -> (num_seqs, emb_size)
+        """
         _, embeddings = self._model_evaluation(model_inputs, batch_size=batch_size)
         return embeddings
 
     def _compute_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
-        """Intermediate function to compute accuracy"""
+        """Intermediate function to compute accuracy
+
+        Args:
+            logits (torch.Tensor): shape -> (sum_considered_token, num_considered_token)
+            labels (torch.Tensor): shape -> (sum_considered_token)
+            
+        Returns:
+            accuracy (float)
+        """
         softmaxes = F.softmax(logits, dim=1)
         _, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
@@ -314,7 +384,18 @@ class TransformersWrapper(ABC):
     def _compute_calibration(
         self, logits: torch.Tensor, labels: torch.Tensor, n_bins: int = 10
     ) -> Dict[str, Any]:
-        """Intermediate function to compute calibration"""
+        """Intermediate function to compute calibration
+
+        Args:
+            logits (torch.Tensor): shape -> (sum_considered_token, num_considered_token)
+            labels (torch.Tensor): shape -> (sum_considered_token)
+            n_bins (int)
+
+        Returns:
+            accuracy (float)
+            ece (float)
+            reliability_diagram (List[float])
+        """
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
