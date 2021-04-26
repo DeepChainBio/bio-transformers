@@ -303,6 +303,46 @@ class TransformersWrapper(ABC):
         _, embeddings = self._model_evaluation(model_inputs, batch_size=batch_size)
         return embeddings
 
+    def _compute_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
+        """Intermediate function to compute accuracy"""
+        softmaxes = F.softmax(logits, dim=1)
+        _, predictions = torch.max(softmaxes, 1)
+        accuracies = predictions.eq(labels)
+
+        return accuracies.float().mean().item()
+
+    def _compute_calibration(
+        self, logits: torch.Tensor, labels: torch.Tensor, n_bins: int = 10
+    ) -> Dict[str, Any]:
+        """Intermediate function to compute calibration"""
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, predictions = torch.max(softmaxes, 1)
+        accuracies = predictions.eq(labels)
+
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
+
+        reliability_diagram = []
+        ece = torch.zeros(1, device=logits.device)
+        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+            # Calculated |confidence - accuracy| in each bin
+            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+            prop_in_bin = in_bin.float().mean()
+            if prop_in_bin.item() > 0:
+                accuracy_in_bin = accuracies[in_bin].float().mean()
+                avg_confidence_in_bin = confidences[in_bin].mean()
+                reliability_diagram.append(accuracy_in_bin.item())
+                ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+            else:
+                reliability_diagram.append(0.0)
+
+        return {
+            "accuracy": accuracies.float().mean().item(),
+            "ece": ece.item(),
+            "reliability_diagram": reliability_diagram,
+        }
+
     def compute_logits(
         self,
         sequences_list: List[str],
@@ -405,12 +445,40 @@ class TransformersWrapper(ABC):
     ) -> float:
         """Compute model accuracy from the input sequences"""
 
-        logits, labels = self.compute_logits(
-            sequences_list, batch_size, tokens_list, pass_mode
+        _check_sequence(sequences_list, self.model_dir, 1024)
+
+        inputs, labels, tokens = self._process_sequences_and_tokens(
+            sequences_list, tokens_list
         )
 
-        softmaxes = F.softmax(logits, dim=1)
-        _, predictions = torch.max(softmaxes, 1)
-        accuracies = predictions.eq(labels)
+        logits = self._compute_logits(inputs, batch_size, pass_mode)
 
-        return accuracies.float().mean().item()
+        logits, labels = self._filter_logits(logits, labels, tokens)
+
+        accuracy = self._compute_accuracy(logits, labels)
+
+        return accuracy
+
+    def compute_calibration(
+        self,
+        sequences_list: List[str],
+        batch_size: int = 1,
+        pass_mode: str = "forward",
+        tokens_list: List[str] = NATURAL_AAS_LIST,
+        n_bins: int = 10,
+    ) -> Dict[str, Any]:
+        """Compute model calibration from the input sequences"""
+
+        _check_sequence(sequences_list, self.model_dir, 1024)
+
+        inputs, labels, tokens = self._process_sequences_and_tokens(
+            sequences_list, tokens_list
+        )
+
+        logits = self._compute_logits(inputs, batch_size, pass_mode)
+
+        logits, labels = self._filter_logits(logits, labels, tokens)
+
+        calibration_dict = self._compute_calibration(logits, labels, n_bins)
+
+        return calibration_dict
