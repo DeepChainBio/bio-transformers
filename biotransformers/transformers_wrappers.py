@@ -10,11 +10,13 @@ from typing import Any, Dict, Iterable, List, Tuple
 
 import torch
 import torch.tensor
+from torch.nn import functional as F
 
 from .utils import (
     TransformersModelProperties,
     _check_sequence,
 )
+
 
 NATURAL_AAS = "ACDEFGHIKLMNPQRSTVWY"
 NATURAL_AAS_LIST = [AA for AA in NATURAL_AAS]
@@ -181,7 +183,9 @@ class TransformersWrapper(ABC):
         model_inputs["token_type_ids"] = torch.stack(new_token_type_ids)
         return model_inputs, mask_ids
 
-    def _gather_masked_outputs(self, model_outputs, masked_ids_list):
+    def _gather_masked_outputs(
+        self, model_outputs: torch.Tensor, masked_ids_list: List[List]
+    ) -> torch.Tensor:
         """Function that gathers all the masked outputs to original tensor shape"""
         max_length = model_outputs.shape[1]
         inf_tensor = -float("Inf") * torch.ones(
@@ -203,13 +207,15 @@ class TransformersWrapper(ABC):
             start_id = end_id
         return torch.stack(sequences_list)
 
-    def _labels_remapping(self, labels, tokens):
+    def _labels_remapping(
+        self, labels: torch.Tensor, tokens: List[int]
+    ) -> torch.Tensor:
         """Function that remaps IDs of the considered tokens from 0 to len(tokens)"""
         mapping = dict(zip(tokens, range(len(tokens))))
         return torch.tensor([mapping[lbl.item()] for lbl in labels])
 
     def _filter_logits(
-        self, logits: torch.Tensor, labels: torch.Tensor, tokens=None
+        self, logits: torch.Tensor, labels: torch.Tensor, tokens: List[int],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Function to process logits by removing unconsidered tokens"""
         mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
@@ -221,7 +227,7 @@ class TransformersWrapper(ABC):
         )
 
     def _filter_loglikelihoods(
-        self, logits: torch.Tensor, labels: torch.Tensor, tokens=None
+        self, logits: torch.Tensor, labels: torch.Tensor, tokens: List[int],
     ) -> torch.Tensor:
         """Function to process loglikelihoods by removing unconsidered tokens"""
         log_softmax = torch.nn.LogSoftmax(dim=1)
@@ -248,37 +254,39 @@ class TransformersWrapper(ABC):
         self,
         embeddings: torch.Tensor,
         labels: torch.Tensor,
-        pool_mode: str = "cls",
-        tokens=None,
-    ) -> torch.Tensor:
+        tokens: List[int],
+        pool_mode: List[str] = ["cls", "mean"],
+    ) -> Dict[str, torch.Tensor]:
         """Function to process embeddings by removing unconsidered tokens and pooling"""
 
-        if pool_mode == "cls":
-            embeddings = embeddings[:, 0, :]
-        else:
-            # tokens filtering
-            mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
-            for token_id in tokens:
-                mask_filter += labels == token_id
-            embeddings_list = [seq[msk] for seq, msk in zip(embeddings, mask_filter)]
+        # tokens filtering
+        mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
+        for token_id in tokens:
+            mask_filter += labels == token_id
+        embeddings_list = [seq[msk] for seq, msk in zip(embeddings, mask_filter)]
 
-            # embeddings pooling
-            if pool_mode == "mean":
-                embeddings = torch.stack(
-                    [torch.mean(emb.float(), axis=0) for emb in embeddings_list]
-                )
-            elif pool_mode == "max":
-                embeddings = torch.stack(
-                    [torch.max(emb.float(), 0)[0] for emb in embeddings_list]
-                )
-            elif pool_mode == "min":
-                embeddings = torch.stack(
-                    [torch.min(emb.float(), 0)[0] for emb in embeddings_list]
-                )
+        # embeddings pooling
+        embeddings_dict = {}
+        if "cls" in pool_mode:
+            embeddings_dict["cls"] = embeddings[:, 0, :]
+        if "mean" in pool_mode:
+            embeddings_dict["mean"] = torch.stack(
+                [torch.mean(emb.float(), axis=0) for emb in embeddings_list]
+            )
+        if "max" in pool_mode:
+            embeddings_dict["max"] = torch.stack(
+                [torch.max(emb.float(), 0)[0] for emb in embeddings_list]
+            )
+        if "min" in pool_mode:
+            embeddings_dict["min"] = torch.stack(
+                [torch.min(emb.float(), 0)[0] for emb in embeddings_list]
+            )
 
-        return embeddings
+        return embeddings_dict
 
-    def _compute_logits(self, model_inputs, batch_size, pass_mode):
+    def _compute_logits(
+        self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str
+    ) -> torch.Tensor:
         """Intermediate function to compute logits"""
         if pass_mode == "masked":
             model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
@@ -288,7 +296,9 @@ class TransformersWrapper(ABC):
             logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size)
         return logits
 
-    def _compute_embeddings(self, model_inputs, batch_size):
+    def _compute_embeddings(
+        self, model_inputs: Dict[str, torch.Tensor], batch_size: int
+    ) -> torch.Tensor:
         """Intermediate function to compute embeddings"""
         _, embeddings = self._model_evaluation(model_inputs, batch_size=batch_size)
         return embeddings
@@ -297,8 +307,8 @@ class TransformersWrapper(ABC):
         self,
         sequences_list: List[str],
         batch_size: int = 1,
-        pass_mode: str = "forward",
         tokens_list: List[str] = NATURAL_AAS_LIST,
+        pass_mode: str = "forward",
     ) -> Tuple[torch.tensor, torch.tensor]:
         """Function that computes the logits from sequences
 
@@ -327,8 +337,8 @@ class TransformersWrapper(ABC):
         self,
         sequences_list: List[str],
         batch_size: int = 1,
-        pass_mode: str = "forward",
         tokens_list: List[str] = NATURAL_AAS_LIST,
+        pass_mode: str = "forward",
     ) -> torch.Tensor:
         """Function that computes loglikelihoods of sequences
 
@@ -358,15 +368,15 @@ class TransformersWrapper(ABC):
         self,
         sequences_list: List[str],
         batch_size: int = 1,
-        pool_mode: str = "cls",
+        pool_mode: List[str] = ["cls", "mean"],
         tokens_list: List[str] = NATURAL_AAS_LIST,
-    ) -> torch.Tensor:
+    ) -> Dict[str, torch.Tensor]:
         """Function that computes embeddings of sequences
 
         Args:
             sequences_list (List[str]): List of sequences
             batch_size (int, optional): Batch size
-            pool_mode (str, optional): Mode of pooling ('cls', 'mean', 'max' or 'min')
+            pool_mode (List[str], optional): Mode of pooling ('cls', 'mean', etc...)
             tokens_list (List[str], optional): List of tokens to consider
 
         Returns:
@@ -380,8 +390,27 @@ class TransformersWrapper(ABC):
 
         embeddings = self._compute_embeddings(inputs, batch_size)
 
-        embeddings = self._filter_and_pool_embeddings(
-            embeddings, labels, pool_mode, tokens
+        embeddings_dict = self._filter_and_pool_embeddings(
+            embeddings, labels, tokens, pool_mode
         )
 
-        return embeddings
+        return embeddings_dict
+
+    def compute_accuracy(
+        self,
+        sequences_list: List[str],
+        batch_size: int = 1,
+        pass_mode: str = "forward",
+        tokens_list: List[str] = NATURAL_AAS_LIST,
+    ) -> float:
+        """Compute model accuracy from the input sequences"""
+
+        logits, labels = self.compute_logits(
+            sequences_list, batch_size, tokens_list, pass_mode
+        )
+
+        softmaxes = F.softmax(logits, dim=1)
+        _, predictions = torch.max(softmaxes, 1)
+        accuracies = predictions.eq(labels)
+
+        return accuracies.float().mean().item()
