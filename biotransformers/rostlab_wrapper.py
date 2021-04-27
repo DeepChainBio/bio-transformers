@@ -127,8 +127,7 @@ class RostlabWrapper(TransformersWrapper):
         separated_sequences_list = [" ".join(seq) for seq in sequences_list]
         encoded_inputs = self.tokenizer(
             separated_sequences_list, return_tensors="pt", padding=True,
-        )
-        #.to(self._device)
+        ).to(self._device)
         return encoded_inputs, encoded_inputs["input_ids"].to("cpu"), tokens
 
     def _model_evaluation(
@@ -156,14 +155,13 @@ class RostlabWrapper(TransformersWrapper):
         for batch_encoded in tqdm(
             self._generate_dict_chunks(model_inputs, batch_size), total=num_batch_iter
         ):
-            batch_encoded_inputs = {
-                key: value.to(self._device) for key, value in batch_encoded.items()
-            }
-            output = self.model(**batch_encoded_inputs, output_hidden_states=True)
+            with torch.no_grad():
+                output = self.model(**batch_encoded, output_hidden_states=True)
             new_logits = output.logits.detach().cpu()
             logits = torch.cat((logits, new_logits), dim=0)
             # Only keep track of the hidden states of the last layer
             new_embeddings = output.hidden_states[-1]
+
             new_embeddings = new_embeddings.detach().cpu()
             embeddings = torch.cat((embeddings, new_embeddings), dim=0)
 
