@@ -11,6 +11,9 @@ from typing import Any, Dict, Iterable, List, Tuple
 import torch
 import torch.tensor
 from torch.nn import functional as F
+import numpy as np
+
+from tqdm import tqdm
 
 from .utils import (
     TransformersModelProperties,
@@ -129,26 +132,25 @@ class TransformersWrapper(ABC):
         return NotImplemented, NotImplemented, NotImplemented
 
     @abstractmethod
-    def _model_evaluation(
-        self, model_inputs: Dict[str, torch.tensor], batch_size: int = 1,
+    def _model_pass(
+        self, model_inputs: Dict[str, torch.tensor]
     ) -> Tuple[torch.tensor, torch.tensor]:
         """Function which computes logits and embeddings based on a list of sequences"""
         return NotImplemented, NotImplemented
 
-    def _generate_chunks(self, sequences_list: List[str], batch_size: int) -> List[str]:
-        """Build a generator to yield protein sequences batch"""
-        for i in range(0, len(sequences_list), batch_size):
-            yield sequences_list[i : (i + batch_size)]
+    def _get_num_batch_iter(self, model_inputs, batch_size):
+        num_of_sequences = model_inputs["input_ids"].shape[0]
+        num_batch_iter = int(np.ceil(num_of_sequences / batch_size))
+        return num_batch_iter
 
-    def _generate_dict_chunks(
-        self, sequence_dict: Dict[str, Any], batch_size: int
+    def _generate_chunks(
+        self, model_inputs: Dict[str, Any], batch_size: int
     ) -> Dict[str, Iterable]:
         """Yield a dictionnary of tensor"""
-        first_key = list(sequence_dict.keys())[0]
-        len_sequence = len(sequence_dict[first_key])
-        for i in range(0, len_sequence, batch_size):
+        num_of_sequences = model_inputs["input_ids"].shape[0]
+        for i in range(0, num_of_sequences, batch_size):
             batch_sequence = {
-                key: value[i : (i + batch_size)] for key, value in sequence_dict.items()
+                key: value[i : (i + batch_size)] for key, value in model_inputs.items()
             }
             yield batch_sequence
 
@@ -329,6 +331,39 @@ class TransformersWrapper(ABC):
 
         return embeddings_dict
 
+    def _model_evaluation(
+        self, model_inputs: Dict[str, torch.tensor], batch_size: int = 1,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Function which computes logits and embeddings based on a list of sequences,
+        a provided batch size and an inference configuration. The output is obtained
+        by computing a forward pass through the model ("forward inference")
+
+        Args:
+            model_inputs (Dict[str, torch.tensor]): [description]
+            batch_size (int): [description]
+
+        Returns:
+            Tuple[torch.tensor, torch.tensor]:
+                    * logits [num_seqs, max_len_seqs, vocab_size]
+                    * embeddings [num_seqs, max_len_seqs+1, embedding_size]
+        """
+
+        # Initialize logits and embeddings before looping over batches
+        logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
+        embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
+
+        for batch_inputs in tqdm(
+            self._generate_chunks(model_inputs, batch_size),
+            total=self._get_num_batch_iter(model_inputs, batch_size),
+        ):
+            batch_logits, batch_embeddings = self._model_pass(batch_inputs)
+
+            embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
+            logits = torch.cat((logits, batch_logits), dim=0)
+
+        return logits, embeddings
+
     def _compute_logits(
         self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str
     ) -> torch.Tensor:
@@ -349,21 +384,6 @@ class TransformersWrapper(ABC):
         elif pass_mode == "forward":
             logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size)
         return logits
-
-    def _compute_embeddings(
-        self, model_inputs: Dict[str, torch.Tensor], batch_size: int
-    ) -> torch.Tensor:
-        """Intermediate function to compute embeddings
-
-        Args:
-            model_inputs[str] (torch.Tensor): shape -> (num_seqs, max_seq_len)
-            batch_size (int)
-
-        Returns:
-            embeddings (torch.Tensor): shape -> (num_seqs, emb_size)
-        """
-        _, embeddings = self._model_evaluation(model_inputs, batch_size=batch_size)
-        return embeddings
 
     def _compute_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
         """Intermediate function to compute accuracy
@@ -509,11 +529,22 @@ class TransformersWrapper(ABC):
             sequences_list, tokens_list
         )
 
-        embeddings = self._compute_embeddings(inputs, batch_size)
+        embeddings_dict = dict(zip(pool_mode, [torch.Tensor()] * len(pool_mode)))
 
-        embeddings_dict = self._filter_and_pool_embeddings(
-            embeddings, labels, tokens, pool_mode
-        )
+        for batch_inputs in tqdm(
+            self._generate_chunks(inputs, batch_size),
+            total=self._get_num_batch_iter(inputs, batch_size),
+        ):
+            _, batch_embeddings = self._model_pass(batch_inputs)
+
+            batch_embeddings_dict = self._filter_and_pool_embeddings(
+                batch_embeddings, labels, tokens, pool_mode
+            )
+
+            for key in pool_mode:
+                embeddings_dict[key] = torch.cat(
+                    (embeddings_dict[key], batch_embeddings_dict[key]), dim=0
+                )
 
         return embeddings_dict
 

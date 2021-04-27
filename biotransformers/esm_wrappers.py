@@ -5,9 +5,7 @@ specific to the ESM model developed by FAIR (https://github.com/facebookresearch
 from typing import Dict, List, Tuple
 
 import esm
-import numpy as np
 import torch
-from tqdm import tqdm
 
 from .transformers_wrappers import (
     TransformersModelProperties,
@@ -125,15 +123,18 @@ class ESMWrapper(TransformersWrapper):
         _, _, all_tokens = self.batch_converter(
             [("", sequence) for sequence in sequences_list]
         )
+
+        all_tokens = all_tokens.to("cpu")
+
         encoded_inputs = {
             "input_ids": all_tokens,
             "attention_mask": 1 * (all_tokens != self.token_to_id(self.pad_token)),
             "token_type_ids": torch.zeros(all_tokens.shape),
         }
-        return encoded_inputs, all_tokens.to("cpu"), tokens
+        return encoded_inputs, all_tokens, tokens
 
-    def _model_evaluation(
-        self, model_inputs: Dict[str, torch.tensor], batch_size: int = 1,
+    def _model_pass(
+        self, model_inputs: Dict[str, torch.tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
@@ -142,38 +143,19 @@ class ESMWrapper(TransformersWrapper):
 
         Args:
             model_inputs (Dict[str, torch.tensor]): [description]
-            batch_size (int): [description]
 
         Returns:
             Tuple[torch.tensor, torch.tensor]:
                     * logits [num_seqs, max_len_seqs, vocab_size]
                     * embeddings [num_seqs, max_len_seqs+1, embedding_size]
         """
-        # Define number of iterations
-        num_batch_iter = int(np.ceil(model_inputs["input_ids"].shape[0] / batch_size))
-        # Initialize probabilities and embeddings before looping over batches
-        logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
-        embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
+        last_layer = self.model.num_layers - 1
+        with torch.no_grad():
+            model_outputs = self.model(
+                model_inputs["input_ids"].to(self._device), repr_layers=[last_layer]
+            )
 
-        all_tokens = model_inputs["input_ids"]
-
-        for batch_tokens in tqdm(
-            self._generate_chunks(all_tokens, batch_size), total=num_batch_iter
-        ):
-            batch_tokens = batch_tokens.to(self._device)
-            last_layer = self.model.num_layers - 1
-
-            with torch.no_grad():
-                results = self.model(batch_tokens, repr_layers=[last_layer])
-
-            # Also include first token embedding (for the beginning of the sentence)
-            new_embeddings = results["representations"][last_layer]
-            new_embeddings = new_embeddings.detach().cpu()
-            embeddings = torch.cat((embeddings, new_embeddings), dim=0)
-
-            #  Get the logits : token 0 is always a beginning-of-sequence token
-            #  , so the first residue is token 1.
-            new_logits = results["logits"].detach().cpu()
-            logits = torch.cat((logits, new_logits), dim=0)
+            logits = model_outputs["logits"].detach().cpu()
+            embeddings = model_outputs["representations"][last_layer].detach().cpu()
 
         return logits, embeddings
