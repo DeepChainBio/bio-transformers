@@ -11,12 +11,13 @@ from typing import Any, Dict, Iterable, List, Tuple
 import torch
 import torch.tensor
 from torch.nn import functional as F
+from torch.nn import DataParallel
 
 from .utils import (
     TransformersModelProperties,
     _check_sequence,
 )
-
+from .gpus_utils import set_device
 
 NATURAL_AAS = "ACDEFGHIKLMNPQRSTVWY"
 NATURAL_AAS_LIST = [AA for AA in NATURAL_AAS]
@@ -32,6 +33,7 @@ class TransformersWrapper(ABC):
         self,
         model_dir: str,
         _device: str = None,
+        multi_gpu: bool = False,
         vocab_token_list: List[str] = None,
         mask_bool: bool = False,
     ):
@@ -43,19 +45,10 @@ class TransformersWrapper(ABC):
             vocab_token_list (List[str], optional): . Defaults to list(NATURAL_AAS).
             mask_bool (bool, optional): Wether to use mask or not for inference.
         """
+        _device, _multi_gpu = set_device(_device, multi_gpu)
 
-        if _device is not None:
-            print("Requested device: ", _device)
-            if "cuda" in _device:
-                try:
-                    assert torch.cuda.is_available()
-                except AssertionError:
-                    print("No GPU available")
-                _device = "cpu"
-        else:
-            _device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self._device = torch.device(_device)
-
+        self.multi_gpu = _multi_gpu
         self.model_dir = model_dir
         self.mask_bool = mask_bool
         self.vocab_token_list = (
@@ -303,28 +296,29 @@ class TransformersWrapper(ABC):
         Returns:
             embeddings[str] (torch.Tensor): shape -> (num_seqs, emb_size)
         """
+        # cls pooling
+        embeddings_dict = {}
+        if "cls" in pool_mode:
+            embeddings_dict["cls"] = embeddings[:, 0, :]
 
         # tokens filtering
         mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
         for token_id in tokens:
             mask_filter += labels == token_id
-        embeddings_list = [seq[msk] for seq, msk in zip(embeddings, mask_filter)]
+        embeddings = [seq[msk] for seq, msk in zip(embeddings, mask_filter)]
 
         # embeddings pooling
-        embeddings_dict = {}
-        if "cls" in pool_mode:
-            embeddings_dict["cls"] = embeddings[:, 0, :]
         if "mean" in pool_mode:
             embeddings_dict["mean"] = torch.stack(
-                [torch.mean(emb.float(), axis=0) for emb in embeddings_list]
+                [torch.mean(emb.float(), axis=0) for emb in embeddings]
             )
         if "max" in pool_mode:
             embeddings_dict["max"] = torch.stack(
-                [torch.max(emb.float(), 0)[0] for emb in embeddings_list]
+                [torch.max(emb.float(), 0)[0] for emb in embeddings]
             )
         if "min" in pool_mode:
             embeddings_dict["min"] = torch.stack(
-                [torch.min(emb.float(), 0)[0] for emb in embeddings_list]
+                [torch.min(emb.float(), 0)[0] for emb in embeddings]
             )
 
         return embeddings_dict
@@ -447,9 +441,7 @@ class TransformersWrapper(ABC):
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list
         )
-
         logits = self._compute_logits(inputs, batch_size, pass_mode)
-
         logits, labels = self._filter_logits(logits, labels, tokens)
 
         return logits, labels
@@ -480,7 +472,6 @@ class TransformersWrapper(ABC):
         )
 
         logits = self._compute_logits(inputs, batch_size, pass_mode)
-
         loglikelihoods = self._filter_loglikelihoods(logits, labels, tokens)
 
         return loglikelihoods
@@ -510,7 +501,6 @@ class TransformersWrapper(ABC):
         )
 
         embeddings = self._compute_embeddings(inputs, batch_size)
-
         embeddings_dict = self._filter_and_pool_embeddings(
             embeddings, labels, tokens, pool_mode
         )
@@ -533,9 +523,7 @@ class TransformersWrapper(ABC):
         )
 
         logits = self._compute_logits(inputs, batch_size, pass_mode)
-
         logits, labels = self._filter_logits(logits, labels, tokens)
-
         accuracy = self._compute_accuracy(logits, labels)
 
         return accuracy
@@ -557,9 +545,7 @@ class TransformersWrapper(ABC):
         )
 
         logits = self._compute_logits(inputs, batch_size, pass_mode)
-
         logits, labels = self._filter_logits(logits, labels, tokens)
-
         calibration_dict = self._compute_calibration(logits, labels, n_bins)
 
         return calibration_dict

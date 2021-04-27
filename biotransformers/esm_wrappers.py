@@ -8,11 +8,14 @@ import esm
 import numpy as np
 import torch
 from tqdm import tqdm
+from torch.nn import DataParallel
 
 from .transformers_wrappers import (
     TransformersModelProperties,
     TransformersWrapper,
 )
+
+from .gpus_utils import set_device
 
 # List all ESM models
 esm_list = [
@@ -35,7 +38,7 @@ class ESMWrapper(TransformersWrapper):
     a protein likelihood so as other insights.
     """
 
-    def __init__(self, model_dir: str, device: str = None):
+    def __init__(self, model_dir: str, device, multi_gpu):
 
         if model_dir not in esm_list:
             print(
@@ -44,11 +47,16 @@ class ESMWrapper(TransformersWrapper):
             )
             model_dir = DEFAULT_MODEL
 
-        super().__init__(model_dir, _device=device)
+        super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
 
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
+        self.num_layers = self.model.num_layers
+
         # TODO: use nn.Parallel to make parallel inference
-        self.model = self.model.to(self._device)
+        if self.multi_gpu:
+            self.model = DataParallel(self.model).to(self._device)
+        else:
+            self.model = self.model.to(self._device)
         self.batch_converter = self.alphabet.get_batch_converter()
 
     @property
@@ -161,7 +169,7 @@ class ESMWrapper(TransformersWrapper):
             self._generate_chunks(all_tokens, batch_size), total=num_batch_iter
         ):
             batch_tokens = batch_tokens.to(self._device)
-            last_layer = self.model.num_layers - 1
+            last_layer = self.num_layers - 1
 
             with torch.no_grad():
                 results = self.model(batch_tokens, repr_layers=[last_layer])

@@ -22,6 +22,7 @@ class BioTransformers:
         self,
         backend: str = "esm1_t6_43M_UR50S",
         device: str = None,
+        multi_gpu: bool = False
     ):
         pass
 
@@ -29,14 +30,15 @@ class BioTransformers:
         cls,
         backend: str = "esm1_t6_43M_UR50S",
         device: str = None,
+        multi_gpu: bool = False
     ):
         format_list = "\n".join(format_backend(BACKEND_LIST))
         assert backend in BACKEND_LIST, f"Choose backend in \n\n{format_list}"
 
         if backend.__contains__("esm"):
-            instance = ESMWrapper(backend, device=device)
+            instance = ESMWrapper(backend, device=device, multi_gpu=multi_gpu)
         else:
-            instance = RostlabWrapper(MAPPING_PROTBERT[backend], device=device)
+            instance = RostlabWrapper(MAPPING_PROTBERT[backend], device=device, multi_gpu=multi_gpu)
         return instance
 
     @staticmethod

@@ -11,6 +11,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import BertForMaskedLM, BertTokenizer
+from torch.nn import DataParallel
 
 from .transformers_wrappers import (
     TransformersModelProperties,
@@ -27,7 +28,7 @@ class RostlabWrapper(TransformersWrapper):
     a protein likelihood so as other insights.
     """
 
-    def __init__(self, model_dir: str, device: str = None):
+    def __init__(self, model_dir: str, device, multi_gpu):
 
         if model_dir not in rostlab_list:
             print(
@@ -36,7 +37,7 @@ class RostlabWrapper(TransformersWrapper):
             )
             model_dir = DEFAULT_MODEL
 
-        super().__init__(model_dir, _device=device)
+        super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
 
         self.tokenizer = BertTokenizer.from_pretrained(
             model_dir, do_lower_case=False, padding=True
@@ -45,6 +46,8 @@ class RostlabWrapper(TransformersWrapper):
         self.model = (
             BertForMaskedLM.from_pretrained(self.model_dir).eval().to(self._device)
         )
+        if self.multi_gpu:
+            self.model = DataParallel(self.model)
 
         self.mask_pipeline = None
 
@@ -124,7 +127,8 @@ class RostlabWrapper(TransformersWrapper):
         separated_sequences_list = [" ".join(seq) for seq in sequences_list]
         encoded_inputs = self.tokenizer(
             separated_sequences_list, return_tensors="pt", padding=True,
-        ).to(self._device)
+        )
+        #.to(self._device)
         return encoded_inputs, encoded_inputs["input_ids"].to("cpu"), tokens
 
     def _model_evaluation(
