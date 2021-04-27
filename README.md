@@ -11,17 +11,18 @@
 
 <details><summary>Table of contents</summary>
 
-- [Description](#description)
+- [Description](#bio-transformers)
 - [Installation](#Installation)
 - [Usage](#usage)
   - [Quick Start](#quickstart)
   - [Compute embeddings](#embeddings)
   - [Pseudo-Loglikelihood](#pseudo-loglikelihood)
+- [Roadmap](#roadmap)
 - [Citations](#citations)
 - [License](#license)
 </details>
 
-# Bio-tranformers
+# Bio-transformers
 bio-transformers is a python wrapper on top of the **ESM/Protbert** model, which are **Transformers protein language model**, trained on millions on proteins and used to predict embeddings.
 This package provide other functionalities (like compute the loglikelihood of a protein) or compute embeddings on multiple-gpu.
 
@@ -36,7 +37,7 @@ It is recommended to work with conda environnements in order to manage the speci
   conda activate bio-transformers
   pip install bio-transformers
 ```
-## Usage
+# Usage
 
 ## Quick start
 The main class ```BioTranformers``` allow the developper to use Protbert and ESM backend
