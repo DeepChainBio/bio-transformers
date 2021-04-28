@@ -6,11 +6,9 @@ from typing import Dict, List, Tuple
 
 import esm
 import torch
+from torch.nn import DataParallel
 
-from .transformers_wrappers import (
-    TransformersModelProperties,
-    TransformersWrapper,
-)
+from .transformers_wrappers import TransformersModelProperties, TransformersWrapper
 
 # List all ESM models
 esm_list = [
@@ -33,7 +31,7 @@ class ESMWrapper(TransformersWrapper):
     a protein likelihood so as other insights.
     """
 
-    def __init__(self, model_dir: str, device: str = None):
+    def __init__(self, model_dir: str, device, multi_gpu):
 
         if model_dir not in esm_list:
             print(
@@ -42,11 +40,16 @@ class ESMWrapper(TransformersWrapper):
             )
             model_dir = DEFAULT_MODEL
 
-        super().__init__(model_dir, _device=device)
+        super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
 
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
+        self.num_layers = self.model.num_layers
+
         # TODO: use nn.Parallel to make parallel inference
-        self.model = self.model.to(self._device)
+        if self.multi_gpu:
+            self.model = DataParallel(self.model).to(self._device)
+        else:
+            self.model = self.model.to(self._device)
         self.batch_converter = self.alphabet.get_batch_converter()
 
     @property
@@ -159,7 +162,7 @@ class ESMWrapper(TransformersWrapper):
                     * logits [num_seqs, max_len_seqs, vocab_size]
                     * embeddings [num_seqs, max_len_seqs+1, embedding_size]
         """
-        last_layer = self.model.num_layers - 1
+        last_layer = self.num_layers - 1
         with torch.no_grad():
             model_outputs = self.model(
                 model_inputs["input_ids"].to(self._device), repr_layers=[last_layer]
