@@ -1,6 +1,10 @@
+import math
 from dataclasses import dataclass
 from typing import List
-import math
+
+from biotransformers.utils.logger import logger
+
+log = logger("utils")
 
 
 def convert_bytes_size(size_bytes):
@@ -20,10 +24,10 @@ def _check_memory_embeddings(sequences_list, embeddings_size, pool_mode):
     memory_bits = num_of_sequences * embeddings_size * emb_dict_len * tensor_memory_bits
     memory_bytes = int(memory_bits / 8)
     memory_convert_bytes = convert_bytes_size(memory_bytes)
-    print(
-        "Warning: embeddings will need about",
+    log.warning(
+        "Embeddings will need about %s of memory."
+        "Please make sure you have enough space",
         memory_convert_bytes,
-        "of memory. Please make sure you have enough space",
     )
 
 
@@ -39,12 +43,10 @@ def _check_memory_logits(sequences_list, vocab_size, pass_mode):
 
     memory_bytes = int(memory_bits / 8)
     memory_convert_bytes = convert_bytes_size(memory_bytes)
-    print(
-        "Warning:",
+    log.warning(
+        "%s mode will need about %s of memory. Please make sure you have enough space",
         pass_mode,
-        "mode will need about",
         memory_convert_bytes,
-        "of memory. Please make sure you have enough space",
     )
 
 

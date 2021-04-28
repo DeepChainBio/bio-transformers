@@ -21,11 +21,11 @@ def set_device(device: str, multi_gpu: bool) -> Tuple[str, bool]:
     n_gpus = torch.cuda.device_count()
     if multi_gpu:
         if not torch.cuda.is_available():
-            log.Warning("No GPU available, use CPU device")
+            log.warning("No GPU available, use CPU device")
             return "cpu", False
 
         if not n_gpus > 1:
-            log.Warning("Trying to use multi-gpu with only one device")
+            log.warning("Trying to use multi-gpu with only one device, use cuda:0")
             return "cuda:0", False
         else:
             return "cuda", True
@@ -33,7 +33,7 @@ def set_device(device: str, multi_gpu: bool) -> Tuple[str, bool]:
     if device is not None:
         if "cuda" in device:
             if not torch.cuda.is_available():
-                log.Warning("No GPU available, use CPU device")
+                log.warning("No GPU available, use CPU device")
                 return "cpu", False
             else:
                 return device, False
