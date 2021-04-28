@@ -1,10 +1,14 @@
 from typing import Tuple
 
 import torch
+from biotransformers.utils.logger import logger
+
+log = logger("gpus_utils")
 
 
-def set_device(device, multi_gpu) -> Tuple[str, bool]:
+def set_device(device: str, multi_gpu: bool) -> Tuple[str, bool]:
     """Set the correct device CPU/GPU
+
     Args:
         device (str) : could be cpu/cuda:0/cuda
         multi_gpu (bool) : use multi_gpu the same Node
@@ -17,11 +21,11 @@ def set_device(device, multi_gpu) -> Tuple[str, bool]:
     n_gpus = torch.cuda.device_count()
     if multi_gpu:
         if not torch.cuda.is_available():
-            print("No gpu available, use cpu device")
+            log.Warning("No GPU available, use CPU device")
             return "cpu", False
 
         if not n_gpus > 1:
-            print("Trying to use multi-gpu with only one device")
+            log.Warning("Trying to use multi-gpu with only one device")
             return "cuda:0", False
         else:
             return "cuda", True
@@ -29,7 +33,7 @@ def set_device(device, multi_gpu) -> Tuple[str, bool]:
     if device is not None:
         if "cuda" in device:
             if not torch.cuda.is_available():
-                print("No GPU available")
+                log.Warning("No GPU available, use CPU device")
                 return "cpu", False
             else:
                 return device, False

@@ -2,8 +2,8 @@
 
 from typing import List
 
-from .esm_wrappers import ESMWrapper, esm_list
-from .rostlab_wrapper import RostlabWrapper
+from biotransformers.wrappers.esm_wrappers import ESMWrapper, esm_list
+from biotransformers.wrappers.rostlab_wrapper import RostlabWrapper
 
 MAPPING_PROTBERT = {
     "protbert": "Rostlab/prot_bert",

@@ -6,9 +6,11 @@ from typing import Dict, List, Tuple
 
 import esm
 import torch
+from biotransformers.wrappers.transformers_wrappers import (
+    TransformersModelProperties,
+    TransformersWrapper,
+)
 from torch.nn import DataParallel
-
-from .transformers_wrappers import TransformersModelProperties, TransformersWrapper
 
 # List all ESM models
 esm_list = [
@@ -45,8 +47,6 @@ class ESMWrapper(TransformersWrapper):
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
         self.num_layers = self.model.num_layers
         self.hidden_size = self.model.args.embed_dim
-        
-        # TODO: use nn.Parallel to make parallel inference
         if self.multi_gpu:
             self.model = DataParallel(self.model).to(self._device)
         else:

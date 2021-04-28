@@ -10,16 +10,15 @@ from typing import Any, Dict, Generator, Iterable, List, Tuple
 import numpy as np
 import torch
 import torch.tensor
-from torch.nn import functional as F  # noqa: N812
-from tqdm import tqdm
-
-from .gpus_utils import set_device
-from .utils import (
+from biotransformers.utils.gpus_utils import set_device
+from biotransformers.utils.utils import (
     TransformersModelProperties,
     _check_memory_embeddings,
     _check_memory_logits,
     _check_sequence,
 )
+from torch.nn import functional as F  # noqa: N812
+from tqdm import tqdm
 
 NATURAL_AAS = "ACDEFGHIKLMNPQRSTVWY"
 NATURAL_AAS_LIST = list(NATURAL_AAS)

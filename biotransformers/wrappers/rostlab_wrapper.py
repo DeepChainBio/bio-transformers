@@ -8,10 +8,12 @@ hugging face
 from typing import Dict, List, Tuple
 
 import torch
+from biotransformers.wrappers.transformers_wrappers import (
+    TransformersModelProperties,
+    TransformersWrapper,
+)
 from torch.nn import DataParallel
 from transformers import BertForMaskedLM, BertTokenizer
-
-from .transformers_wrappers import TransformersModelProperties, TransformersWrapper
 
 rostlab_list = ["Rostlab/prot_bert", "Rostlab/prot_bert_bfd"]
 DEFAULT_MODEL = "Rostlab/prot_bert"

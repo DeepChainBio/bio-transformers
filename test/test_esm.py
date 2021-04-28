@@ -1,4 +1,5 @@
 """Test module for testing loglikelihood function"""
+import torch
 from biotransformers import BioTransformers
 
 test_sequences = [
@@ -9,11 +10,11 @@ test_sequences = [
 
 def test_esm_loglikelihood():
     test_trans = BioTransformers("esm1_t34_670M_UR100")
-    loglikelihood = test_trans.compute_loglikelihood(test_sequences)
-    assert isinstance(loglikelihood, list)
+    loglikelihood = test_trans.compute_loglikelihoods(test_sequences)
+    assert isinstance(loglikelihood, torch.Tensor)
 
 
-def test_protbert_loglikelihood():
-    test_trans = BioTransformers("protbert")
-    loglikelihood = test_trans.compute_loglikelihood(test_sequences)
-    assert isinstance(loglikelihood, list)
+def test_esm_embeddings():
+    test_trans = BioTransformers("esm1_t34_670M_UR100")
+    embedding = test_trans.compute_embeddings(test_sequences)
+    assert isinstance(embedding, dict)
