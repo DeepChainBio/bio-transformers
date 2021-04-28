@@ -41,6 +41,7 @@ class RostlabWrapper(TransformersWrapper):
         self.model = (
             BertForMaskedLM.from_pretrained(self.model_dir).eval().to(self._device)
         )
+        self.hidden_size = self.model.config.hidden_size
         if self.multi_gpu:
             self.model = DataParallel(self.model)
 
@@ -116,7 +117,7 @@ class RostlabWrapper(TransformersWrapper):
     @property
     def embeddings_size(self) -> int:
         """Returns size of the embeddings"""
-        return self.model.config.hidden_size
+        return self.hidden_size
 
     def _process_sequences_and_tokens(
         self, sequences_list: List[str], tokens_list: List[str]

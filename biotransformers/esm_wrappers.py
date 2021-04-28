@@ -44,7 +44,8 @@ class ESMWrapper(TransformersWrapper):
 
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
         self.num_layers = self.model.num_layers
-
+        self.hidden_size = self.model.args.embed_dim
+        
         # TODO: use nn.Parallel to make parallel inference
         if self.multi_gpu:
             self.model = DataParallel(self.model).to(self._device)
@@ -120,7 +121,7 @@ class ESMWrapper(TransformersWrapper):
     @property
     def embeddings_size(self):
         """Returns size of the embeddings"""
-        return self.model.args.embed_dim
+        return self.hidden_size
 
     def _process_sequences_and_tokens(
         self, sequences_list: List[str], tokens_list: List[str]
