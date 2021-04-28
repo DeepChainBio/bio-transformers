@@ -531,7 +531,7 @@ class TransformersWrapper(ABC):
         """
         _check_sequence(sequences_list, self.model_dir, 1024)
 
-        _check_memory_embeddings(sequences_list, self.embeddings_size)
+        _check_memory_embeddings(sequences_list, self.embeddings_size, pool_mode)
 
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list

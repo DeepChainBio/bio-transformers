@@ -14,10 +14,11 @@ def convert_bytes_size(size_bytes):
     return "%s %s" % (s, size_name[i])
 
 
-def _check_memory_embeddings(sequences_list, embeddings_size):
+def _check_memory_embeddings(sequences_list, embeddings_size, pool_mode):
     num_of_sequences = len(sequences_list)
     tensor_memory_bits = 64  # double/float64
-    memory_bits = num_of_sequences * embeddings_size * tensor_memory_bits
+    emb_dict_len = len(pool_mode)
+    memory_bits = num_of_sequences * embeddings_size * tensor_memory_bits * emb_dict_len
     memory_bytes = int(memory_bits / 8)
     memory_convert_bytes = convert_bytes_size(memory_bytes)
     print(
