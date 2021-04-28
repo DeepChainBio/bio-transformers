@@ -11,7 +11,7 @@ def convert_bytes_size(size_bytes):
     i = int(math.floor(math.log(size_bytes, 1024)))
     p = math.pow(1024, i)
     s = int(round(size_bytes / p, 2))
-    return "%s %s" % (s, size_name[i])
+    return "%s%s" % (s, size_name[i])
 
 
 def _check_memory_embeddings(sequences_list, embeddings_size, pool_mode):
@@ -24,16 +24,15 @@ def _check_memory_embeddings(sequences_list, embeddings_size, pool_mode):
     print(
         "Warning: embeddings will need about",
         memory_convert_bytes,
-        "of memory. Please make sure you have enough space.",
+        "of memory. Please make sure you have enough space",
     )
 
 
 def _check_memory_logits(sequences_list, vocab_size, pass_mode):
-    # worst case estimation; with all vocab considered
     num_of_sequences = len(sequences_list)
     sum_seq_len = sum([len(seq) for seq in sequences_list])
     max_seq_len = max([len(seq) for seq in sequences_list])
-    tensor_memory_bits = 64  # double/float64 or long/int64
+    tensor_memory_bits = 64  # double/float64
     if pass_mode == "masked":
         memory_bits = sum_seq_len * max_seq_len * vocab_size * tensor_memory_bits
     elif pass_mode == "forward":
@@ -42,9 +41,11 @@ def _check_memory_logits(sequences_list, vocab_size, pass_mode):
     memory_bytes = int(memory_bits / 8)
     memory_convert_bytes = convert_bytes_size(memory_bytes)
     print(
-        "Warning: logits will need about",
+        "Warning:",
+        pass_mode,
+        "mode will need about",
         memory_convert_bytes,
-        "of memory. Please make sure you have enough space.",
+        "of memory. Please make sure you have enough space",
     )
 
 
