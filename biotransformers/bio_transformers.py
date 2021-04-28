@@ -2,8 +2,8 @@
 
 from typing import List
 
-from .esm_wrappers import ESMWrapper, esm_list
-from .rostlab_wrapper import RostlabWrapper
+from biotransformers.wrappers.esm_wrappers import ESMWrapper, esm_list
+from biotransformers.wrappers.rostlab_wrapper import RostlabWrapper
 
 MAPPING_PROTBERT = {
     "protbert": "Rostlab/prot_bert",
@@ -22,6 +22,7 @@ class BioTransformers:
         self,
         backend: str = "esm1_t6_43M_UR50S",
         device: str = None,
+        multi_gpu: bool = False,
     ):
         pass
 
@@ -29,15 +30,17 @@ class BioTransformers:
         cls,
         backend: str = "esm1_t6_43M_UR50S",
         device: str = None,
+        multi_gpu: bool = False,
     ):
         format_list = "\n".join(format_backend(BACKEND_LIST))
         assert backend in BACKEND_LIST, f"Choose backend in \n\n{format_list}"
 
         if backend.__contains__("esm"):
-            instance = ESMWrapper(backend, device=device)
+            return ESMWrapper(backend, device=device, multi_gpu=multi_gpu)
         else:
-            instance = RostlabWrapper(MAPPING_PROTBERT[backend], device=device)
-        return instance
+            return RostlabWrapper(
+                MAPPING_PROTBERT[backend], device=device, multi_gpu=multi_gpu
+            )
 
     @staticmethod
     def list_backend() -> None:
