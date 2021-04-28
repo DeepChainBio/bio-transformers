@@ -19,6 +19,7 @@ from .utils import (
     TransformersModelProperties,
     _check_sequence,
     _check_memory_embeddings,
+    _check_memory_logits,
 )
 
 
@@ -91,6 +92,11 @@ class TransformersWrapper(ABC):
     @abstractmethod
     def model_vocabulary(self) -> List[str]:
         """Returns the whole vocabulary list"""
+
+    @property
+    @abstractmethod
+    def vocab_size(self) -> int:
+        """Returns the whole vocabulary size"""
 
     @property
     @abstractmethod
@@ -470,6 +476,8 @@ class TransformersWrapper(ABC):
         """
         _check_sequence(sequences_list, self.model_dir, 1024)
 
+        _check_memory_logits(sequences_list, self.vocab_size, pass_mode)
+
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list
         )
@@ -500,6 +508,8 @@ class TransformersWrapper(ABC):
         """
 
         _check_sequence(sequences_list, self.model_dir, 1024)
+
+        _check_memory_logits(sequences_list, self.vocab_size, pass_mode)
 
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list

@@ -78,6 +78,11 @@ class ESMWrapper(TransformersWrapper):
         return list(self.alphabet.tok_to_idx.keys())
 
     @property
+    def vocab_size(self) -> int:
+        """Returns the whole vocabulary size"""
+        return len(list(self.alphabet.tok_to_idx.keys()))
+
+    @property
     def model_vocab_ids(self) -> List[int]:
         """List of all vocabulary IDs to consider (as ints), which may be a subset
         of the model vocabulary (based on self.vocab_token_list)"""
