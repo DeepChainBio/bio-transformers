@@ -1,6 +1,30 @@
 import functools
 from dataclasses import dataclass
 from typing import List
+import math
+
+
+def convert_bytes_size(size_bytes):
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = int(round(size_bytes / p, 2))
+    return "%s %s" % (s, size_name[i])
+
+
+def _check_memory_embeddings(sequences_list, embeddings_size):
+    num_of_sequences = len(sequences_list)
+    tensor_memory_bits = 64  # double/float64
+    memory_bits = num_of_sequences * embeddings_size * tensor_memory_bits
+    memory_bytes = int(memory_bits / 8)
+    memory_convert_bytes = convert_bytes_size(memory_bytes)
+    print(
+        "Warning: embeddings will need about",
+        memory_convert_bytes,
+        "of memory. Please make sure you have enough space.",
+    )
 
 
 def _check_sequence(sequences_list: List[str], model: str, length: int):

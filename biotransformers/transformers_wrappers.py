@@ -18,6 +18,7 @@ from tqdm import tqdm
 from .utils import (
     TransformersModelProperties,
     _check_sequence,
+    _check_memory_embeddings,
 )
 
 
@@ -123,6 +124,11 @@ class TransformersWrapper(ABC):
     @abstractmethod
     def token_to_id(self):
         """Returns a function which maps tokens to IDs"""
+
+    @property
+    @abstractmethod
+    def embeddings_size(self) -> int:
+        """Returns size of the embeddings"""
 
     @abstractmethod
     def _process_sequences_and_tokens(
@@ -524,6 +530,8 @@ class TransformersWrapper(ABC):
             torch.Tensor: Tensor of shape [number_of_sequences, embeddings_size]
         """
         _check_sequence(sequences_list, self.model_dir, 1024)
+
+        _check_memory_embeddings(sequences_list, self.embeddings_size)
 
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list

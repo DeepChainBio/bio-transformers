@@ -109,6 +109,11 @@ class ESMWrapper(TransformersWrapper):
         """Returns a function which maps tokens to IDs"""
         return lambda x: self.alphabet.tok_to_idx[x]
 
+    @property
+    def embeddings_size(self):
+        """Returns size of the embeddings"""
+        return self.model.args.embed_dim
+
     def _process_sequences_and_tokens(
         self, sequences_list: List[str], tokens_list: List[str]
     ) -> Tuple[Dict[str, torch.tensor], torch.tensor, List[int]]:

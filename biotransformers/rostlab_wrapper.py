@@ -108,6 +108,11 @@ class RostlabWrapper(TransformersWrapper):
         """Returns a function which maps tokens to IDs"""
         return lambda x: self.tokenizer.convert_tokens_to_ids(x)
 
+    @property
+    def embeddings_size(self) -> int:
+        """Returns size of the embeddings"""
+        return self.model.config.hidden_size
+
     def _process_sequences_and_tokens(
         self, sequences_list: List[str], tokens_list: List[str]
     ) -> Tuple[Dict[str, torch.tensor], torch.tensor, List[int]]:
@@ -130,9 +135,9 @@ class RostlabWrapper(TransformersWrapper):
         self, model_inputs: Dict[str, torch.tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Function which computes logits and embeddings based on a list of sequences,
-        a provided batch size and an inference configuration. The output is obtained
-        by computing a forward pass through the model ("forward inference")
+        Function which computes logits and embeddings based on a dict of sequences 
+        tensors, a provided batch size and an inference configuration. The output is 
+        obtained by computing a forward pass through the model ("forward inference")
 
         Args:
             model_inputs (Dict[str, torch.tensor]): [description]
