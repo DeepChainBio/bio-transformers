@@ -5,20 +5,23 @@ It allows to derive probabilities, embeddings and log-likelihoods based on input
 sequences, and displays some properties of the transformer model.
 """
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Tuple
 
 import numpy as np
 import torch
+import torch.tensor
+from torch.nn import functional as F  # noqa: N812
+from tqdm import tqdm
 
 from .utils import (
-    TransformersInferenceConfig,
     TransformersModelProperties,
+    _check_memory_embeddings,
+    _check_memory_logits,
     _check_sequence,
 )
 
-Probs = Dict[str, float]
-SequenceProbs = List[Probs]
 NATURAL_AAS = "ACDEFGHIKLMNPQRSTVWY"
+NATURAL_AAS_LIST = list(NATURAL_AAS)
 
 
 class TransformersWrapper(ABC):
@@ -84,6 +87,16 @@ class TransformersWrapper(ABC):
 
     @property
     @abstractmethod
+    def model_vocabulary(self) -> List[str]:
+        """Returns the whole vocabulary list"""
+
+    @property
+    @abstractmethod
+    def vocab_size(self) -> int:
+        """Returns the whole vocabulary size"""
+
+    @property
+    @abstractmethod
     def model_vocab_ids(self) -> List[int]:
         """List of all vocabulary IDs to consider (as ints), which may be a subset
         of the model vocabulary (based on self.vocab_token_list)"""
@@ -92,6 +105,11 @@ class TransformersWrapper(ABC):
     @abstractmethod
     def mask_token(self) -> str:
         """Representation of the mask token (as a string)"""
+
+    @property
+    @abstractmethod
+    def pad_token(self) -> str:
+        """Representation of the pad token (as a string)"""
 
     @property
     @abstractmethod
@@ -110,302 +128,491 @@ class TransformersWrapper(ABC):
     def token_to_id(self):
         """Returns a function which maps tokens to IDs"""
 
-    @staticmethod
-    def softmaxbh(x: Union[np.array, torch.Tensor]) -> Union[np.array, torch.Tensor]:
-        """
-        Compute softmax values for each sets of scores in x. The max is computed
-        on the last dimension.
-        """
-        e_x = np.exp(x - np.max(x, axis=-1, keepdims=True))
-        return e_x / e_x.sum(axis=-1, keepdims=True)
-
-    def update_oov_logits(self, logits: torch.tensor) -> torch.tensor:
-        """Function to replace the logits by (-infinity) values if the tokens are not
-           part of the selected vocabulary.
-
-        Args:
-            logits (torch.tensor): [description]
-
-        Returns:
-            torch.tensor: [description]
-        """
-        oov_vocab_ids = [
-            id for id in range(logits.shape[-1]) if id not in self.model_vocab_ids
-        ]
-        logits[:, :, oov_vocab_ids] = -float("Inf")
-        return logits
+    @property
+    @abstractmethod
+    def embeddings_size(self) -> int:
+        """Returns size of the embeddings"""
 
     @abstractmethod
-    def _compute_forward_output(
-        self, sequences_list: List[str], batch_size: int = 1
-    ) -> Dict[torch.tensor, torch.tensor]:
+    def _process_sequences_and_tokens(
+        self, sequences_list: List[str], tokens_list: List[str]
+    ) -> Tuple[Dict[str, torch.tensor], torch.tensor, List[int]]:
+        """Function to transform tokens string to IDs; it depends on the model used"""
+        return NotImplemented, NotImplemented, NotImplemented
+
+    @abstractmethod
+    def _model_pass(
+        self, model_inputs: Dict[str, torch.tensor]
+    ) -> Tuple[torch.tensor, torch.tensor]:
+        """Function which computes logits and embeddings based on a list of sequences"""
+        return NotImplemented, NotImplemented
+
+    def _get_num_batch_iter(self, model_inputs: Dict[str, Any], batch_size: int) -> int:
+        num_of_sequences = model_inputs["input_ids"].shape[0]
+        num_batch_iter = int(np.ceil(num_of_sequences / batch_size))
+        return num_batch_iter
+
+    def _generate_chunks(
+        self, model_inputs: Dict[str, Any], batch_size: int
+    ) -> Generator[Dict[str, Iterable], None, None]:
+        """Yield a dictionnary of tensor"""
+        num_of_sequences = model_inputs["input_ids"].shape[0]
+        for i in range(0, num_of_sequences, batch_size):
+            batch_sequence = {
+                key: value[i : (i + batch_size)] for key, value in model_inputs.items()
+            }
+            yield batch_sequence
+
+    def _repeat_and_mask_inputs(
+        self, model_inputs: Dict[str, torch.Tensor]
+    ) -> Tuple[Dict[str, torch.Tensor], List[List]]:
+        """Create new tensor by masking each token and repeating sequence
+
+        Args:
+            model_inputs[str] (torch.Tensor): shape -> (num_seqs, max_seq_len)
+
+        Returns:
+            model_inputs (torch.Tensor): shape -> (sum_tokens, max_seq_len)
+            masked_ids_list (List[List]) : len -> (num_seqs)
+        """
+        new_input_ids = []
+        new_attention_mask = []
+        new_token_type_ids = []
+        mask_ids = []
+        for sequence, binary_mask, zeros in zip(
+            model_inputs["input_ids"],
+            model_inputs["attention_mask"],
+            model_inputs["token_type_ids"],
+        ):
+            mask_id = []
+            for i in range(1, sum(binary_mask) - 1):
+                mask_sequence = torch.tensor(
+                    sequence[:i].tolist()
+                    + [self.token_to_id(self.mask_token)]
+                    + sequence[i + 1 :].tolist(),
+                    dtype=torch.int64,
+                )
+                new_input_ids.append(mask_sequence)
+                new_attention_mask.append(binary_mask)
+                new_token_type_ids.append(zeros)
+                mask_id.append(i)
+            mask_ids.append(mask_id)
+        model_inputs["input_ids"] = torch.stack(new_input_ids)
+        model_inputs["attention_mask"] = torch.stack(new_attention_mask)
+        model_inputs["token_type_ids"] = torch.stack(new_token_type_ids)
+        return model_inputs, mask_ids
+
+    def _gather_masked_outputs(
+        self, model_outputs: torch.Tensor, masked_ids_list: List[List]
+    ) -> torch.Tensor:
+        """Gather all the masked outputs to get original tensor shape
+
+        Args:
+            model_outputs (torch.Tensor): shape -> (sum_tokens, max_seq_len, vocab_size)
+            masked_ids_list (List[List]) : len -> (num_seqs)
+
+        Returns:
+            model_outputs (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+        """
+        max_length = model_outputs.shape[1]
+        inf_tensor = -float("Inf") * torch.ones(
+            [1, model_outputs.shape[2]], dtype=torch.float32
+        )
+        sequences_list = []
+        start_id = 0
+        for mask_id in masked_ids_list:
+            end_id = start_id + len(mask_id)
+            sequence = torch.cat(
+                (
+                    inf_tensor,
+                    model_outputs[range(start_id, end_id), mask_id],
+                    inf_tensor.repeat(max_length - len(mask_id) - 1, 1),
+                ),
+                0,
+            )
+            sequences_list.append(sequence)
+            start_id = end_id
+        return torch.stack(sequences_list)
+
+    def _labels_remapping(
+        self, labels: torch.Tensor, tokens: List[int]
+    ) -> torch.Tensor:
+        """Function that remaps IDs of the considered tokens from 0 to len(tokens)"""
+        mapping = dict(zip(tokens, range(len(tokens))))
+        return torch.tensor([mapping[lbl.item()] for lbl in labels])
+
+    def _filter_logits(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        tokens: List[int],
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Remove unconsidered tokens from sequences and logits
+
+        Args:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+            labels (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            tokens (List[int]): len -> (num_considered_token)
+
+        Returns:
+            logits (torch.Tensor): shape -> (sum_considered_token, num_considered_token)
+            labels (torch.Tensor): shape -> (sum_considered_token,)
+        """
+        mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
+        for token_id in tokens:
+            mask_filter += labels == token_id
+        return (
+            logits[mask_filter][:, tokens],
+            self._labels_remapping(labels[mask_filter], tokens),
+        )
+
+    def _filter_loglikelihoods(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        tokens: List[int],
+    ) -> torch.Tensor:
+        """Remove unconsidered tokens from sequences and logits
+
+        Args:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+            labels (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            tokens (List[int]): len -> (num_considered_token)
+
+        Returns:
+            loglikelihoods (torch.Tensor): shape -> (num_seqs)
+        """
+        log_softmax = torch.nn.LogSoftmax(dim=1)
+
+        mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
+        for token_id in tokens:
+            mask_filter += labels == token_id
+
+        labels_list = [
+            self._labels_remapping(lbl[fltr], tokens)
+            for lbl, fltr in zip(labels, mask_filter)
+        ]
+        logprobs_list = [
+            log_softmax(lgt[fltr][:, tokens]) for lgt, fltr in zip(logits, mask_filter)
+        ]
+        return torch.stack(
+            [
+                torch.sum(lgp[range(lbl.shape[0]), lbl])
+                for lgp, lbl in zip(logprobs_list, labels_list)
+            ]
+        )
+
+    def _filter_and_pool_embeddings(
+        self,
+        embeddings: torch.Tensor,
+        labels: torch.Tensor,
+        tokens: List[int],
+        pool_mode: Tuple[str, ...] = ("cls", "mean"),
+    ) -> Dict[str, torch.Tensor]:
+        """Remove unconsidered tokens from sequences and pool embeddings
+
+        Args:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+            labels (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            tokens (List[int]): len -> (num_considered_token)
+            pool_mode (Tuple[str]):
+
+        Returns:
+            embeddings[str] (torch.Tensor): shape -> (num_seqs, emb_size)
+        """
+
+        # tokens filtering
+        mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
+        for token_id in tokens:
+            mask_filter += labels == token_id
+        embeddings_list = [seq[msk] for seq, msk in zip(embeddings, mask_filter)]
+
+        # embeddings pooling
+        embeddings_dict = {}
+        if "cls" in pool_mode:
+            embeddings_dict["cls"] = embeddings[:, 0, :]
+        if "mean" in pool_mode:
+            embeddings_dict["mean"] = torch.stack(
+                [torch.mean(emb.float(), axis=0) for emb in embeddings_list]
+            )
+        if "max" in pool_mode:
+            embeddings_dict["max"] = torch.stack(
+                [torch.max(emb.float(), 0)[0] for emb in embeddings_list]
+            )
+        if "min" in pool_mode:
+            embeddings_dict["min"] = torch.stack(
+                [torch.min(emb.float(), 0)[0] for emb in embeddings_list]
+            )
+
+        return embeddings_dict
+
+    def _model_evaluation(
+        self,
+        model_inputs: Dict[str, torch.tensor],
+        batch_size: int = 1,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
         a provided batch size and an inference configuration. The output is obtained
         by computing a forward pass through the model ("forward inference")
 
         Args:
-            sequences_list (list): [description]
-            batch_size (int):
+            model_inputs (Dict[str, torch.tensor]): [description]
+            batch_size (int): [description]
 
         Returns:
-            Dict[torch.tensor, torch.tensor]: [description]
+            Tuple[torch.tensor, torch.tensor]:
+                    * logits [num_seqs, max_len_seqs, vocab_size]
+                    * embeddings [num_seqs, max_len_seqs+1, embedding_size]
         """
-        return {"logits": NotImplemented, "embeddings": NotImplemented}
 
-    @abstractmethod
-    def _compute_masked_output(
+        # Initialize logits and embeddings before looping over batches
+        logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
+        embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
+
+        for batch_inputs in tqdm(
+            self._generate_chunks(model_inputs, batch_size),
+            total=self._get_num_batch_iter(model_inputs, batch_size),
+        ):
+            batch_logits, batch_embeddings = self._model_pass(batch_inputs)
+
+            embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
+            logits = torch.cat((logits, batch_logits), dim=0)
+
+        return logits, embeddings
+
+    def _compute_logits(
+        self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str
+    ) -> torch.Tensor:
+        """Intermediate function to compute logits
+
+        Args:
+            model_inputs[str] (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            batch_size (int)
+            pass_mode (str)
+
+        Returns:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+        """
+        if pass_mode == "masked":
+            model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
+            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size)
+            logits = self._gather_masked_outputs(logits, masked_ids_list)
+        elif pass_mode == "forward":
+            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size)
+        return logits
+
+    def _compute_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
+        """Intermediate function to compute accuracy
+
+        Args:
+            logits (torch.Tensor): shape -> (sum_considered_token, num_considered_token)
+            labels (torch.Tensor): shape -> (sum_considered_token)
+
+        Returns:
+            accuracy (float)
+        """
+        softmaxes = F.softmax(logits, dim=1)
+        _, predictions = torch.max(softmaxes, 1)
+        accuracies = predictions.eq(labels)
+
+        return accuracies.float().mean().item()
+
+    def _compute_calibration(
+        self, logits: torch.Tensor, labels: torch.Tensor, n_bins: int = 10
+    ) -> Dict[str, Any]:
+        """Intermediate function to compute calibration
+
+        Args:
+            logits (torch.Tensor): shape -> (sum_considered_token, num_considered_token)
+            labels (torch.Tensor): shape -> (sum_considered_token)
+            n_bins (int)
+
+        Returns:
+            accuracy (float)
+            ece (float)
+            reliability_diagram (List[float])
+        """
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, predictions = torch.max(softmaxes, 1)
+        accuracies = predictions.eq(labels)
+
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
+
+        reliability_diagram = []
+        ece = torch.zeros(1, device=logits.device)
+        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+            # Calculated |confidence - accuracy| in each bin
+            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+            prop_in_bin = in_bin.float().mean()
+            if prop_in_bin.item() > 0:
+                accuracy_in_bin = accuracies[in_bin].float().mean()
+                avg_confidence_in_bin = confidences[in_bin].mean()
+                reliability_diagram.append(accuracy_in_bin.item())
+                ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+            else:
+                reliability_diagram.append(0.0)
+
+        return {
+            "accuracy": accuracies.float().mean().item(),
+            "ece": ece.item(),
+            "reliability_diagram": reliability_diagram,
+        }
+
+    def compute_logits(
         self,
-        sequences_list: list,
-        batch_size: int,
-    ) -> Dict[torch.tensor, torch.tensor]:
-        """
-        Function which computes logits and embeddings based on a list of sequences,
-        a provided batch size and an inference configuration.
-
-        The output is obtained by masking sequentially each amino-acid of the
-        sequence (or only mutated amino-acids if specified this way), following a
-        "masked inference" approach.
+        sequences_list: List[str],
+        batch_size: int = 1,
+        tokens_list: List[str] = None,
+        pass_mode: str = "forward",
+    ) -> Tuple[torch.tensor, torch.tensor]:
+        """Function that computes the logits from sequences
 
         Args:
-            sequences_list (list): [description]
-            batch_size (int): [description]
+            sequences_list (List[str]): List of sequences
+            batch_size (int, optional): Batch size
+            pass_mode (str, optional): Mode of model evaluation ('forward' or 'masked')
+            tokens_list (List[str], optional): List of tokens to consider
 
         Returns:
-            Dict[torch.tensor, torch.tensor]: [description]
+            Tuple[torch.tensor, torch.tensor]: logits and labels in torch.tensor format
         """
-        return {"logits": NotImplemented, "embeddings": NotImplemented}
+        if tokens_list is None:
+            tokens_list = NATURAL_AAS_LIST
 
-    @staticmethod
-    def extract_mutations_dict(orig_seq: str, full_sequences: List) -> List[Dict]:
-        """
-        Function which takes as input the original sequence, so as a list of
-        sequences to analyse, and outputs a list of dictionaries with mutations ids as
-        keys, and a tuple of original AA and mutated AA as values
-
-        Args:
-            orig_seq (str): [description]
-            full_sequences (List): [description]
-
-        Returns:
-            List[Dict]: [description]
-        """
-
-        mutation_dicts_list = [
-            {
-                i: (orig_seq[i], seq[i])
-                for i in range(len(orig_seq))
-                if orig_seq[i] != seq[i]
-            }
-            for seq in full_sequences
-        ]
-
-        return mutation_dicts_list
-
-    def _generate_chunks(
-        self, sequences_list: List[str], batch_size: int
-    ) -> Iterable[List[str]]:
-        """Build a generator to yield protein sequences batch"""
-        for i in range(0, len(sequences_list), batch_size):
-            yield sequences_list[i : (i + batch_size)]
-
-    def _generate_dict_chunks(
-        self, sequence_dict: Dict[str, Any], batch_size: int
-    ) -> Iterable[Dict[str, List]]:
-        """Yield a dictionnary of tensor"""
-
-        first_key = list(sequence_dict.keys())[0]
-        len_sequence = len(sequence_dict[first_key])
-        for i in range(0, len_sequence, batch_size):
-            batch_sequence = {
-                key: value[i : (i + batch_size)] for key, value in sequence_dict.items()
-            }
-            yield batch_sequence
-
-    def _compute_probabilities_and_embeddings(
-        self, sequences_list: List[str], batch_size: int
-    ) -> Tuple[SequenceProbs, List[np.array]]:
-        """
-        For each position in each sequence returns the probabilities over
-        the amino-acids for this position.
-
-
-        Args:
-            sequences_list (List[str]): [description]
-            batch_size (int): [description]
-
-        Returns:
-            Tuple[SequenceProbs, List[np.array]]:
-                probs_list : a list of size len(sequences_list), where each item is a list
-                of length len(sequence) with the probabilities
-                for each standard amino acid of the corresponding sequence
-        """
-
-        if self.mask_bool:
-            output_dict = self._compute_masked_output(sequences_list, batch_size)
-            logits, embeddings = output_dict["logits"], output_dict["embeddings"]
-
-        else:
-            output_dict = self._compute_forward_output(sequences_list, batch_size)
-            logits, embeddings = output_dict["logits"], output_dict["embeddings"]
-
-        # Turn into a list of probabilities - Remove CLS token from logits
-        probs_list = [probs for probs in self.softmaxbh(logits[:, 1:].data.numpy())]
-
-        # Define last position to consider for the embeddings
-        # (remove padding but keep beginning and eventually end of sentence tokens)
-        additional_pos = 1 if self.model_property.begin_token else 0
-        additional_pos += 1 if self.model_property.end_token else 0
-        if embeddings is not None:
-            embeddings_list = [
-                embedding_seq[: (seq_len + additional_pos)].data.numpy()
-                for embedding_seq, seq_len in zip(
-                    embeddings, [len(seq) for seq in sequences_list]
-                )
-            ]
-        else:
-            embeddings_list = None
-
-        return probs_list, embeddings_list
-
-    def compute_loglikelihood(
-        self, sequences_list: List[str], mutation_dicts_list=None, batch_size: int = 1
-    ) -> List[float]:
-        """
-        Computes the log likelihood of a sequence of amino-acids, either based on
-        probabilities kept in memory, or based on a path to a pickle.
-
-        Args:
-            sequences_list (List[str]): [description]
-            mutation_dicts_list ([type], optional): [description]. Defaults to None.
-            batch_size (int, optional): [description]. Defaults to 1.
-
-        Returns:
-            List[float]: [description]
-        """
         _check_sequence(sequences_list, self.model_dir, 1024)
-        probs_list, _ = self._compute_probabilities_and_embeddings(
-            sequences_list, batch_size=batch_size
+        _check_memory_logits(sequences_list, self.vocab_size, pass_mode)
+
+        inputs, labels, tokens = self._process_sequences_and_tokens(
+            sequences_list, tokens_list
         )
+        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits, labels = self._filter_logits(logits, labels, tokens)
 
-        if mutation_dicts_list is None:
-            # Look at all amino-acids in each sequence
-            scores = [
-                [
-                    probs[self.token_to_id(aa)]
-                    for probs, aa in zip(probs_tensor, list(sequence))
-                ]
-                for sequence, probs_tensor in zip(sequences_list, probs_list)
-            ]
-        else:
-            # Only look at the amino-acids which where mutated
-            scores = [
-                [
-                    probs[self.token_to_id(aa)]
-                    for probs, aa in zip(
-                        probs_tensor,
-                        [
-                            sequence[i]
-                            for i in range(len(sequence))
-                            if i in mutation_dicts_list[seq_id].keys()
-                        ],
-                    )
-                ]
-                for (seq_id, (sequence, probs_tensor)) in enumerate(
-                    zip(sequences_list, probs_list)
-                )
-            ]
-        log_scores = [np.log(np.asarray(score)) for score in scores]
-        log_likelihood = [float(np.sum(log_score)) for log_score in log_scores]
+        return logits, labels
 
-        return log_likelihood
-
-    def _pool_sequence_embeddings(
+    def compute_loglikelihoods(
         self,
-        embeddings_matrix: np.array,
-        pooling_list: List[str],
-        return_sequence=False,
-    ) -> Dict:
-        """
-        Function which pools the embeddings of a sequence (all of its position) based
-        on specified pooling approaches.
+        sequences_list: List[str],
+        batch_size: int = 1,
+        tokens_list: List[str] = None,
+        pass_mode: str = "forward",
+    ) -> torch.Tensor:
+        """Function that computes loglikelihoods of sequences
 
         Args:
-            embeddings_matrix (np.array): [description]
-            pooling_list (tuple): [description]
+            sequences_list (List[str]): List of sequences
+            batch_size (int, optional): Batch size
+            pass_mode (str, optional): Mode of model evaluation ('forward' or 'masked')
+            tokens_list (List[str], optional): List of tokens to consider
 
         Returns:
-            Dict: Dictionnary with all specific pooling function as key,
-                  and embedding vector as value. Always return BEGIN token
-                  by default.
+            torch.Tensor: loglikelihoods in torch.tensor format
         """
-        pool_dict = {}
+        if tokens_list is None:
+            tokens_list = NATURAL_AAS_LIST
 
-        pool_dict["cls"] = embeddings_matrix[0, :]
-        embeddings_matrix = embeddings_matrix[1:, :]
+        _check_sequence(sequences_list, self.model_dir, 1024)
+        _check_memory_logits(sequences_list, self.vocab_size, pass_mode)
 
-        if ("mean" in pooling_list) | ("average" in pooling_list):
-            pool_dict["mean"] = np.mean(embeddings_matrix, axis=0)
+        inputs, labels, tokens = self._process_sequences_and_tokens(
+            sequences_list, tokens_list
+        )
+        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        loglikelihoods = self._filter_loglikelihoods(logits, labels, tokens)
 
-        if ("min" in pooling_list) | ("minimum" in pooling_list):
-            pool_dict["min"] = np.min(embeddings_matrix, axis=0)
-
-        if ("max" in pooling_list) | ("maximum" in pooling_list):
-            pool_dict["max"] = np.max(embeddings_matrix, axis=0)
-
-        if return_sequence:
-            pool_dict["sequence"] = embeddings_matrix
-
-        return pool_dict
+        return loglikelihoods
 
     def compute_embeddings(
         self,
         sequences_list: List[str],
         batch_size: int = 1,
-        pooling_list: Optional[List] = None,
-        return_sequence: bool = False,
-    ) -> Dict[str, np.array]:
-        """
-        Compute of embeddings for a list of sequence.
-        Can provide multiple pooling function to aggregate the embedding
-        The result is a dictionnary with a key for each pool function provided.
+        pool_mode: Tuple[str, ...] = ("cls", "mean"),
+        tokens_list: List[str] = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Function that computes embeddings of sequences
 
         Args:
-            sequences_list (List[str]): [description]
-            batch_size (int, optional): [description]. Defaults to 1.
-            pooling_tuple (tuple, optional): [description]. Defaults to [].
-
+            sequences_list (List[str]): List of sequences
+            batch_size (int, optional): Batch size
+            pool_mode (List[str], optional): Mode of pooling ('cls', 'mean', etc...)
+            tokens_list (List[str], optional): List of tokens to consider
 
         Returns:
-            List[Dict]: The embeddings dictionnary is composed of the <CLS>  embedding
-                         and with the pool function provided (ie: mean, max, min)
+            torch.Tensor: Tensor of shape [number_of_sequences, embeddings_size]
         """
+        if tokens_list is None:
+            tokens_list = NATURAL_AAS_LIST
+
+        _check_sequence(sequences_list, self.model_dir, 1024)
+        _check_memory_embeddings(sequences_list, self.embeddings_size, pool_mode)
+
+        inputs, labels, tokens = self._process_sequences_and_tokens(
+            sequences_list, tokens_list
+        )
+        embeddings_dict = dict(zip(pool_mode, [torch.Tensor()] * len(pool_mode)))
+
+        for batch_inputs in tqdm(
+            self._generate_chunks(inputs, batch_size),
+            total=self._get_num_batch_iter(inputs, batch_size),
+        ):
+            _, batch_embeddings = self._model_pass(batch_inputs)
+
+            batch_embeddings_dict = self._filter_and_pool_embeddings(
+                batch_embeddings, labels, tokens, pool_mode
+            )
+
+            for key in pool_mode:
+                embeddings_dict[key] = torch.cat(
+                    (embeddings_dict[key], batch_embeddings_dict[key]), dim=0
+                )
+
+        return embeddings_dict
+
+    def compute_accuracy(
+        self,
+        sequences_list: List[str],
+        batch_size: int = 1,
+        pass_mode: str = "forward",
+        tokens_list: List[str] = None,
+    ) -> float:
+        """Compute model accuracy from the input sequences"""
+        if tokens_list is None:
+            tokens_list = NATURAL_AAS_LIST
+
         _check_sequence(sequences_list, self.model_dir, 1024)
 
-        if pooling_list is None:
-            pooling_list = []
-        pooling_dict = {}
-
-        _, embedding_list = self._compute_probabilities_and_embeddings(
-            sequences_list, batch_size=batch_size
+        inputs, labels, tokens = self._process_sequences_and_tokens(
+            sequences_list, tokens_list
         )
+        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits, labels = self._filter_logits(logits, labels, tokens)
 
-        pool_list = [
-            self._pool_sequence_embeddings(embedding, pooling_list, return_sequence)
-            for embedding in embedding_list
-        ]
+        accuracy = self._compute_accuracy(logits, labels)
 
-        cls_array = np.array([emb["cls"] for emb in pool_list])
-        pooling_dict["cls"] = cls_array
+        return accuracy
 
-        if len(pooling_list):
-            pooling_dict.update(
-                {
-                    pool_key: np.array([emb[pool_key] for emb in pool_list])
-                    for pool_key in pooling_list
-                }
-            )
-        if return_sequence:
-            pooling_dict.update({"sequence": [emb["sequence"] for emb in pool_list]})
+    def compute_calibration(
+        self,
+        sequences_list: List[str],
+        batch_size: int = 1,
+        pass_mode: str = "forward",
+        tokens_list: List[str] = None,
+        n_bins: int = 10,
+    ) -> Dict[str, Any]:
+        """Compute model calibration from the input sequences"""
+        if tokens_list is None:
+            tokens_list = NATURAL_AAS_LIST
 
-        return pooling_dict
+        _check_sequence(sequences_list, self.model_dir, 1024)
+
+        inputs, labels, tokens = self._process_sequences_and_tokens(
+            sequences_list, tokens_list
+        )
+        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits, labels = self._filter_logits(logits, labels, tokens)
+        calibration_dict = self._compute_calibration(logits, labels, n_bins)
+
+        return calibration_dict

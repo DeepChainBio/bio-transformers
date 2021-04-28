@@ -34,10 +34,9 @@ class BioTransformers:
         assert backend in BACKEND_LIST, f"Choose backend in \n\n{format_list}"
 
         if backend.__contains__("esm"):
-            instance = ESMWrapper(backend, device=device)
+            return ESMWrapper(backend, device=device)
         else:
-            instance = RostlabWrapper(MAPPING_PROTBERT[backend], device=device)
-        return instance
+            return RostlabWrapper(MAPPING_PROTBERT[backend], device=device)
 
     @staticmethod
     def list_backend() -> None:
