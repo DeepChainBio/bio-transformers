@@ -484,7 +484,7 @@ class TransformersWrapper(ABC):
         logits = self._compute_logits(inputs, batch_size, pass_mode)
         logits, labels = self._filter_logits(logits, labels, tokens)
 
-        return logits, labels
+        return logits.numpy(), labels.numpy()
 
     def compute_loglikelihoods(
         self,
@@ -516,7 +516,7 @@ class TransformersWrapper(ABC):
         logits = self._compute_logits(inputs, batch_size, pass_mode)
         loglikelihoods = self._filter_loglikelihoods(logits, labels, tokens)
 
-        return loglikelihoods
+        return loglikelihoods.numpy()
 
     def compute_embeddings(
         self,
@@ -561,6 +561,8 @@ class TransformersWrapper(ABC):
                 embeddings_dict[key] = torch.cat(
                     (embeddings_dict[key], batch_embeddings_dict[key]), dim=0
                 )
+
+        embeddings_dict = {key: value.numpy() for key, value in embeddings_dict.items()}
 
         return embeddings_dict
 

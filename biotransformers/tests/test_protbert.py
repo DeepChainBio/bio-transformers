@@ -1,5 +1,5 @@
 """Test module for testing embeddings function"""
-import torch
+import numpy as np
 from biotransformers import BioTransformers
 
 test_sequences = [
@@ -11,7 +11,7 @@ test_sequences = [
 def test_protbert_loglikelihood():
     test_trans = BioTransformers("protbert")
     loglikelihood = test_trans.compute_loglikelihoods(test_sequences)
-    assert isinstance(loglikelihood, torch.Tensor)
+    assert isinstance(loglikelihood, np.ndarray)
 
 
 def test_protbert_embeddings():
