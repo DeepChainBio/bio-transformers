@@ -486,7 +486,7 @@ class TransformersWrapper(ABC):
 
         return logits.numpy(), labels.numpy()
 
-    def compute_loglikelihoods(
+    def compute_loglikelihood(
         self,
         sequences_list: List[str],
         batch_size: int = 1,
