@@ -10,7 +10,7 @@ test_sequences = [
 
 def test_protbert_loglikelihood():
     test_trans = BioTransformers("protbert")
-    loglikelihood = test_trans.compute_loglikelihood(test_sequences)
+    loglikelihood = test_trans.compute_loglikelihoods(test_sequences)
     assert isinstance(loglikelihood, np.ndarray)
 
 
