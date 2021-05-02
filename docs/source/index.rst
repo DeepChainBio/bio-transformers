@@ -1,22 +1,22 @@
-Documentation & Tutorial bio-transformers.
-============================================
 
 
-Installation
-^^^^^^^^^^^^
-install command::
-
-   pip install bio-transformers
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Getting Started
 
+   getting_started/install
+   getting_started/quick_start
 
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Documentation
 
-Indices and tables
-==================
+.. toctree::
+    :hidden:
+    :maxdepth: 2
+    :caption: Method reference
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    api/biotransformers

@@ -53,8 +53,12 @@ exclude_patterns = []
 html_static_path = ["_static"]
 
 extensions = [
-    "sphinx_rtd_theme",
+    "sphinx.ext.autodoc",  # autodoc for API
+    "sphinx_tabs.tabs",  # for tabs in rst
+    "m2r2",  # for supporting md files
+    "notfound.extension",  # for 404 pages
 ]
+
 
 html_theme = "sphinx_rtd_theme"
 source_suffix = [".rst", ".md"]
