@@ -17,6 +17,6 @@
 .. toctree::
     :hidden:
     :maxdepth: 2
-    :caption: Method reference
+    :caption: Api reference
 
     api/biotransformers
