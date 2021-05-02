@@ -41,10 +41,10 @@ class TransformersWrapper(ABC):
         """Initialize Transformers wrapper
 
         Args:
-            model_dir (str): name directory of the pretrained model
-            _device (str, optional): type of device to use (cpu or cuda).
-            vocab_token_list (List[str], optional): . Defaults to list(NATURAL_AAS).
-            mask_bool (bool, optional): Wether to use mask or not for inference.
+            model_dir: name directory of the pretrained model
+            _device: type of device to use (cpu or cuda).
+            vocab_token_list: Defaults to list(NATURAL_AAS).
+            mask_bool: Wether to use mask or not for inference.
         """
         _device, _multi_gpu = set_device(_device, multi_gpu)
 
@@ -161,11 +161,11 @@ class TransformersWrapper(ABC):
         """Create new tensor by masking each token and repeating sequence
 
         Args:
-            model_inputs[str] (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            model_inputs: shape -> (num_seqs, max_seq_len)
 
         Returns:
-            model_inputs (torch.Tensor): shape -> (sum_tokens, max_seq_len)
-            masked_ids_list (List[List]) : len -> (num_seqs)
+            model_inputs: shape -> (sum_tokens, max_seq_len)
+            masked_ids_list: len -> (num_seqs)
         """
         new_input_ids = []
         new_attention_mask = []
@@ -464,10 +464,10 @@ class TransformersWrapper(ABC):
         """Function that computes the logits from sequences
 
         Args:
-            sequences_list (List[str]): List of sequences
-            batch_size (int, optional): Batch size
-            pass_mode (str, optional): Mode of model evaluation ('forward' or 'masked')
-            tokens_list (List[str], optional): List of tokens to consider
+            sequences_list: List of sequences
+            batch_size: Batch size
+            pass_mode: Mode of model evaluation ('forward' or 'masked')
+            tokens_list: List of tokens to consider
 
         Returns:
             Tuple[torch.tensor, torch.tensor]: logits and labels in torch.tensor format
@@ -496,10 +496,10 @@ class TransformersWrapper(ABC):
         """Function that computes loglikelihoods of sequences
 
         Args:
-            sequences_list (List[str]): List of sequences
-            batch_size (int, optional): Batch size
-            pass_mode (str, optional): Mode of model evaluation ('forward' or 'masked')
-            tokens_list (List[str], optional): List of tokens to consider
+            sequences_list: List of sequences
+            batch_size: Batch size
+            pass_mode: Mode of model evaluation ('forward' or 'masked')
+            tokens_list: List of tokens to consider
 
         Returns:
             torch.Tensor: loglikelihoods in torch.tensor format
