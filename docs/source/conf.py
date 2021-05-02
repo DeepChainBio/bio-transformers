@@ -10,9 +10,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../..'))
 
 
 # -- Project information -----------------------------------------------------
@@ -22,7 +22,7 @@ copyright = '2021, instadeep'
 author = 'instadeep'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.0.4'
 
 
 # -- General configuration ---------------------------------------------------
@@ -52,4 +52,5 @@ html_theme = 'alabaster'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
+source_suffix = [".rst", ".md"]
 html_static_path = ['_static']
