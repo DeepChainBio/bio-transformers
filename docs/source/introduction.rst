@@ -3,9 +3,7 @@ Bio-transformers : Documentation and Tutorial
 
 bio-transformers is a python wrapper on top of the ESM/Protbert model,
 which are Transformers protein language model, trained on millions on proteins and used to predict embeddings.
-This package provide other functionalities (like compute the loglikelihood of a protein) or easily compute
-embeddings on multiple-gpu.
-
+This package provide other functionalities like compute the loglikelihood of a protein or the accuracy of a model.
 Features
 --------
 

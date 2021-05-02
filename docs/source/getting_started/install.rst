@@ -8,7 +8,7 @@ There are multiple different methods to install Bio-transformers:
 
 1. Clone `Bio-transformers`_ and create a virtual environment using `Anaconda`_ / `Miniconda`_ (**recommended**).
 2. Clone `Bio-transformers`_ and build a docker image using the provided docker file. (**not implemented**)
-3. Install directly from PyPI release without cloning `DeepReg`_.
+3. Install directly from PyPI release without cloning `Buio-transformers`_.
 
 
 Install via Conda

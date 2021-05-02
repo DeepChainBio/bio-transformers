@@ -1,5 +1,8 @@
 
 
+.. toctree::
+   :hidden:
+   introduction
 
 .. toctree::
    :hidden:
