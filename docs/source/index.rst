@@ -36,6 +36,14 @@ developers and researchers at Instadeep.
    :caption: Documentation
 
 .. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Tutorial
+
+   tutorial/loglikelihood
+   tutorial/embeddings
+
+.. toctree::
     :hidden:
     :maxdepth: 2
     :caption: Api reference
