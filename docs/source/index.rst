@@ -37,7 +37,7 @@ developers and researchers at Instadeep.
 
 .. toctree::
    :hidden:
-   :maxdepth: 2
+   :maxdepth: 0
    :caption: Tutorial
 
    tutorial/loglikelihood
