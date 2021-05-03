@@ -1,8 +1,6 @@
-# Tutorial
+# Loglikelihood
 
-## Loglikelihood
-
-### What does Loglikelihood for protein mean?
+## What does Loglikelihood for protein mean?
 
 The protein loglikelihood is a metric which estimates the joint probability of
 observing a given sequence of amino-acids. The idea behind such an estimator is to approximate the
