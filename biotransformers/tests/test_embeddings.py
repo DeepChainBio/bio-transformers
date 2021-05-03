@@ -7,7 +7,7 @@ test_sequences = ["AAAA", "AKKF", "AHHFK", "KKKKKKKLLL"]
 test_params = [
     (1, list("ACDEFGHIKLMNPQRSTVWY"), ["cls", "mean"]),
     (2, ["A", "F", "K"], ["min", "max", "cls"]),
-    (10, ["A", "L"], ["cls", "mean"]),
+    (10, ["A"], ["cls", "mean"]),
 ]
 
 

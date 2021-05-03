@@ -6,10 +6,7 @@ from typing import Dict, List, Tuple
 
 import esm
 import torch
-from biotransformers.wrappers.transformers_wrappers import (
-    TransformersModelProperties,
-    TransformersWrapper,
-)
+from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
 from torch.nn import DataParallel
 
 # List all ESM models
@@ -20,7 +17,7 @@ esm_list = [
     # "esm1_t12_85M_UR50S",
     "esm1_t6_43M_UR50S",
     "esm1b_t33_650M_UR50S",
-    "esm_msa1_t12_100M_UR50S",
+    # "esm_msa1_t12_100M_UR50S",
 ]
 
 # Define a default ESM model
@@ -59,24 +56,6 @@ class ESMWrapper(TransformersWrapper):
         return self.model_id
 
     @property
-    def model_property(self) -> TransformersModelProperties:
-        """Returns a class with model properties"""
-        return TransformersModelProperties(
-            num_sep_tokens=1, begin_token=True, end_token=False
-        )
-
-    @property
-    def model_vocab_tokens(self) -> List[str]:
-        """List of all vocabulary tokens to consider (as strings), which may be a subset
-        of the model vocabulary (based on self.vocab_token_list)"""
-        voc = (
-            self.vocab_token_list
-            if self.vocab_token_list is not None
-            else self.alphabet.all_toks
-        )
-        return voc
-
-    @property
     def model_vocabulary(self) -> List[str]:
         """Returns the whole vocabulary list"""
         return list(self.alphabet.tok_to_idx.keys())
@@ -85,12 +64,6 @@ class ESMWrapper(TransformersWrapper):
     def vocab_size(self) -> int:
         """Returns the whole vocabulary size"""
         return len(list(self.alphabet.tok_to_idx.keys()))
-
-    @property
-    def model_vocab_ids(self) -> List[int]:
-        """List of all vocabulary IDs to consider (as ints), which may be a subset
-        of the model vocabulary (based on self.vocab_token_list)"""
-        return [self.token_to_id(tok) for tok in self.model_vocab_tokens]
 
     @property
     def mask_token(self) -> str:
@@ -105,13 +78,17 @@ class ESMWrapper(TransformersWrapper):
     @property
     def begin_token(self) -> str:
         """Representation of the beginning of sentence token (as a string)"""
-        return "<cls>"
+        return self.alphabet.all_toks[self.alphabet.cls_idx]  # "<cls>"
 
     @property
     def end_token(self) -> str:
-        """Representation of the end of sentence token (as a string). This token doesn't
-        exist in the case of ESM, thus we return an empty string."""
-        return ""
+        """Representation of the end of sentence token (as a string)"""
+        return self.alphabet.all_toks[self.alphabet.eos_idx]  # "<eos>"
+
+    @property
+    def does_end_token_exist(self) -> bool:
+        """Returns true if a end of sequence token exists"""
+        return self.alphabet.append_eos
 
     @property
     def token_to_id(self):

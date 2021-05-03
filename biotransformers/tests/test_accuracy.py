@@ -6,7 +6,7 @@ test_sequences = ["AAAA", "AKKF", "AHHFK", "KKKKKKKLLL"]
 test_params = [
     (1, list("ACDEFGHIKLMNPQRSTVWY"), "forward"),
     (2, ["A", "F", "K"], "masked"),
-    (10, ["A", "L"], "forward"),
+    (10, ["A"], "forward"),
 ]
 
 

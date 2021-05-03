@@ -12,7 +12,6 @@ import torch
 import torch.tensor
 from biotransformers.utils.gpus_utils import set_device
 from biotransformers.utils.utils import (
-    TransformersModelProperties,
     _check_memory_embeddings,
     _check_memory_logits,
     _check_sequence,
@@ -20,8 +19,7 @@ from biotransformers.utils.utils import (
 from torch.nn import functional as F  # noqa: N812
 from tqdm import tqdm
 
-NATURAL_AAS = "ACDEFGHIKLMNPQRSTVWY"
-NATURAL_AAS_LIST = list(NATURAL_AAS)
+NATURAL_AAS_LIST = list("ACDEFGHIKLMNPQRSTVWY")
 
 
 class TransformersWrapper(ABC):
@@ -52,9 +50,6 @@ class TransformersWrapper(ABC):
         self.multi_gpu = _multi_gpu
         self.model_dir = model_dir
         self.mask_bool = mask_bool
-        self.vocab_token_list = (
-            list(NATURAL_AAS) if vocab_token_list is None else vocab_token_list
-        )
 
     @property
     def model_id(self) -> str:
@@ -68,17 +63,6 @@ class TransformersWrapper(ABC):
 
     @property
     @abstractmethod
-    def model_property(self) -> TransformersModelProperties:
-        """Returns a class with model properties"""
-
-    @property
-    @abstractmethod
-    def model_vocab_tokens(self) -> List[str]:
-        """List of all vocabulary tokens to consider (as strings), which may be a subset
-        of the model vocabulary (based on self.vocab_token_list)"""
-
-    @property
-    @abstractmethod
     def model_vocabulary(self) -> List[str]:
         """Returns the whole vocabulary list"""
 
@@ -86,12 +70,6 @@ class TransformersWrapper(ABC):
     @abstractmethod
     def vocab_size(self) -> int:
         """Returns the whole vocabulary size"""
-
-    @property
-    @abstractmethod
-    def model_vocab_ids(self) -> List[int]:
-        """List of all vocabulary IDs to consider (as ints), which may be a subset
-        of the model vocabulary (based on self.vocab_token_list)"""
 
     @property
     @abstractmethod
@@ -114,6 +92,11 @@ class TransformersWrapper(ABC):
     def end_token(self) -> str:
         """Representation of the end of sentence token (as a string).
         Returns an empty string if no such token."""
+
+    @property
+    @abstractmethod
+    def does_end_token_exist(self) -> bool:
+        """Returns true if a end of sequence token exists"""
 
     @property
     @abstractmethod
@@ -177,7 +160,7 @@ class TransformersWrapper(ABC):
             model_inputs["token_type_ids"],
         ):
             mask_id = []
-            for i in range(1, sum(binary_mask) - 1):
+            for i in range(1, sum(binary_mask) - self.does_end_token_exist * 1):
                 mask_sequence = torch.tensor(
                     sequence[:i].tolist()
                     + [self.token_to_id(self.mask_token)]
@@ -233,11 +216,13 @@ class TransformersWrapper(ABC):
         mapping = dict(zip(tokens, range(len(tokens))))
         return torch.tensor([mapping[lbl.item()] for lbl in labels])
 
+    def _label_remapping(self, label: int, tokens: List[int]) -> int:
+        """Function that remaps IDs of the considered tokens from 0 to len(tokens)"""
+        mapping = dict(zip(tokens, range(len(tokens))))
+        return mapping[label]
+
     def _filter_logits(
-        self,
-        logits: torch.Tensor,
-        labels: torch.Tensor,
-        tokens: List[int],
+        self, logits: torch.Tensor, labels: torch.Tensor, tokens: List[int],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Remove unconsidered tokens from sequences and logits
 
@@ -259,40 +244,31 @@ class TransformersWrapper(ABC):
         )
 
     def _filter_loglikelihoods(
-        self,
-        logits: torch.Tensor,
-        labels: torch.Tensor,
-        tokens: List[int],
+        self, logits: torch.Tensor, labels: torch.Tensor, tokens: List[int],
     ) -> torch.Tensor:
-        """Remove unconsidered tokens from sequences and logits
 
-        Args:
-            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
-            labels (torch.Tensor): shape -> (num_seqs, max_seq_len)
-            tokens (List[int]): len -> (num_considered_token)
-
-        Returns:
-            loglikelihoods (torch.Tensor): shape -> (num_seqs)
-        """
-        log_softmax = torch.nn.LogSoftmax(dim=1)
-
-        mask_filter = torch.zeros(labels.shape, dtype=torch.bool)
+        masks = torch.zeros(labels.shape, dtype=torch.bool)
         for token_id in tokens:
-            mask_filter += labels == token_id
+            masks += labels == token_id
 
-        labels_list = [
-            self._labels_remapping(lbl[fltr], tokens)
-            for lbl, fltr in zip(labels, mask_filter)
-        ]
-        logprobs_list = [
-            log_softmax(lgt[fltr][:, tokens]) for lgt, fltr in zip(logits, mask_filter)
-        ]
-        return torch.stack(
-            [
-                torch.sum(lgp[range(lbl.shape[0]), lbl])
-                for lgp, lbl in zip(logprobs_list, labels_list)
-            ]
-        )
+        loglikelihoods = []
+        log_softmax = torch.nn.LogSoftmax(dim=0)
+        # loop over the sequences
+        for sequence_logit, sequence_label, sequence_mask in zip(logits, labels, masks):
+            if sum(sequence_mask) == 0:
+                loglikelihood = torch.tensor(float("NaN"))
+            else:
+                loglikelihood = 0
+                # loop over the tokens
+                for logit, label, mask in zip(
+                    sequence_logit, sequence_label, sequence_mask
+                ):
+                    if mask:
+                        loglikelihood += log_softmax(logit[tokens])[
+                            self._label_remapping(label.item(), tokens)
+                        ]
+            loglikelihoods.append(loglikelihood)
+        return torch.stack(loglikelihoods)
 
     def _filter_and_pool_embeddings(
         self,
@@ -340,9 +316,7 @@ class TransformersWrapper(ABC):
         return embeddings_dict
 
     def _model_evaluation(
-        self,
-        model_inputs: Dict[str, torch.tensor],
-        batch_size: int = 1,
+        self, model_inputs: Dict[str, torch.tensor], batch_size: int = 1,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
@@ -460,7 +434,7 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
-    ) -> Tuple[torch.tensor, torch.tensor]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Function that computes the logits from sequences
 
         Args:
@@ -484,7 +458,7 @@ class TransformersWrapper(ABC):
         logits = self._compute_logits(inputs, batch_size, pass_mode)
         logits, labels = self._filter_logits(logits, labels, tokens)
 
-        return logits, labels
+        return logits.numpy(), labels.numpy()
 
     def compute_loglikelihoods(
         self,
@@ -492,7 +466,7 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
-    ) -> torch.Tensor:
+    ) -> np.ndarray:
         """Function that computes loglikelihoods of sequences
 
         Args:
@@ -516,7 +490,7 @@ class TransformersWrapper(ABC):
         logits = self._compute_logits(inputs, batch_size, pass_mode)
         loglikelihoods = self._filter_loglikelihoods(logits, labels, tokens)
 
-        return loglikelihoods
+        return loglikelihoods.numpy()
 
     def compute_embeddings(
         self,
@@ -524,7 +498,7 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         pool_mode: Tuple[str, ...] = ("cls", "mean"),
         tokens_list: List[str] = None,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> Dict[str, np.ndarray]:
         """Function that computes embeddings of sequences
 
         Args:
@@ -542,7 +516,7 @@ class TransformersWrapper(ABC):
         _check_sequence(sequences_list, self.model_dir, 1024)
         _check_memory_embeddings(sequences_list, self.embeddings_size, pool_mode)
 
-        inputs, labels, tokens = self._process_sequences_and_tokens(
+        inputs, _, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list
         )
         embeddings_dict = dict(zip(pool_mode, [torch.Tensor()] * len(pool_mode)))
@@ -552,9 +526,10 @@ class TransformersWrapper(ABC):
             total=self._get_num_batch_iter(inputs, batch_size),
         ):
             _, batch_embeddings = self._model_pass(batch_inputs)
+            batch_labels = batch_inputs["input_ids"]
 
             batch_embeddings_dict = self._filter_and_pool_embeddings(
-                batch_embeddings, labels, tokens, pool_mode
+                batch_embeddings, batch_labels, tokens, pool_mode
             )
 
             for key in pool_mode:
@@ -562,7 +537,7 @@ class TransformersWrapper(ABC):
                     (embeddings_dict[key], batch_embeddings_dict[key]), dim=0
                 )
 
-        return embeddings_dict
+        return {key: value.numpy() for key, value in embeddings_dict.items()}
 
     def compute_accuracy(
         self,
