@@ -25,7 +25,7 @@ sequences = [
     ]
 
 bio_trans = BioTransformers(backend="protbert",multi_gpu=True)
-embeddings = bio_trans.compute_embeddings(sequences, pooling_list=('cls','mean'))
+embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'))
 
 cls_emb = embeddings['cls']
 mean_emb = embeddings['mean']

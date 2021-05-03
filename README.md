@@ -60,7 +60,7 @@ Use backend in this list :
 ## Embeddings
 Choose a backend and pass a list of sequences of Amino acids to compute the embeddings.
 By default, the ```compute_embeddings``` function return the ```<CLS>``` token embedding.
-You can add a ```pooling_list``` in addition , so you can compute the mean of the tokens embeddings.
+You can add a ```pool_mode``` in addition , so you can compute the mean of the tokens embeddings.
 
 ```
 from biotransformers import BioTransformers
@@ -71,7 +71,7 @@ sequences = [
     ]
 
 bio_trans = BioTransformers(backend="protbert")
-embeddings = bio_trans.compute_embeddings(sequences, pooling_list=['mean'])
+embeddings = bio_trans.compute_embeddings(sequences, pool_mode=['mean'])
 
 cls_emb = embeddings['cls']
 mean_emb = embeddings['mean']
