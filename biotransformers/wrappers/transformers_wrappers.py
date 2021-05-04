@@ -252,6 +252,16 @@ class TransformersWrapper(ABC):
         labels: torch.Tensor,
         tokens: List[int],
     ) -> torch.Tensor:
+        """Remove unconsidered tokens from logits and compute loglikelihoods
+
+        Args:
+            logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
+            labels (torch.Tensor): shape -> (num_seqs, max_seq_len)
+            tokens (List[int]): len -> (num_considered_token)
+
+        Returns:
+            loglikelihood (torch.Tensor): shape -> (num_seqs)
+        """
 
         masks = torch.zeros(labels.shape, dtype=torch.bool)
         for token_id in tokens:
