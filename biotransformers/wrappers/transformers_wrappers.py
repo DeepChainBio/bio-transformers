@@ -252,7 +252,7 @@ class TransformersWrapper(ABC):
         labels: torch.Tensor,
         tokens: List[int],
     ) -> torch.Tensor:
-        """Remove unconsidered tokens from logits and compute loglikelihoods
+        """Remove unconsidered tokens from logits and compute loglikelihood
 
         Args:
             logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
