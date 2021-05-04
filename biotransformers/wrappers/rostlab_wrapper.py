@@ -8,10 +8,7 @@ hugging face
 from typing import Dict, List, Tuple
 
 import torch
-from biotransformers.wrappers.transformers_wrappers import (
-    TransformersModelProperties,
-    TransformersWrapper,
-)
+from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
 from torch.nn import DataParallel
 from transformers import BertForMaskedLM, BertTokenizer
 
@@ -55,24 +52,6 @@ class RostlabWrapper(TransformersWrapper):
         return self.model_id.replace("rostlab/", "")
 
     @property
-    def model_property(self) -> TransformersModelProperties:
-        """Returns a class with model properties"""
-        return TransformersModelProperties(
-            num_sep_tokens=2, begin_token=True, end_token=True
-        )
-
-    @property
-    def model_vocab_tokens(self) -> List[str]:
-        """List of all vocabulary tokens to consider (as strings), which may be a subset
-        of the model vocabulary (based on self.vocab_token_list)"""
-        voc = (
-            self.vocab_token_list
-            if self.vocab_token_list is not None
-            else self.tokenizer.vocab
-        )
-        return voc
-
-    @property
     def model_vocabulary(self) -> List[str]:
         """Returns the whole vocabulary list"""
         return list(self.tokenizer.vocab.keys())
@@ -80,16 +59,7 @@ class RostlabWrapper(TransformersWrapper):
     @property
     def vocab_size(self) -> int:
         """Returns the whole vocabulary size"""
-        return len(list(self.tokenizer.vocab.keys()))
-
-    @property
-    def model_vocab_ids(self) -> List[int]:
-        """List of all vocabulary IDs to consider (as ints), which may be a subset
-        of the model vocabulary (based on self.vocab_token_list)"""
-        vocab_ids = [
-            self.tokenizer.convert_tokens_to_ids(tok) for tok in self.model_vocab_tokens
-        ]
-        return vocab_ids
+        return self.tokenizer.vocab_size
 
     @property
     def mask_token(self) -> str:
@@ -104,12 +74,17 @@ class RostlabWrapper(TransformersWrapper):
     @property
     def begin_token(self) -> str:
         """Representation of the beginning of sentence token (as a string)"""
-        return "[CLS]"
+        return self.tokenizer.cls_token  # "[CLS]"
 
     @property
     def end_token(self) -> str:
         """Representation of the end of sentence token (as a string)."""
-        return "[SEP]"
+        return self.tokenizer.sep_token  # "[SEP]"
+
+    @property
+    def does_end_token_exist(self) -> bool:
+        """Returns true if a end of sequence token exists"""
+        return True
 
     @property
     def token_to_id(self):
@@ -134,9 +109,7 @@ class RostlabWrapper(TransformersWrapper):
 
         separated_sequences_list = [" ".join(seq) for seq in sequences_list]
         encoded_inputs = self.tokenizer(
-            separated_sequences_list,
-            return_tensors="pt",
-            padding=True,
+            separated_sequences_list, return_tensors="pt", padding=True,
         ).to("cpu")
 
         return encoded_inputs, encoded_inputs["input_ids"], tokens

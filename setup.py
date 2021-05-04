@@ -13,8 +13,7 @@ README = (HERE / "README.md").read_text()
 
 def read_requirements() -> List:
     with open("requirements.txt", "r+") as file:
-        req = file.readlines()
-    requirements = [pkg.replace("\n", "") for pkg in req]
+        requirements = [line.strip() for line in file.readlines()]
 
     return requirements
 
