@@ -510,10 +510,10 @@ class TransformersWrapper(ABC):
         """Function that computes embeddings of sequences
 
         Args:
-            sequences_list (List[str]): List of sequences
-            batch_size (int, optional): Batch size
-            pool_mode (List[str], optional): Mode of pooling ('cls', 'mean', etc...)
-            tokens_list (List[str], optional): List of tokens to consider
+            sequences_list: List of sequences
+            batch_size: Batch size
+            pool_mode: Mode of pooling ('cls', 'mean', etc...)
+            tokens_list: List of tokens to consider
 
         Returns:
             torch.Tensor: Tensor of shape [number_of_sequences, embeddings_size]
@@ -554,7 +554,17 @@ class TransformersWrapper(ABC):
         pass_mode: str = "forward",
         tokens_list: List[str] = None,
     ) -> float:
-        """Compute model accuracy from the input sequences"""
+        """Compute model accuracy from the input sequences
+
+        Args:
+            sequences_list ([type]): [description]
+            batch_size ([type], optional): [description]. Defaults to 1.
+            pass_mode ([type], optional): [description]. Defaults to "forward".
+            tokens_list ([type], optional): [description]. Defaults to None.
+
+        Returns:
+            [type]: [description]
+        """
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 
@@ -577,7 +587,18 @@ class TransformersWrapper(ABC):
         tokens_list: List[str] = None,
         n_bins: int = 10,
     ) -> Dict[str, Any]:
-        """Compute model calibration from the input sequences"""
+        """Compute model calibration from the input sequences
+
+        Args:
+            sequences_list ([type]): [description]
+            batch_size ([type], optional): [description]. Defaults to 1.
+            pass_mode ([type], optional): [description]. Defaults to "forward".
+            tokens_list ([type], optional): [description]. Defaults to None.
+            n_bins ([type], optional): [description]. Defaults to 10.
+
+        Returns:
+            [type]: [description]
+        """
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 

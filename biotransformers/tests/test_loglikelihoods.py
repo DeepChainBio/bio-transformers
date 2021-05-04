@@ -16,7 +16,7 @@ def test_loglikelihoods_type_shape_and_range(
     init_model, batch_size, tokens_list, pass_mode
 ):
     test_trans = init_model
-    loglikelihoods = test_trans.compute_loglikelihoods(
+    loglikelihoods = test_trans.compute_loglikelihood(
         test_sequences,
         batch_size=batch_size,
         tokens_list=tokens_list,
