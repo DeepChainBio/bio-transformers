@@ -512,7 +512,7 @@ class TransformersWrapper(ABC):
         Args:
             sequences_list: List of sequences
             batch_size: Batch size
-            pool_mode: Mode of pooling ('cls', 'mean', etc...)
+            pool_mode: Mode of pooling ('cls', 'mean', 'min', 'max)
             tokens_list: List of tokens to consider
 
         Returns:
@@ -557,10 +557,10 @@ class TransformersWrapper(ABC):
         """Compute model accuracy from the input sequences
 
         Args:
-            sequences_list ([type]): [description]
-            batch_size ([type], optional): [description]. Defaults to 1.
-            pass_mode ([type], optional): [description]. Defaults to "forward".
-            tokens_list ([type], optional): [description]. Defaults to None.
+            sequences_list: [description]
+            batch_size: [description]. Defaults to 1.
+            pass_mode: [description]. Defaults to "forward".
+            tokens_list: [description]. Defaults to None.
 
         Returns:
             [type]: [description]

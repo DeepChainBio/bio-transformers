@@ -15,6 +15,11 @@ used to test severals pre-trained transformers models without taking into accoun
 Our development and all related work involved in the project is public,
 and released under the Apache 2.0 license.
 
+Where to start
+--------------
+If you want to know more about transformers ans biology, refer to this _`documentation`
+
+
 Contributors
 ------------
 
@@ -32,8 +37,10 @@ developers and researchers at Instadeep.
 
 .. toctree::
    :hidden:
-   :maxdepth: 2
+   :maxdepth: 0
    :caption: Documentation
+
+   documentation/course
 
 .. toctree::
    :hidden:
@@ -49,3 +56,6 @@ developers and researchers at Instadeep.
     :caption: Api reference
 
     api/biotransformers
+
+
+.. _documentation: documentation/course.html
