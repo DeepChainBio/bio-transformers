@@ -10,7 +10,14 @@ from typing import Dict, List, Tuple
 import torch
 from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
 from torch.nn import DataParallel
-from transformers import BertForMaskedLM, BertTokenizer
+from transformers import (
+    BertForMaskedLM,
+    BertTokenizer,
+    DataCollatorForLanguageModeling,
+    LineByLineTextDataset,
+    Trainer,
+    TrainingArguments,
+)
 
 rostlab_list = ["Rostlab/prot_bert", "Rostlab/prot_bert_bfd"]
 DEFAULT_MODEL = "Rostlab/prot_bert"
@@ -40,6 +47,8 @@ class RostlabWrapper(TransformersWrapper):
         self.model = (
             BertForMaskedLM.from_pretrained(self.model_dir).eval().to(self._device)
         )
+        print(self.model.num_parameters())
+
         self.hidden_size = self.model.config.hidden_size
         if self.multi_gpu:
             self.model = DataParallel(self.model)
@@ -139,3 +148,52 @@ class RostlabWrapper(TransformersWrapper):
             embeddings = model_outputs.hidden_states[-1].detach().cpu()
 
         return logits, embeddings
+
+    def pretrain(
+        self,
+        file_path: str = "./biotransformers/wrappers/sequences.txt",
+        output_dir: str = "./new_model_weights",
+        num_train_epochs: int = 1,
+        per_device_train_batch_size: int = 64,
+    ):
+        """Function that aims to pretrain existing ProtBert model on new input dataset.
+
+        Args:
+            file_path (str, optional): .txt file where train sequences are stored.
+            output_dir (str, optional): dir where new model weights will be stored.
+            num_train_epochs (int, optional): num of epochs.
+            per_device_train_batch_size (int, optional): batch size.
+        """
+        dataset = LineByLineTextDataset(
+            tokenizer=self.tokenizer, file_path=file_path, block_size=128,
+        )
+
+        data_collator = DataCollatorForLanguageModeling(
+            tokenizer=self.tokenizer, mlm=True, mlm_probability=0.15
+        )
+
+        training_args = TrainingArguments(
+            output_dir=output_dir,
+            overwrite_output_dir=True,
+            num_train_epochs=num_train_epochs,
+            per_device_train_batch_size=per_device_train_batch_size,
+            save_steps=10_000,
+            save_total_limit=2,
+            prediction_loss_only=True,
+            logging_steps=200,
+            # fp16=True,
+            # fp16_opt_level="02",
+        )
+
+        trainer = Trainer(
+            model=self.model,
+            args=training_args,
+            data_collator=data_collator,
+            train_dataset=dataset,
+        )
+
+        trainer.train()
+
+        trainer.save_model(output_dir)
+
+        self.model = self.model.eval().to(self._device)
