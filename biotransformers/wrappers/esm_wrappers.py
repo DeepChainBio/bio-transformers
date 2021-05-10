@@ -7,7 +7,11 @@ from typing import Dict, List, Tuple
 import esm
 import torch
 from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
+from pytorch_lightning import Trainer
 from torch.nn import DataParallel
+
+from ..lightning_utils.data import BioDataModule
+from ..lightning_utils.models import LightningESM
 
 # List all ESM models
 esm_list = [
@@ -150,3 +154,64 @@ class ESMWrapper(TransformersWrapper):
             embeddings = model_outputs["representations"][last_layer].detach().cpu()
 
         return logits, embeddings
+
+    def train_masked(
+        self,
+        train_sequences: List[str],
+        lr: float = 1.0e-5,
+        warmup_updates: int = 10,
+        warmup_init_lr: float = 1e-7,
+        epochs: int = 10,
+        batch_size: int = 2,
+        acc_batch_size: int = 2048,
+        masking_ratio: float = 0.025,
+        masking_prob: float = 0.8,
+        random_token_prob: float = 0.1,
+        filter_len=1024,
+    ):
+        """Function to finetuned a model on a specific dataset
+
+        This function will finetune a the choosen model on a dataset of
+        sequence with pytorch ligthening.
+
+        """
+        if self.multi_gpu:
+            lightning_model = LightningESM(
+                model=self.model.module,
+                alphabet=self.alphabet,
+                lr=lr,
+                warmup_updates=warmup_updates,
+                warmup_end_lr=lr,
+            )
+        else:
+            lightning_model = LightningESM(
+                model=self.model,
+                alphabet=self.alphabet,
+                lr=lr,
+                warmup_updates=warmup_updates,
+                warmup_end_lr=lr,
+            )
+
+        data_module = BioDataModule(
+            train_sequences,
+            self.alphabet,
+            filter_len,
+            batch_size,
+            masking_ratio,
+            masking_prob,
+            random_token_prob,
+        )
+
+        if torch.cuda.is_available():
+            n_gpus = torch.cuda.device_count()
+
+        trainer = Trainer(
+            gpus=n_gpus,
+            amp_level="O2",
+            precision=16,
+            accumulate_grad_batches=acc_batch_size // batch_size,
+            accelerator="ddp",
+            max_epochs=epochs,
+        )
+
+        trainer.fit(lightning_model, data_module)
