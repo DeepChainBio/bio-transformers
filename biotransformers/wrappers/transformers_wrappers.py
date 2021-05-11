@@ -319,6 +319,11 @@ class TransformersWrapper(ABC):
                 [torch.min(emb.float(), 0)[0] for emb in embeddings]
             )
 
+        if "full" in pool_mode:
+            embeddings_dict["full"] = torch.stack(
+                [emb.float() for emb in embeddings]
+            )
+
         return embeddings_dict
 
     def _model_evaluation(
