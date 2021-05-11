@@ -8,6 +8,7 @@ import esm
 import torch
 from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import CSVLogger
 from torch.nn import DataParallel
 
 from ..lightning_utils.data import BioDataModule
@@ -18,7 +19,7 @@ esm_list = [
     # "esm1_t34_670M_UR50S",
     # "esm1_t34_670M_UR50D",
     "esm1_t34_670M_UR100",
-    # "esm1_t12_85M_UR50S",
+    "esm1_t12_85M_UR50S",
     "esm1_t6_43M_UR50S",
     "esm1b_t33_650M_UR50S",
     # "esm_msa1_t12_100M_UR50S",
@@ -205,6 +206,8 @@ class ESMWrapper(TransformersWrapper):
         if torch.cuda.is_available():
             n_gpus = torch.cuda.device_count()
 
+        logger = CSVLogger("logs", name="my_exp_name")
+
         trainer = Trainer(
             gpus=n_gpus,
             amp_level="O2",
@@ -212,6 +215,7 @@ class ESMWrapper(TransformersWrapper):
             accumulate_grad_batches=acc_batch_size // batch_size,
             accelerator="ddp",
             max_epochs=epochs,
+            logger=logger,
         )
 
         trainer.fit(lightning_model, data_module)

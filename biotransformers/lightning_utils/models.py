@@ -82,21 +82,12 @@ class LightningESM(pl.LightningModule):
         sample_size = masked_tokens.int().sum()
         loss = loss / sample_size
 
-        self.log(
-            "train_loss",
-            loss,
+        self.log_dict(
+            {"train_loss": loss, "train_acc": self.train_acc},
             on_step=False,
             on_epoch=True,
             prog_bar=True,
-            logger=False,
-        )
-        self.log(
-            "train_acc",
-            self.train_acc,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=False,
+            logger=True,
         )
 
         return loss
@@ -121,17 +112,14 @@ class LightningESM(pl.LightningModule):
         sample_size = masked_tokens.int().sum()
         loss = loss / sample_size
 
-        self.log(
-            "val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=False
-        )
-        self.log(
-            "val_acc",
-            self.val_acc,
+        self.log_dict(
+            {"val_loss": loss, "val_acc": self.val_acc},
             on_step=False,
             on_epoch=True,
             prog_bar=True,
-            logger=False,
+            logger=True,
         )
+
         return loss
 
     def accuracy(
