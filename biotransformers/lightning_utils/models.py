@@ -75,7 +75,9 @@ class LightningESM(pl.LightningModule):
         logits = self.forward(tokens)
         loss = self.cross_entropy_loss(logits, target)
 
-        masked_preds, masked_targets = self.accuracy(logits, target)
+        masked_preds, masked_targets = self.accuracy(
+            logits, target
+        )  # misleading accuracy name
         self.train_acc(masked_preds, masked_targets)
 
         masked_tokens = target.ne(self.alphabet.padding_idx)
@@ -105,7 +107,9 @@ class LightningESM(pl.LightningModule):
         logits = self.forward(tokens)
         loss = self.cross_entropy_loss(logits, target)
 
-        masked_preds, masked_targets = self.accuracy(logits, target)
+        masked_preds, masked_targets = self.accuracy(
+            logits, target
+        )  # misleading accuracy name
         self.val_acc(masked_preds, masked_targets)
 
         masked_tokens = target.ne(self.alphabet.padding_idx)
