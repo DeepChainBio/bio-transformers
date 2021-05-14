@@ -523,7 +523,7 @@ class TransformersWrapper(ABC):
         Returns:
             torch.Tensor: Tensor of shape [number_of_sequences, embeddings_size]
         """
-        if "full" in pool_mode and not all(len(s) == len(sequences[0]) for s in sequences):
+        if "full" in pool_mode and not all(len(s) == len(sequences_list[0]) for s in sequences_list):
             raise Exception("Sequences must be of same length when pool_mode = (\"full\",)")
         
         if tokens_list is None:
