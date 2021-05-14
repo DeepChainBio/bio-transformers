@@ -14,7 +14,7 @@ esm_list = [
     # "esm1_t34_670M_UR50S",
     # "esm1_t34_670M_UR50D",
     "esm1_t34_670M_UR100",
-    # "esm1_t12_85M_UR50S",
+    "esm1_t12_85M_UR50S",
     "esm1_t6_43M_UR50S",
     "esm1b_t33_650M_UR50S",
     # "esm_msa1_t12_100M_UR50S",
@@ -30,7 +30,7 @@ class ESMWrapper(TransformersWrapper):
     a protein likelihood so as other insights.
     """
 
-    def __init__(self, model_dir: str, device, multi_gpu):
+    def __init__(self, model_dir: str, device, multi_gpu,repr_layers=-1):
 
         if model_dir not in esm_list:
             print(
@@ -43,6 +43,8 @@ class ESMWrapper(TransformersWrapper):
 
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
         self.num_layers = self.model.num_layers
+        self.repr_layers = (repr_layers + self.num_layers + 1) % (self.num_layers + 1)
+        
         self.hidden_size = self.model.args.embed_dim
         if self.multi_gpu:
             self.model = DataParallel(self.model).to(self._device)
@@ -140,10 +142,9 @@ class ESMWrapper(TransformersWrapper):
                     * logits [num_seqs, max_len_seqs, vocab_size]
                     * embeddings [num_seqs, max_len_seqs+1, embedding_size]
         """
-        last_layer = self.num_layers - 1
         with torch.no_grad():
             model_outputs = self.model(
-                model_inputs["input_ids"].to(self._device), repr_layers=[last_layer]
+                model_inputs["input_ids"].to(self._device), repr_layers=[selt.repr_layers]
             )
 
             logits = model_outputs["logits"].detach().cpu()
