@@ -149,6 +149,6 @@ class ESMWrapper(TransformersWrapper):
             )
 
             logits = model_outputs["logits"].detach().cpu()
-            embeddings = model_outputs["representations"][last_layer].detach().cpu()
+            embeddings = model_outputs["representations"][self.repr_layers].detach().cpu()
 
         return logits, embeddings
