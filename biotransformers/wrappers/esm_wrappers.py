@@ -30,7 +30,7 @@ class ESMWrapper(TransformersWrapper):
     a protein likelihood so as other insights.
     """
 
-    def __init__(self, model_dir: str, device, multi_gpu,repr_layers=-1):
+    def __init__(self, model_dir: str, device, multi_gpu):
 
         if model_dir not in esm_list:
             print(
@@ -43,6 +43,7 @@ class ESMWrapper(TransformersWrapper):
 
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
         self.num_layers = self.model.num_layers
+        repr_layers = -1
         self.repr_layers = (repr_layers + self.num_layers + 1) % (self.num_layers + 1)
         
         self.hidden_size = self.model.args.embed_dim
@@ -144,7 +145,7 @@ class ESMWrapper(TransformersWrapper):
         """
         with torch.no_grad():
             model_outputs = self.model(
-                model_inputs["input_ids"].to(self._device), repr_layers=[selt.repr_layers]
+                model_inputs["input_ids"].to(self._device), repr_layers=[self.repr_layers]
             )
 
             logits = model_outputs["logits"].detach().cpu()
