@@ -25,15 +25,15 @@
 </details>
 
 # Bio-transformers
-bio-transformers is a python wrapper on top of the **ESM/Protbert** model, which are **Transformers protein language model**, trained on millions of proteins and used to predict embeddings.
-This package provides other functionalities (like computing the loglikelihood of a protein) or computes embeddings on multiple-GPU.
+bio-transformers is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings.
+This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities or embeddings on multiple-GPUs.
 
- You can find the original repo here :
+ You can find the original repositories for the models here :
  - [ESM](https://github.com/facebookresearch/esm/)
  - [Protbert](https://github.com/agemagician/ProtTrans)
 
 ## Installation
-It is recommended to work with conda environments in order to manage the specific dependencies of the package.
+It is recommended to work with conda environments in order to manage the specific dependencies of this package.
 ```bash
   conda create --name bio-transformers python=3.7 -y
   conda activate bio-transformers
@@ -42,11 +42,13 @@ It is recommended to work with conda environments in order to manage the specifi
 # Usage
 
 ## Quick start
-The main class ```BioTranformers``` allow the developer to use Protbert and ESM backend
+The main class ```BioTranformers``` allows developers to use Protbert and ESM backends
 
 ```python
-from biotransformers import BioTransformers
-BioTransformers.list_backend()
+> from biotransformers import BioTransformers
+> BioTransformers.list_backend()
+```
+```
 Use backend in this list :
 
     *   esm1_t34_670M_UR100
@@ -60,7 +62,7 @@ Use backend in this list :
 
 ## Embeddings
 Choose a backend and pass a list of sequences of Amino acids to compute the embeddings.
-By default, the ```compute_embeddings``` function return the ```<CLS>``` token embedding.
+By default, the ```compute_embeddings``` function returns the ```<CLS>``` token embeddings.
 You can add a ```pool_mode``` in addition, so you can compute the mean of the tokens embeddings.
 
 ```python
@@ -77,8 +79,9 @@ embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'))
 cls_emb = embeddings['cls']
 mean_emb = embeddings['mean']
 ```
+
 ### Multi-gpu
-If you have access to multiple GPU, you can activate the ```multi_gpu``` option to speed-up the inference.
+If you have access to multiple GPUs, you can activate the ```multi_gpu``` option to speed-up the inference.
 This option relies on ```torch.nn.DataParallel```.
 ```python
 bio_trans = BioTransformers(backend="protbert",multi_gpu=True)
