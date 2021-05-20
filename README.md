@@ -33,7 +33,7 @@ This package provides other functionalities (like computing the loglikelihood of
  - [Protbert](https://github.com/agemagician/ProtTrans)
 
 ## Installation
-It is recommended to work with conda environements in order to manage the specific dependencies of the package.
+It is recommended to work with conda environments in order to manage the specific dependencies of the package.
 ```bash
   conda create --name bio-transformers python=3.7 -y
   conda activate bio-transformers
