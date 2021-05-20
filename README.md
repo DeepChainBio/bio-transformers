@@ -25,15 +25,15 @@
 </details>
 
 # Bio-transformers
-bio-transformers is a python wrapper on top of the **ESM/Protbert** model, which are **Transformers protein language model**, trained on millions on proteins and used to predict embeddings.
-This package provide other functionalities (like compute the loglikelihood of a protein) or compute embeddings on multiple-gpu.
+bio-transformers is a python wrapper on top of the **ESM/Protbert** model, which are **Transformers protein language model**, trained on millions of proteins and used to predict embeddings.
+This package provides other functionalities (like computing the loglikelihood of a protein) or computes embeddings on multiple-GPU.
 
  You can find the original repo here :
  - [ESM](https://github.com/facebookresearch/esm/)
  - [Protbert](https://github.com/agemagician/ProtTrans)
 
 ## Installation
-It is recommended to work with conda environnements in order to manage the specific dependencies of the package.
+It is recommended to work with conda environements in order to manage the specific dependencies of the package.
 ```bash
   conda create --name bio-transformers python=3.7 -y
   conda activate bio-transformers
@@ -42,7 +42,7 @@ It is recommended to work with conda environnements in order to manage the speci
 # Usage
 
 ## Quick start
-The main class ```BioTranformers``` allow the developper to use Protbert and ESM backend
+The main class ```BioTranformers``` allow the developer to use Protbert and ESM backend
 
 ```python
 from biotransformers import BioTransformers
@@ -61,7 +61,7 @@ Use backend in this list :
 ## Embeddings
 Choose a backend and pass a list of sequences of Amino acids to compute the embeddings.
 By default, the ```compute_embeddings``` function return the ```<CLS>``` token embedding.
-You can add a ```pool_mode``` in addition , so you can compute the mean of the tokens embeddings.
+You can add a ```pool_mode``` in addition, so you can compute the mean of the tokens embeddings.
 
 ```python
 from biotransformers import BioTransformers
@@ -87,9 +87,9 @@ embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'))
 
 
 ## Pseudo-Loglikelihood
-The protein loglikelihood is a metric which estimates the joint probability of observing a given sequence of amino-acids. The idea behind such an estimator is to approximate the probability that a mutated protein will be “natural”, and can effectively be produced by a cell.
+The protein loglikelihood is a metric that estimates the joint probability of observing a given sequence of amino acids. The idea behind such an estimator is to approximate the probability that a mutated protein will be “natural”, and can effectively be produced by a cell.
 
-These metrics rely on transformers language models . These models are trained to predict a “masked” amino-acid in a sequence. As a consequence, they can provide us an estimate of the probability of observing an amino-acid given the “context” (the surrounding amino-acids).  By multiplying individual probabilities computed for a given amino-acid given its context, we obtain a pseudo-likelihood, which can be a candidate estimator to approximate a sequence stability.
+These metrics rely on transformers language models. These models are trained to predict a “masked” amino acid in a sequence. As a consequence, they can provide us with an estimate of the probability of observing an amino acid given the “context” (the surrounding amino acids).  By multiplying individual probabilities computed for a given amino-acid given its context, we obtain a pseudo-likelihood, which can be a candidate estimator to approximate sequence stability.
 ```python
 from biotransformers import BioTransformers
 
@@ -159,7 +159,7 @@ For the MSA Transformer, see [the following paper (biorxiv preprint)](https://do
   url={https://www.biorxiv.org/content/10.1101/2021.02.12.430858v1},
   journal={bioRxiv}
 }
-
+```
 
 
 
