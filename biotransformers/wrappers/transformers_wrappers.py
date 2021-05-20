@@ -320,9 +320,7 @@ class TransformersWrapper(ABC):
             )
 
         if "full" in pool_mode:
-            embeddings_dict["full"] = torch.stack(
-                [emb.float() for emb in embeddings]
-            )
+            embeddings_dict["full"] = torch.stack([emb.float() for emb in embeddings])
 
         return embeddings_dict
 
@@ -473,6 +471,64 @@ class TransformersWrapper(ABC):
 
         return logits.numpy(), labels.numpy()
 
+    def compute_probabilities(
+        self,
+        sequences_list: List[str],
+        batch_size: int = 1,
+        tokens_list: List[str] = None,
+        pass_mode: str = "forward",
+    ) -> List[Dict[int, Dict[str, float]]]:
+        """Function that computes the probabilities over amino-acids from sequences.
+        It takes as inputs a list of sequences and returns a list of dictionaries.
+        Each dictionary contains the probabilities over the natural amino-acids for each
+        position in the sequence. The keys represent the positions (indexed
+        starting with 0) and the values are dictionaries of probabilities over
+        the natural amino-acids for this position. In these dictionaries, the keys are
+        the amino-acids and the value the corresponding probabilities.
+
+        Args:
+            sequences_list: List of sequences
+            batch_size: Batch size
+            pass_mode: Mode of model evaluation ('forward' or 'masked')
+            tokens_list: List of tokens to consider
+
+        Returns:
+            List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
+        """
+        if tokens_list is None:
+            tokens_list = NATURAL_AAS_LIST
+
+        _check_sequence(sequences_list, self.model_dir, 1024)
+        _check_memory_logits(sequences_list, self.vocab_size, pass_mode)
+
+        inputs, labels, tokens = self._process_sequences_and_tokens(
+            sequences_list, tokens_list
+        )
+        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits, _ = self._filter_logits(logits, labels, tokens)
+
+        lengths = [len(sequence) for sequence in sequences_list]
+        splitted_logits = torch.split(logits, lengths, dim=0)
+
+        softmax = torch.nn.Softmax(dim=-1)
+        splitted_probabilities = [softmax(logits) for logits in splitted_logits]
+
+        def _get_probabilities_dict(probs: torch.Tensor) -> Dict[str, float]:
+            return {
+                aa: float(probs[i].cpu().numpy())
+                for i, aa in enumerate(NATURAL_AAS_LIST)
+            }
+
+        probabilities = [
+            {
+                key: _get_probabilities_dict(value)
+                for key, value in dict(enumerate(split)).items()
+            }
+            for split in splitted_probabilities
+        ]
+
+        return probabilities
+
     def compute_loglikelihood(
         self,
         sequences_list: List[str],
@@ -523,9 +579,13 @@ class TransformersWrapper(ABC):
         Returns:
             torch.Tensor: Tensor of shape [number_of_sequences, embeddings_size]
         """
-        if "full" in pool_mode and not all(len(s) == len(sequences_list[0]) for s in sequences_list):
-            raise Exception("Sequences must be of same length when pool_mode = (\"full\",)")
-        
+        if "full" in pool_mode and not all(
+            len(s) == len(sequences_list[0]) for s in sequences_list
+        ):
+            raise Exception(
+                'Sequences must be of same length when pool_mode = ("full",)'
+            )
+
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 
