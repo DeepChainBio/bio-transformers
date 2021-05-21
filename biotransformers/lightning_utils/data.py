@@ -126,7 +126,46 @@ def collate_fn(
     return tokens, targets
 
 
-def create_dataset(
+def get_batch_indices(
+    sequence_strs, toks_per_batch: int, extra_toks_per_seq: int = 0
+) -> List[List[int]]:
+    """Get the batch idx based on the number of tokens in sequences
+
+    Args:
+        toks_per_batch (int): Maxi number of token per batch
+        extra_toks_per_seq (int, optional): . Defaults to 0.
+
+    Returns:
+        List: List of batches indexesxs
+    """
+    buffer_type = List[int]
+
+    sizes = [(len(s), i) for i, s in enumerate(sequence_strs)]
+    sizes.sort()
+    batches: List[buffer_type] = []
+    buffer: buffer_type = []
+    max_len = 0
+
+    def _flush_current_buf():
+        nonlocal max_len, buffer
+        if len(buffer) == 0:
+            return
+        batches.append(buffer)
+        buffer = []
+        max_len = 0
+
+    for sz, i in sizes:
+        sz += extra_toks_per_seq
+        if max(sz, max_len) * (len(buffer) + 1) > toks_per_batch:
+            _flush_current_buf()
+        max_len = max(max_len, sz)
+        buffer.append(i)
+
+    _flush_current_buf()
+    return batches
+
+
+def create_dataloader(
     sequences: List[str],
     alphabet: Alphabet,
     filter_len: bool,
@@ -135,6 +174,8 @@ def create_dataset(
     masking_prob: float,
     random_token_prob: float,
     num_workers: int = 0,
+    toks_per_batch: int = 128,
+    extra_toks_per_seq: int = 2,
 ) -> DataLoader:
     """Create the PyTorch Dataset.
 
@@ -151,6 +192,9 @@ def create_dataset(
     Returns:
         torch DataLoader
     """
+    # batches = get_batch_indices(
+    #     sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
+    # )
     sequences = enumerate(sequences)  # type: ignore
     sequences = list(sequences)
     tokenizer = alphabet.get_batch_converter()
@@ -171,6 +215,7 @@ def create_dataset(
         pin_memory=True,
         drop_last=True,
         worker_init_fn=worker_init_fn,
+        # batch_sampler=batches,
     )
     return loader
 
@@ -185,6 +230,8 @@ class BioDataModule(pl.LightningDataModule):
         masking_ratio: float,
         masking_prob: float,
         random_token_prob: float,
+        toks_per_batch: int = 128,
+        extra_toks_per_seq: int = 2,
         num_workers: int = 0,
         validation: bool = True,
     ):
@@ -196,6 +243,8 @@ class BioDataModule(pl.LightningDataModule):
         self.masking_ratio = masking_ratio
         self.masking_prob = masking_prob
         self.random_token_prob = random_token_prob
+        self.toks_per_batch = toks_per_batch
+        self.extra_toks_per_seq = extra_toks_per_seq
         self.num_workers = num_workers
         self.validation = validation
 
@@ -218,7 +267,7 @@ class BioDataModule(pl.LightningDataModule):
         # self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transform)
 
     def train_dataloader(self):
-        return create_dataset(
+        return create_dataloader(
             sequences=self.seq_train,
             alphabet=self.alphabet,
             filter_len=self.filter_len,
@@ -227,10 +276,12 @@ class BioDataModule(pl.LightningDataModule):
             masking_ratio=self.masking_ratio,
             masking_prob=self.masking_prob,
             random_token_prob=self.random_token_prob,
+            toks_per_batch=self.toks_per_batch,
+            extra_toks_per_seq=self.extra_toks_per_seq,
         )
 
     def val_dataloader(self):
-        return create_dataset(
+        return create_dataloader(
             sequences=self.seq_val,
             alphabet=self.alphabet,
             filter_len=self.filter_len,
@@ -239,6 +290,8 @@ class BioDataModule(pl.LightningDataModule):
             masking_ratio=self.masking_ratio,
             masking_prob=self.masking_prob,
             random_token_prob=self.random_token_prob,
+            toks_per_batch=self.toks_per_batch,
+            extra_toks_per_seq=self.extra_toks_per_seq,
         )
 
     def test_dataloader(self):

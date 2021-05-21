@@ -168,30 +168,44 @@ class ESMWrapper(TransformersWrapper):
         masking_ratio: float = 0.025,
         masking_prob: float = 0.8,
         random_token_prob: float = 0.1,
+        toks_per_batch: int = 128,
         filter_len=1024,
+        logs_save_dir: str = "logs",
     ):
         """Function to finetuned a model on a specific dataset
 
         This function will finetune a the choosen model on a dataset of
-        sequence with pytorch ligthening.
+        sequences with pytorch ligthening.
 
+        Args:
+            train_sequences : [description]
+            lr : learning rate for training phase. Defaults to 1.0e-5.
+            warmup_updates : Defaults to 10.
+            warmup_init_lr :  Defaults to 1e-7.
+            epochs :  Defaults to 10.
+            batch_size :  Defaults to 2.
+            acc_batch_size :  Defaults to 2048.
+            masking_ratio :  Defaults to 0.025.
+            masking_prob :  Defaults to 0.8.
+            random_token_prob : Defaults to 0.1.
+            toks_per_batch: Defaults to 128,
+            extra_toks_per_seq: Defaults to 2,
+            filter_len : Defaults to 1024.
+            logs_save_dir : Defaults to logs.
         """
-        if self.multi_gpu:
-            lightning_model = LightningESM(
-                model=self.model.module,
-                alphabet=self.alphabet,
-                lr=lr,
-                warmup_updates=warmup_updates,
-                warmup_end_lr=lr,
-            )
-        else:
-            lightning_model = LightningESM(
-                model=self.model,
-                alphabet=self.alphabet,
-                lr=lr,
-                warmup_updates=warmup_updates,
-                warmup_end_lr=lr,
-            )
+        # if model compiled with DataParallel
+        fit_model = self.model.module if self.multi_gpu else self.model
+        extra_toks_per_seq = int(self.alphabet.prepend_bos) + int(
+            self.alphabet.append_eos
+        )
+        lightning_model = LightningESM(
+            model=fit_model,
+            alphabet=self.alphabet,
+            lr=lr,
+            warmup_updates=warmup_updates,
+            warmup_init_lr=warmup_init_lr,
+            warmup_end_lr=lr,
+        )
 
         data_module = BioDataModule(
             train_sequences,
@@ -201,12 +215,14 @@ class ESMWrapper(TransformersWrapper):
             masking_ratio,
             masking_prob,
             random_token_prob,
+            toks_per_batch,
+            extra_toks_per_seq,
         )
 
         if torch.cuda.is_available():
             n_gpus = torch.cuda.device_count()
 
-        logger = CSVLogger("logs", name="my_exp_name")
+        logger = CSVLogger(logs_save_dir, name="finetuned_masked")
 
         trainer = Trainer(
             gpus=n_gpus,
@@ -217,5 +233,9 @@ class ESMWrapper(TransformersWrapper):
             max_epochs=epochs,
             logger=logger,
         )
-
         trainer.fit(lightning_model, data_module)
+
+        if self.multi_gpu:
+            DataParallel(lightning_model).to(self._device)
+        else:
+            lightning_model.to(self._device)
