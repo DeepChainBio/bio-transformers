@@ -198,7 +198,6 @@ class ESMWrapper(TransformersWrapper):
         extra_toks_per_seq = int(self.alphabet.prepend_bos) + int(
             self.alphabet.append_eos
         )
-
         lightning_model = LightningESM(
             model=fit_model,
             alphabet=self.alphabet,

@@ -192,9 +192,9 @@ def create_dataloader(
     Returns:
         torch DataLoader
     """
-    batches = get_batch_indices(
-        sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
-    )
+    # batches = get_batch_indices(
+    #     sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
+    # )
     sequences = enumerate(sequences)  # type: ignore
     sequences = list(sequences)
     tokenizer = alphabet.get_batch_converter()
@@ -215,7 +215,7 @@ def create_dataloader(
         pin_memory=True,
         drop_last=True,
         worker_init_fn=worker_init_fn,
-        batch_sampler=batches,
+        # batch_sampler=batches,
     )
     return loader
 
