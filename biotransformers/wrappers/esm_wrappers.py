@@ -236,6 +236,6 @@ class ESMWrapper(TransformersWrapper):
         trainer.fit(lightning_model, data_module)
 
         if self.multi_gpu:
-            DataParallel(lightning_model).to(self._device)
+            self.model = DataParallel(lightning_model.model).to(self._device)
         else:
-            lightning_model.to(self._device)
+            self.model = lightning_model.model.to(self._device)
