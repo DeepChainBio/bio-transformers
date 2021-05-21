@@ -10,6 +10,9 @@ from biotransformers.version import VERSION
 HERE = pathlib.Path(__file__).parent
 README = (HERE / "README.md").read_text()
 
+with open("biotransformers/version.py") as v:
+    exec(v.readline())
+
 
 def read_requirements() -> List:
     with open("requirements.txt", "r+") as file:
