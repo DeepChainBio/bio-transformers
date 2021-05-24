@@ -27,7 +27,7 @@ def make_install():
     setup_fn = setup(
         name="bio-transformers",
         license="Apache-2.0",
-        version=VERSION,
+        version=VERSION, # noqa
         description=DESCRIPTION,
         author="Instadeep",
         long_description=README,
