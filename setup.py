@@ -5,12 +5,12 @@ from typing import List
 
 from setuptools import find_packages, setup
 
-from biotransformers.version import VERSION
-
 HERE = pathlib.Path(__file__).parent
 README = (HERE / "README.md").read_text()
 
-
+with open("biotransformers/version.py") as v:
+    exec(v.readline())
+    
 def read_requirements() -> List:
     with open("requirements.txt", "r+") as file:
         requirements = [line.strip() for line in file.readlines()]
