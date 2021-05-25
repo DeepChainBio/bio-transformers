@@ -5,7 +5,7 @@ It allows to derive probabilities, embeddings and log-likelihoods based on input
 sequences, and displays some properties of the transformer model.
 """
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Iterable, List, Tuple
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -252,7 +252,15 @@ class TransformersWrapper(ABC):
         labels: torch.Tensor,
         tokens: List[int],
     ) -> torch.Tensor:
+        """Function to compute the loglikelihood of sequences based on logits
+        Args:
+            logits : [description]
+            labels : Position of
+            tokens: [description]
 
+        Returns:
+            Torch.tensor: tensor
+        """
         masks = torch.zeros(labels.shape, dtype=torch.bool)
         for token_id in tokens:
             masks += labels == token_id
@@ -325,9 +333,7 @@ class TransformersWrapper(ABC):
         return embeddings_dict
 
     def _model_evaluation(
-        self,
-        model_inputs: Dict[str, torch.tensor],
-        batch_size: int = 1,
+        self, model_inputs: Dict[str, torch.tensor], batch_size: int = 1, **kwargs
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
@@ -343,7 +349,7 @@ class TransformersWrapper(ABC):
                     * logits [num_seqs, max_len_seqs, vocab_size]
                     * embeddings [num_seqs, max_len_seqs+1, embedding_size]
         """
-
+        silent = kwargs.get("silent", False)
         # Initialize logits and embeddings before looping over batches
         logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
         embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
@@ -351,6 +357,7 @@ class TransformersWrapper(ABC):
         for batch_inputs in tqdm(
             self._generate_chunks(model_inputs, batch_size),
             total=self._get_num_batch_iter(model_inputs, batch_size),
+            disable=silent,
         ):
             batch_logits, batch_embeddings = self._model_pass(batch_inputs)
 
@@ -360,7 +367,11 @@ class TransformersWrapper(ABC):
         return logits, embeddings
 
     def _compute_logits(
-        self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str
+        self,
+        model_inputs: Dict[str, torch.Tensor],
+        batch_size: int,
+        pass_mode: str,
+        **kwargs
     ) -> torch.Tensor:
         """Intermediate function to compute logits
 
@@ -374,10 +385,14 @@ class TransformersWrapper(ABC):
         """
         if pass_mode == "masked":
             model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
-            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size)
+            logits, _ = self._model_evaluation(
+                model_inputs, batch_size=batch_size, **kwargs
+            )
             logits = self._gather_masked_outputs(logits, masked_ids_list)
         elif pass_mode == "forward":
-            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size)
+            logits, _ = self._model_evaluation(
+                model_inputs, batch_size=batch_size, **kwargs
+            )
         return logits
 
     def _compute_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
@@ -445,12 +460,16 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """Function that computes the logits from sequences
+        silent: bool = False,
+    ) -> Tuple[List[np.ndarray]]:
+        """Function that computes the logits from sequences.
+
+        It returns a list of logits for each sequence. Each sequence in the list
+        contains only the amino acid to interest.
 
         Args:
             sequences_list: List of sequences
-            batch_size: Batch size
+            batch_size: number of sequences to consider for the forward pass
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             tokens_list: List of tokens to consider
 
@@ -466,10 +485,14 @@ class TransformersWrapper(ABC):
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list
         )
-        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, labels = self._filter_logits(logits, labels, tokens)
 
-        return logits.numpy(), labels.numpy()
+        lengths = [len(sequence) for sequence in sequences_list]
+        splitted_logits = torch.split(logits, lengths, dim=0)
+        splitted_logits = [logits.numpy() for logits in splitted_logits]
+
+        return splitted_logits
 
     def compute_probabilities(
         self,
@@ -477,21 +500,25 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
+        silent: bool = False,
     ) -> List[Dict[int, Dict[str, float]]]:
         """Function that computes the probabilities over amino-acids from sequences.
+
         It takes as inputs a list of sequences and returns a list of dictionaries.
         Each dictionary contains the probabilities over the natural amino-acids for each
         position in the sequence. The keys represent the positions (indexed
         starting with 0) and the values are dictionaries of probabilities over
-        the natural amino-acids for this position. In these dictionaries, the keys are
-        the amino-acids and the value the corresponding probabilities.
+        the natural amino-acids for this position.
+
+        In these dictionaries, the keys are the amino-acids and the value
+        the corresponding probabilities.
 
         Args:
             sequences_list: List of sequences
-            batch_size: Batch size
+            batch_size: number of sequences to consider for the forward pass
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             tokens_list: List of tokens to consider
-
+            silent : display or not progress bar
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
@@ -504,7 +531,7 @@ class TransformersWrapper(ABC):
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list
         )
-        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, _ = self._filter_logits(logits, labels, tokens)
 
         lengths = [len(sequence) for sequence in sequences_list]
@@ -535,6 +562,7 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
+        silent: bool = False,
     ) -> np.ndarray:
         """Function that computes loglikelihoods of sequences
 
@@ -545,7 +573,7 @@ class TransformersWrapper(ABC):
             tokens_list: List of tokens to consider
 
         Returns:
-            torch.Tensor: loglikelihoods in torch.tensor format
+            torch.Tensor: loglikelihoods in numpy format
         """
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
@@ -556,7 +584,7 @@ class TransformersWrapper(ABC):
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list
         )
-        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         loglikelihoods = self._filter_loglikelihoods(logits, labels, tokens)
 
         return loglikelihoods.numpy()
@@ -567,15 +595,21 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         pool_mode: Tuple[str, ...] = ("cls", "mean"),
         tokens_list: List[str] = None,
+        silent: bool = False,
     ) -> Dict[str, np.ndarray]:
-        """Function that computes embeddings of sequences
+        """Function that computes embeddings of sequences.
+
+        The embedding has a size (n_sequence, num_tokens, embeddings_size) so we use
+        an aggregation function specified in pool_mode to aggregate the tensor on
+        the num_tokens dimension. 'mean' signifies that we take the mean over the
+        num_tokens dimension.
 
         Args:
             sequences_list: List of sequences
             batch_size: Batch size
             pool_mode: Mode of pooling ('cls', 'mean', 'min', 'max)
             tokens_list: List of tokens to consider
-
+            silent : whereas to display or not progress bar
         Returns:
             torch.Tensor: Tensor of shape [number_of_sequences, embeddings_size]
         """
@@ -600,6 +634,7 @@ class TransformersWrapper(ABC):
         for batch_inputs in tqdm(
             self._generate_chunks(inputs, batch_size),
             total=self._get_num_batch_iter(inputs, batch_size),
+            disable=silent,
         ):
             _, batch_embeddings = self._model_pass(batch_inputs)
             batch_labels = batch_inputs["input_ids"]
@@ -621,6 +656,7 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         pass_mode: str = "forward",
         tokens_list: List[str] = None,
+        silent: bool = False,
     ) -> float:
         """Compute model accuracy from the input sequences
 
@@ -629,7 +665,7 @@ class TransformersWrapper(ABC):
             batch_size: [description]. Defaults to 1.
             pass_mode: [description]. Defaults to "forward".
             tokens_list: [description]. Defaults to None.
-
+            silent: whereas to display or not progress bar
         Returns:
             [type]: [description]
         """
@@ -641,7 +677,7 @@ class TransformersWrapper(ABC):
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list
         )
-        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, labels = self._filter_logits(logits, labels, tokens)
         accuracy = self._compute_accuracy(logits, labels)
 
@@ -652,18 +688,19 @@ class TransformersWrapper(ABC):
         sequences_list: List[str],
         batch_size: int = 1,
         pass_mode: str = "forward",
-        tokens_list: List[str] = None,
+        tokens_list: Optional[List[str]] = None,
         n_bins: int = 10,
+        silent: bool = False,
     ) -> Dict[str, Any]:
         """Compute model calibration from the input sequences
 
         Args:
-            sequences_list ([type]): [description]
-            batch_size ([type], optional): [description]. Defaults to 1.
-            pass_mode ([type], optional): [description]. Defaults to "forward".
-            tokens_list ([type], optional): [description]. Defaults to None.
-            n_bins ([type], optional): [description]. Defaults to 10.
-
+            sequences_list : [description]
+            batch_size : [description]. Defaults to 1.
+            pass_mode : [description]. Defaults to "forward".
+            tokens_list : [description]. Defaults to None.
+            n_bins : [description]. Defaults to 10.
+            silent: display or not progress bar
         Returns:
             [type]: [description]
         """
@@ -675,7 +712,7 @@ class TransformersWrapper(ABC):
         inputs, labels, tokens = self._process_sequences_and_tokens(
             sequences_list, tokens_list
         )
-        logits = self._compute_logits(inputs, batch_size, pass_mode)
+        logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, labels = self._filter_logits(logits, labels, tokens)
         calibration_dict = self._compute_calibration(logits, labels, n_bins)
 
