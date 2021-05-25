@@ -10,7 +10,8 @@ README = (HERE / "README.md").read_text()
 
 with open("biotransformers/version.py") as v:
     exec(v.readline())
-    
+
+
 def read_requirements() -> List:
     with open("requirements.txt", "r+") as file:
         requirements = [line.strip() for line in file.readlines()]
@@ -27,7 +28,7 @@ def make_install():
     setup_fn = setup(
         name="bio-transformers",
         license="Apache-2.0",
-        version=VERSION, # noqa
+        version=VERSION,  # noqa
         description=DESCRIPTION,
         author="Instadeep",
         long_description=README,
