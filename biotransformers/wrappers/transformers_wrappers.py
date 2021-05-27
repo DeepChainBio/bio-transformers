@@ -111,7 +111,7 @@ class TransformersWrapper(ABC):
     @abstractmethod
     def _process_sequences_and_tokens(
         self, sequences_list: List[str], tokens_list: List[str]
-    ) -> Tuple[Dict[str, torch.tensor], torch.tensor, List[int]]:
+    ) -> Tuple[Dict[str, torch.Tensor], torch.tensor, List[int]]:
         """Function to transform tokens string to IDs; it depends on the model used"""
         return NotImplemented, NotImplemented, NotImplemented
 

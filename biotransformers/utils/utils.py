@@ -23,7 +23,7 @@ def convert_bytes_size(size_bytes: int) -> Tuple[str, bool]:
     i = int(math.floor(math.log(size_bytes, 1024)))
     p = math.pow(1024, i)
     s = int(round(size_bytes / p, 2))
-    is_warning = True if i >= 3 else False
+    is_warning = i >= 3  # warning on size only for model in GB
 
     return "%s%s" % (s, size_name[i]), is_warning
 
