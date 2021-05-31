@@ -1,11 +1,11 @@
 # Finetuning
 
 ## How to finetune a model?
-`bio-transformers` uses pytorch-lightning to easily load pre-trained model and finetune it on your own datasets. The method `train_masked` automatically scale on your visible GPU to train in parallel thanks to different accelerator.
+`bio-transformers` uses pytorch-lightning to easily load pre-trained model and finetune it on your own datasets. The method `train_masked` automatically scale on your visible GPU to train in parallel thanks to the different accelerator.
 
 It is strongly recommended to use the `DDP` accelerator for training : [ddp](https://pytorch.org/docs/stable/notes/ddp.html). You should know that `DDP` will launch several python instances, as a consequence, a model should be finetuned in a separate script, and not be mixed with inference function like `compute_loglikelihood` or `compute_embeddings` to avoid GPU conflicts.
 
-The model will be finetuned randomly by masking a proportion of amino acid in a sequence it is commonly do a most state of the art paper.
+The model will be finetuned randomly by masking a proportion of amino acid in a sequence it commonly does in most state of the art paper.
 
 ## Parameters
 The function can handle a fasta file or a list of sequences directly.
@@ -20,8 +20,8 @@ Seven arguments are important for the training:
 Three arguments allow to custom the masking function used for building the training dataset:
 
 - **masking_ratio** : ratio of tokens to be masked. Defaults to 0.025.
-- **random_token_prob** : probability that the chose token is replaced with a random token.
-- **masking_prob**: probability that the chose token is replaced with a mask token.
+- **random_token_prob** : the probability that the chose token is replaced with a random token.
+- **masking_prob**: the probability that the chose token is replaced with a mask token.
 
 All the results will be saved in logs directory:
 
@@ -29,7 +29,7 @@ All the results will be saved in logs directory:
 - **logs_name_exp**: Name of the experience in the logs.
 - **checkpoint**: Path to a checkpoint file to restore training session.
 - **save_last_checkpoint**: Save last checkpoint and 2 best trainings models
-to restore training session. Take a large amount of time and memory.
+to restore the training session. Take a large amount of time and memory.
 
 ## Example : training script
 
