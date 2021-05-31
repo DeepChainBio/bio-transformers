@@ -77,35 +77,6 @@ data = biodatasets.load_dataset("swissProt")
 X, y = data.to_npy_arrays(input_names=["sequence"])
 X = X[0]
 
-# Train on small sequence
-length = np.array(list(map(len, X))) < 200
-train_seq = X[length][:15000]
-bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda")
-
-bio_trans.train_masked(
-    train_seq,
-    lr=1.0e-5,
-    warmup_init_lr=1e-7,
-    toks_per_batch=2000,
-    epochs=20,
-    batch_size=16,
-    acc_batch_size=256,
-    warmup_updates=1024,
-    accelerator="ddp",
-    checkpoint=None,
-    save_last_checkpoint=False,
-)
-```
-
-```python
-import biodatasets
-import numpy as np
-from biotransformers import BioTransformers
-
-data = biodatasets.load_dataset("swissProt")
-X, y = data.to_npy_arrays(input_names=["sequence"])
-X = X[0]
-
 # Train sequence with length less than 200 AA
 # Test on sequence that was not used fir training.
 length = np.array(list(map(len, X))) < 200
@@ -116,9 +87,11 @@ acc_before = bio_trans.compute_accuracy(train_seq, batch_size=32)
 print(f"Accuracy before finetuning : {acc_before}")
 ```
 >> Accuracy before finetuning : 0.46
+
 ```python
 bio_trans.load_model("logs/finetune_masked/version_X/esm1_t6_43M_UR50S_finetuned.pt")
 acc_after = bio_trans.compute_accuracy(train_seq, batch_size=32)
 print(f"Accuracy after finetuning : {acc_after}")
 ```
+
 >> Accuracy after finetuning : 0.76
