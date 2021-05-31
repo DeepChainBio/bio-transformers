@@ -1,15 +1,9 @@
 """Main module to build either ESM or protbert model"""
 
-from typing import List
-
-from biotransformers.wrappers.esm_wrappers import ESMWrapper, esm_list
+from biotransformers.utils.constant import BACKEND_LIST, MAPPING_PROTBERT
+from biotransformers.utils.utils import format_backend
+from biotransformers.wrappers.esm_wrappers import ESMWrapper
 from biotransformers.wrappers.rostlab_wrapper import RostlabWrapper
-
-MAPPING_PROTBERT = {
-    "protbert": "Rostlab/prot_bert",
-    "protbert_bfd": "Rostlab/prot_bert_bfd",
-}
-BACKEND_LIST = esm_list + list(MAPPING_PROTBERT.keys())
 
 
 class BioTransformers:
@@ -50,8 +44,3 @@ class BioTransformers:
             "\n".join(format_backend(BACKEND_LIST)),
             sep="",
         )
-
-
-def format_backend(backend_list: List[str]) -> List[str]:
-    """format of list to display"""
-    return ["  *" + " " * 3 + model for model in backend_list]

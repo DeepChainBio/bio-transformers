@@ -8,12 +8,11 @@ hugging face
 from typing import Dict, List, Tuple
 
 import torch
+from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL
 from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
+from biotransformers.utils.constant import ROSTLAB_LIST
 from torch.nn import DataParallel
 from transformers import BertForMaskedLM, BertTokenizer
-
-rostlab_list = ["Rostlab/prot_bert", "Rostlab/prot_bert_bfd"]
-DEFAULT_MODEL = "Rostlab/prot_bert"
 
 
 class RostlabWrapper(TransformersWrapper):
@@ -24,12 +23,12 @@ class RostlabWrapper(TransformersWrapper):
 
     def __init__(self, model_dir: str, device, multi_gpu):
 
-        if model_dir not in rostlab_list:
+        if model_dir not in ROSTLAB_LIST:
             print(
                 f"Model dir '{model_dir}' not recognized. "
-                f"Using '{DEFAULT_MODEL}' as default"
+                f"Using '{DEFAULT_ROSTLAB_MODEL}' as default"
             )
-            model_dir = DEFAULT_MODEL
+            model_dir = DEFAULT_ROSTLAB_MODEL
 
         super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
 
@@ -43,7 +42,6 @@ class RostlabWrapper(TransformersWrapper):
         self.hidden_size = self.model.config.hidden_size
         if self.multi_gpu:
             self.model = DataParallel(self.model)
-
         self.mask_pipeline = None
 
     @property
@@ -109,7 +107,9 @@ class RostlabWrapper(TransformersWrapper):
 
         separated_sequences_list = [" ".join(seq) for seq in sequences_list]
         encoded_inputs = self.tokenizer(
-            separated_sequences_list, return_tensors="pt", padding=True,
+            separated_sequences_list,
+            return_tensors="pt",
+            padding=True,
         ).to("cpu")
 
         return encoded_inputs, encoded_inputs["input_ids"], tokens

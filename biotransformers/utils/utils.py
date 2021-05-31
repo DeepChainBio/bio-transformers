@@ -1,7 +1,9 @@
 import math
+import os
 from dataclasses import dataclass
 from typing import List, Tuple
 
+from Bio import SeqIO
 from biotransformers.utils.logger import logger
 
 log = logger("utils")
@@ -101,6 +103,33 @@ def _check_sequence(sequences_list: List[str], model: str, length: int):
                 f"filter the sequence length"
             )
     return
+
+
+def load_fasta(path_fasta: str) -> List[str]:
+    """Read and parse records from a fasta file
+
+    Args:
+        path_fasta: path of the fasta file
+
+    Returns:
+        List: List of sequences
+    """
+    return [str(record.seq) for record in SeqIO.parse(path_fasta, format="fasta")]
+
+
+def get_logs_version(path_logs):
+    """Get last version of logs folder to save model inside
+
+    Args:
+        path_logs (str): path of the logs/experiments folder
+    """
+    version = str(max([int(fold.split("_")[1]) for fold in os.listdir(path_logs)]))
+    return "version_" + version
+
+
+def format_backend(backend_list: List[str]) -> List[str]:
+    """format of list to display"""
+    return ["  *" + " " * 3 + model for model in backend_list]
 
 
 @dataclass

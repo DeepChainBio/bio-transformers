@@ -2,26 +2,26 @@
 This script defines a class which inherits from the TransformersWrapper class, and is
 specific to the ESM model developed by FAIR (https://github.com/facebookresearch/esm).
 """
-from typing import Dict, List, Tuple
+from os.path import join
+from typing import Dict, List, Optional, Tuple, Union
 
 import esm
 import torch
+from biotransformers.utils.constant import DEFAULT_ESM_MODEL, ESM_LIST
+from biotransformers.utils.logger import logger  # noqa
+from biotransformers.utils.utils import _check_sequence, load_fasta
 from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
+
+# from esm.data import read_fasta
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import CSVLogger
 from torch.nn import DataParallel
 
-# List all ESM models
-esm_list = [
-    # "esm1_t34_670M_UR50S",
-    # "esm1_t34_670M_UR50D",
-    "esm1_t34_670M_UR100",
-    "esm1_t12_85M_UR50S",
-    "esm1_t6_43M_UR50S",
-    "esm1b_t33_650M_UR50S",
-    # "esm_msa1_t12_100M_UR50S",
-]
+from ..lightning_utils.data import BioDataModule
+from ..lightning_utils.models import LightningESM
 
-# Define a default ESM model
-DEFAULT_MODEL = "esm1_t34_670M_UR100"
+log = logger("esm_wrapper")
 
 
 class ESMWrapper(TransformersWrapper):
@@ -32,12 +32,12 @@ class ESMWrapper(TransformersWrapper):
 
     def __init__(self, model_dir: str, device, multi_gpu):
 
-        if model_dir not in esm_list:
+        if model_dir not in ESM_LIST:
             print(
                 f"Model dir '{model_dir}' not recognized. "
-                f"Using '{DEFAULT_MODEL}' as default"
+                f"Using '{DEFAULT_ESM_MODEL}' as default"
             )
-            model_dir = DEFAULT_MODEL
+            model_dir = DEFAULT_ESM_MODEL
 
         super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
 
@@ -45,8 +45,9 @@ class ESMWrapper(TransformersWrapper):
         self.num_layers = self.model.num_layers
         repr_layers = -1
         self.repr_layers = (repr_layers + self.num_layers + 1) % (self.num_layers + 1)
-        
+
         self.hidden_size = self.model.args.embed_dim
+
         if self.multi_gpu:
             self.model = DataParallel(self.model).to(self._device)
         else:
@@ -145,10 +146,151 @@ class ESMWrapper(TransformersWrapper):
         """
         with torch.no_grad():
             model_outputs = self.model(
-                model_inputs["input_ids"].to(self._device), repr_layers=[self.repr_layers]
+                model_inputs["input_ids"].to(self._device),
+                repr_layers=[self.repr_layers],
+            )
+            logits = model_outputs["logits"].detach().cpu()
+            embeddings = (
+                model_outputs["representations"][self.repr_layers].detach().cpu()
             )
 
-            logits = model_outputs["logits"].detach().cpu()
-            embeddings = model_outputs["representations"][self.repr_layers].detach().cpu()
-
         return logits, embeddings
+
+    def train_masked(
+        self,
+        train_sequences: Union[List[str], str],
+        lr: float = 1.0e-5,
+        warmup_updates: int = 1024,
+        warmup_init_lr: float = 1e-7,
+        epochs: int = 10,
+        batch_size: int = 2,
+        acc_batch_size: int = 256,
+        masking_ratio: float = 0.025,
+        masking_prob: float = 0.8,
+        random_token_prob: float = 0.15,
+        toks_per_batch: int = 2048,
+        filter_len=1024,
+        accelerator: str = "ddp",
+        amp_level: str = "O2",
+        precision: int = 16,
+        logs_save_dir: str = "logs",
+        logs_name_exp: str = "finetune_masked",
+        checkpoint: Optional[str] = None,
+        save_last_checkpoint: bool = True,
+    ):
+        """Function to finetune a model on a specific dataset
+
+        This function will finetune the choosen model on a dataset of
+        sequences with pytorch ligthening. You can modify the masking ratio of AA
+        in the arguments for better convergence.
+        Be careful with the accelerator that you use. DDP accelerator will
+        launch multiple python process and do not be use in a notebook.
+
+        More informations on GPU/accelerator compatibility here :
+            https://pytorch-lightning.readthedocs.io/en/stable/advanced/multi_gpu.html
+        The wisest choice would be to use DDP for multi-gpu training.
+
+        Args:
+            train_sequences : Could be a list of sequences or the path of a
+                              fasta file with multiple seqRecords
+            lr : learning rate for training phase. Defaults to 1.0e-5.
+            warmup_updates : Number of warming updates, number of step while increasing
+            the leraning rate. Defaults to 1024.
+            warmup_init_lr :  Initial lr for warming_update. Defaults to 1e-7.
+            epochs :  number of epoch for training. Defaults to 10.
+            batch_size :  number of sequence to consider in a batch. Defaults to 2.
+            acc_batch_size : accumulated batch size Defaults to 2048.
+            masking_ratio : ratio of tokens to be masked. Defaults to 0.025.
+            masking_prob :  probability that the chose token is replaced with a mask token.
+                            Defaults to 0.8.
+            random_token_prob : probability that the chose token is replaced with a random token.
+                                Defaults to 0.1.
+            toks_per_batch: Maximum number of token to consider in a batch.Defaults to 2048.
+                            This argument will set the number of sequences in a batch, which
+                            is dynamically computed. Batch size use accumulate_grad_batches to compute
+                            accumulate_grad_batches parameter.
+            extra_toks_per_seq: Defaults to 2,
+            filter_len : Size of sequence to filter. Defaults to 1024. (NOT USED)
+            accelerator: type of accelerator for mutli-gpu processing (DPP recommanded)
+            amp_level: allow mixed precision. Defaults to '02'
+            precision: reducing precision allows to decrease the GPU memory needed.
+                       Defaults to 16 (float16)
+            logs_save_dir : Defaults directory to logs.
+            logs_name_exp: Name of the experience in the logs.
+            checkpoint : Path to a checkpoint file to restore training session.
+            save_last_checkpoint: Save last checkpoint and 2 best trainings models
+                                  to restore training session. Take a large amout of time and memory.
+        """
+        if isinstance(train_sequences, str):
+            train_sequences = load_fasta(train_sequences)
+        _check_sequence(train_sequences, self.model_dir, 1024)  # noqa: ignore
+
+        fit_model = self.model.module if self.multi_gpu else self.model
+
+        extra_toks_per_seq = int(self.alphabet.prepend_bos) + int(
+            self.alphabet.append_eos
+        )
+        lightning_model = LightningESM(
+            model=fit_model,
+            alphabet=self.alphabet,
+            lr=lr,
+            warmup_updates=warmup_updates,
+            warmup_init_lr=warmup_init_lr,
+            warmup_end_lr=lr,
+        )
+
+        data_module = BioDataModule(
+            train_sequences,
+            self.alphabet,
+            filter_len,
+            batch_size,
+            masking_ratio,
+            masking_prob,
+            random_token_prob,
+            toks_per_batch,
+            extra_toks_per_seq,
+        )
+
+        if torch.cuda.is_available():
+            n_gpus = torch.cuda.device_count()
+        else:
+            log.warning("You try to train a transformers without GPU.")
+            return
+
+        logger = CSVLogger(logs_save_dir, name=logs_name_exp)
+        if save_last_checkpoint:
+            checkpoint_callback = [
+                ModelCheckpoint(
+                    save_last=True,
+                    save_top_k=2,
+                    mode="max",
+                    monitor="val_acc",
+                    every_n_val_epochs=3,
+                )
+            ]
+        else:
+            checkpoint_callback = None
+
+        trainer = Trainer(
+            gpus=n_gpus,
+            amp_level=amp_level,
+            precision=precision,
+            accumulate_grad_batches=acc_batch_size // batch_size,
+            max_epochs=epochs,
+            logger=logger,
+            accelerator=accelerator,
+            replace_sampler_ddp=False,
+            resume_from_checkpoint=checkpoint,
+            callbacks=checkpoint_callback,
+        )
+
+        trainer.fit(lightning_model, data_module)
+        save_name = self.save_model(join(logs_save_dir, logs_name_exp), lightning_model)
+        log.info("Model save at %s." % save_name)
+
+        if self.multi_gpu:
+            self.model = DataParallel(lightning_model.model).to(self._device)
+        else:
+            self.model = lightning_model.model.to(self._device)
+
+        log.info("Training completed.")

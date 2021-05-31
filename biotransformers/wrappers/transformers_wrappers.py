@@ -4,22 +4,25 @@ specific to a given transformers implementation can inherit.
 It allows to derive probabilities, embeddings and log-likelihoods based on inputs
 sequences, and displays some properties of the transformer model.
 """
+import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
+import pytorch_lightning as pl
 import torch
 import torch.tensor
+from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.gpus_utils import set_device
 from biotransformers.utils.utils import (
     _check_memory_embeddings,
     _check_memory_logits,
     _check_sequence,
+    get_logs_version,
+    load_fasta,
 )
 from torch.nn import functional as F  # noqa: N812
 from tqdm import tqdm
-
-NATURAL_AAS_LIST = list("ACDEFGHIKLMNPQRSTVWY")
 
 
 class TransformersWrapper(ABC):
@@ -31,9 +34,8 @@ class TransformersWrapper(ABC):
     def __init__(
         self,
         model_dir: str,
-        _device: str = None,
+        _device: Optional[str] = None,
         multi_gpu: bool = False,
-        vocab_token_list: List[str] = None,
         mask_bool: bool = False,
     ):
         """Initialize Transformers wrapper
@@ -41,7 +43,7 @@ class TransformersWrapper(ABC):
         Args:
             model_dir: name directory of the pretrained model
             _device: type of device to use (cpu or cuda).
-            vocab_token_list: Defaults to list(NATURAL_AAS).
+            multi_gpu: turn on to True to use multigpu
             mask_bool: Wether to use mask or not for inference.
         """
         _device, _multi_gpu = set_device(_device, multi_gpu)
@@ -335,7 +337,8 @@ class TransformersWrapper(ABC):
     def _model_evaluation(
         self, model_inputs: Dict[str, torch.tensor], batch_size: int = 1, **kwargs
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
+        """Compute logits and embeddings
+
         Function which computes logits and embeddings based on a list of sequences,
         a provided batch size and an inference configuration. The output is obtained
         by computing a forward pass through the model ("forward inference")
@@ -456,7 +459,7 @@ class TransformersWrapper(ABC):
 
     def compute_logits(
         self,
-        sequences_list: List[str],
+        sequences: Union[List[str], str],
         batch_size: int = 1,
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
@@ -479,16 +482,19 @@ class TransformersWrapper(ABC):
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 
-        _check_sequence(sequences_list, self.model_dir, 1024)
-        _check_memory_logits(sequences_list, self.vocab_size, pass_mode)
+        if isinstance(sequences, str):
+            sequences = load_fasta(sequences)
+
+        _check_sequence(sequences, self.model_dir, 1024)
+        _check_memory_logits(sequences, self.vocab_size, pass_mode)
 
         inputs, labels, tokens = self._process_sequences_and_tokens(
-            sequences_list, tokens_list
+            sequences, tokens_list
         )
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, labels = self._filter_logits(logits, labels, tokens)
 
-        lengths = [len(sequence) for sequence in sequences_list]
+        lengths = [len(sequence) for sequence in sequences]
         splitted_logits = torch.split(logits, lengths, dim=0)
         splitted_logits = [logits.numpy() for logits in splitted_logits]
 
@@ -558,7 +564,7 @@ class TransformersWrapper(ABC):
 
     def compute_loglikelihood(
         self,
-        sequences_list: List[str],
+        sequences: Union[List[str], str],
         batch_size: int = 1,
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
@@ -567,7 +573,7 @@ class TransformersWrapper(ABC):
         """Function that computes loglikelihoods of sequences
 
         Args:
-            sequences_list: List of sequences
+            sequences: List of sequences
             batch_size: Batch size
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             tokens_list: List of tokens to consider
@@ -578,11 +584,14 @@ class TransformersWrapper(ABC):
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 
-        _check_sequence(sequences_list, self.model_dir, 1024)
-        _check_memory_logits(sequences_list, self.vocab_size, pass_mode)
+        if isinstance(sequences, str):
+            sequences = load_fasta(sequences)
+
+        _check_sequence(sequences, self.model_dir, 1024)
+        _check_memory_logits(sequences, self.vocab_size, pass_mode)
 
         inputs, labels, tokens = self._process_sequences_and_tokens(
-            sequences_list, tokens_list
+            sequences, tokens_list
         )
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         loglikelihoods = self._filter_loglikelihoods(logits, labels, tokens)
@@ -591,7 +600,7 @@ class TransformersWrapper(ABC):
 
     def compute_embeddings(
         self,
-        sequences_list: List[str],
+        sequences: Union[List[str], str],
         batch_size: int = 1,
         pool_mode: Tuple[str, ...] = ("cls", "mean"),
         tokens_list: List[str] = None,
@@ -605,7 +614,7 @@ class TransformersWrapper(ABC):
         num_tokens dimension.
 
         Args:
-            sequences_list: List of sequences
+            sequences: List of sequences or path of fasta file
             batch_size: Batch size
             pool_mode: Mode of pooling ('cls', 'mean', 'min', 'max)
             tokens_list: List of tokens to consider
@@ -614,7 +623,7 @@ class TransformersWrapper(ABC):
             torch.Tensor: Tensor of shape [number_of_sequences, embeddings_size]
         """
         if "full" in pool_mode and not all(
-            len(s) == len(sequences_list[0]) for s in sequences_list
+            len(s) == len(sequences[0]) for s in sequences
         ):
             raise Exception(
                 'Sequences must be of same length when pool_mode = ("full",)'
@@ -623,12 +632,13 @@ class TransformersWrapper(ABC):
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 
-        _check_sequence(sequences_list, self.model_dir, 1024)
-        _check_memory_embeddings(sequences_list, self.embeddings_size, pool_mode)
+        if isinstance(sequences, str):
+            sequences = load_fasta(sequences)
 
-        inputs, _, tokens = self._process_sequences_and_tokens(
-            sequences_list, tokens_list
-        )
+        _check_sequence(sequences, self.model_dir, 1024)
+        _check_memory_embeddings(sequences, self.embeddings_size, pool_mode)
+
+        inputs, _, tokens = self._process_sequences_and_tokens(sequences, tokens_list)
         embeddings_dict = dict(zip(pool_mode, [torch.Tensor()] * len(pool_mode)))
 
         for batch_inputs in tqdm(
@@ -652,7 +662,7 @@ class TransformersWrapper(ABC):
 
     def compute_accuracy(
         self,
-        sequences_list: List[str],
+        sequences: Union[List[str], str],
         batch_size: int = 1,
         pass_mode: str = "forward",
         tokens_list: List[str] = None,
@@ -661,21 +671,23 @@ class TransformersWrapper(ABC):
         """Compute model accuracy from the input sequences
 
         Args:
-            sequences_list: [description]
-            batch_size: [description]. Defaults to 1.
-            pass_mode: [description]. Defaults to "forward".
-            tokens_list: [description]. Defaults to None.
-            silent: whereas to display or not progress bar
+            sequences (Union[List[str],str]): list of sequence or fasta file
+            batch_size ([type], optional): [description]. Defaults to 1.
+            pass_mode ([type], optional): [description]. Defaults to "forward".
+            tokens_list ([type], optional): [description]. Defaults to None.
+
         Returns:
             [type]: [description]
         """
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 
-        _check_sequence(sequences_list, self.model_dir, 1024)
+        if isinstance(sequences, str):
+            sequences = load_fasta(sequences)
+        _check_sequence(sequences, self.model_dir, 1024)
 
         inputs, labels, tokens = self._process_sequences_and_tokens(
-            sequences_list, tokens_list
+            sequences, tokens_list
         )
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, labels = self._filter_logits(logits, labels, tokens)
@@ -685,7 +697,7 @@ class TransformersWrapper(ABC):
 
     def compute_calibration(
         self,
-        sequences_list: List[str],
+        sequences: Union[List[str], str],
         batch_size: int = 1,
         pass_mode: str = "forward",
         tokens_list: Optional[List[str]] = None,
@@ -702,18 +714,57 @@ class TransformersWrapper(ABC):
             n_bins : [description]. Defaults to 10.
             silent: display or not progress bar
         Returns:
-            [type]: [description]
+            [Dict]: [description]
         """
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 
-        _check_sequence(sequences_list, self.model_dir, 1024)
+        if isinstance(sequences, str):
+            sequences = load_fasta(sequences)
+
+        _check_sequence(sequences, self.model_dir, 1024)
 
         inputs, labels, tokens = self._process_sequences_and_tokens(
-            sequences_list, tokens_list
+            sequences, tokens_list
         )
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, labels = self._filter_logits(logits, labels, tokens)
         calibration_dict = self._compute_calibration(logits, labels, n_bins)
 
         return calibration_dict
+
+    def load_model(self, model_dir: str, map_location=None):
+        """Load state_dict a finetune pytorch model ro a checkpoint directory
+
+        More informations about how to load a model with map_location:
+            https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-model-for-inference
+
+        Args:
+            model_dir: path file of the pt model or checkpoint.
+        """
+        if not os.path.isfile(model_dir):
+            raise FileNotFoundError
+
+        if model_dir.endswith(".pt"):
+            load_model = torch.load(model_dir)
+        elif model_dir.endswith(".ckpt"):
+            load_model = torch.load(model_dir)["state_dict"]
+        else:
+            raise ValueError("Expecting a .pt or .ckpt file")
+
+        if self.multi_gpu:
+            self.model.module.load_state_dict(load_model, map_location)  # type: ignore
+        else:
+            self.model.load_state_dict(load_model, map_location)  # type: ignore
+
+    def save_model(self, exp_path: str, lightning_model: pl.LightningModule) -> str:
+        """Save pytorch model in logs directory
+
+        Args:
+            exp_path (str): path of the experiments directory in the logs
+        """
+        version = get_logs_version(exp_path)
+        save_name = os.path.join(exp_path, version, self.model_dir + "_finetuned.pt")
+        torch.save(lightning_model.model.state_dict(), save_name)
+
+        return save_name
