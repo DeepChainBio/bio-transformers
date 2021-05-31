@@ -2,8 +2,6 @@ Installation
 ============
 
 Bio-transformers can be installed in Python 3.7 and external python dependencies are mainly defined in `requirements`_.
-DeepReg primarily supports and is regularly tested with Ubuntu and Mac OS.
-
 There are multiple different methods to install Bio-transformers:
 
 1. Clone `Bio-transformers`_ and create a virtual environment using `Anaconda`_ / `Miniconda`_ (**recommended**).

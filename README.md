@@ -25,8 +25,8 @@
 </details>
 
 # Bio-transformers
-bio-transformers is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings.
-This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities or embeddings on multiple-GPUs.
+`bio-transformers` is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings.
+This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities ,embeddings or easily finetune your model on multiple-GPUs.
 
  You can find the original repositories for the models here :
  - [ESM](https://github.com/facebookresearch/esm/)
@@ -104,11 +104,41 @@ sequences = [
 bio_trans = BioTransformers(backend="protbert",device="cuda:0")
 loglikelihood = bio_trans.compute_loglikelihood(sequences)
 ```
+## Finetune pre-trained transformers on your dataset
+
+You can use the `train_masked` function to finetune your backend on your dataset. The model is automatically scaled on the available GPUs. More information on the [documentation](https://bio-transformers.readthedocs.io/en/main/getting_started/quick_start.html#display-available-backend)
+
+```python
+import biodatasets
+import numpy as np
+from biotransformers import BioTransformers
+
+data = biodatasets.load_dataset("swissProt")
+X, y = data.to_npy_arrays(input_names=["sequence"])
+X = X[0]
+
+# Train on small sequences
+length = np.array(list(map(len, X))) < 200
+train_seq = X[length][:15000]
+bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda")
+
+bio_trans.train_masked(
+    train_seq,
+    lr=1.0e-5,
+    warmup_init_lr=1e-7,
+    toks_per_batch=2000,
+    epochs=20,
+    batch_size=16,
+    acc_batch_size=256,
+    warmup_updates=1024,
+    accelerator="ddp",
+    checkpoint=None,
+    save_last_checkpoint=False,
+)
+```
 
 # Roadmap:
   - support MSA transformers
-  - add compute_accuracy functionnality
-  - support finetuning of model with multiple-gpus
 
 # Citations
 Here some papers on interest on the subject.
