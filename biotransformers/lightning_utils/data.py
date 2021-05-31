@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torch
 from esm.data import Alphabet, BatchConverter
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader
+from torch.utils.data import BatchSampler, DataLoader, Dataset
 
 NATURAL_AAS_LIST = list("ACDEFGHIKLMNPQRSTVWY")
 
@@ -102,7 +102,9 @@ def collate_fn(
         mask_indices: indices of masked tokens
     """
     random_token_indices = [alphabet.tok_to_idx[aa] for aa in NATURAL_AAS_LIST]
-    _, seqs, tokens = tokenizer(samples)
+    _, seqs, tokens = tokenizer(
+        samples[0]
+    )  # take samples[0] because batch_sampler return list of list
 
     tokens_list, targets_list = [], []
     for i, seq in enumerate(seqs):
@@ -165,6 +167,21 @@ def get_batch_indices(
     return batches
 
 
+class BatchDataset(Dataset):
+    def __init__(self, sequences: List[str]) -> None:
+        super().__init__()
+        self.sequences = np.array(sequences)
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def __getitem__(self, index):
+        batch_seq = self.sequences[index].tolist()
+        batch_seq = enumerate(batch_seq)
+        batch_seq = list(batch_seq)
+        return batch_seq
+
+
 def create_dataloader(
     sequences: List[str],
     alphabet: Alphabet,
@@ -192,17 +209,19 @@ def create_dataloader(
     Returns:
         torch DataLoader
     """
-    # batches = get_batch_indices(
-    #     sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
-    # )
-    sequences = enumerate(sequences)  # type: ignore
-    sequences = list(sequences)
+    batches = get_batch_indices(
+        sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
+    )
+    # sequences = enumerate(sequences)  # type: ignore
+    # sequences = list(sequences)
     tokenizer = alphabet.get_batch_converter()
+    dataset = BatchDataset(sequences)
+    b_sampler = BatchSampler(batches, batch_size=1, drop_last=False)
 
     loader = DataLoader(
-        sequences,
-        shuffle=True,
-        batch_size=batch_size,
+        dataset,
+        # shuffle=True,
+        # batch_size=batch_size,
         num_workers=num_workers,
         collate_fn=functools.partial(
             collate_fn,
@@ -213,9 +232,10 @@ def create_dataloader(
             random_token_prob=random_token_prob,
         ),
         pin_memory=True,
-        drop_last=True,
+        # drop_last=True,
         worker_init_fn=worker_init_fn,
-        # batch_sampler=batches,
+        batch_sampler=b_sampler,
+        sampler=None,
     )
     return loader
 

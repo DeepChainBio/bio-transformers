@@ -75,9 +75,7 @@ class LightningESM(pl.LightningModule):
         logits = self.forward(tokens)
         loss = self.cross_entropy_loss(logits, target)
 
-        masked_preds, masked_targets = self.accuracy(
-            logits, target
-        )  # misleading accuracy name
+        masked_preds, masked_targets = self.get_tensor_accuracy(logits, target)
         self.train_acc(masked_preds, masked_targets)
 
         masked_tokens = target.ne(self.alphabet.padding_idx)
@@ -97,8 +95,6 @@ class LightningESM(pl.LightningModule):
     def validation_step(self, val_batch, batch_idx):
         """Log the loss and metrics for a batch.
 
-        TODO: add accuracy
-
         Args:
             batch: batch input.
             batch_idx: index of the batch.
@@ -107,9 +103,7 @@ class LightningESM(pl.LightningModule):
         logits = self.forward(tokens)
         loss = self.cross_entropy_loss(logits, target)
 
-        masked_preds, masked_targets = self.accuracy(
-            logits, target
-        )  # misleading accuracy name
+        masked_preds, masked_targets = self.get_tensor_accuracy(logits, target)
         self.val_acc(masked_preds, masked_targets)
 
         masked_tokens = target.ne(self.alphabet.padding_idx)
@@ -126,7 +120,7 @@ class LightningESM(pl.LightningModule):
 
         return loss
 
-    def accuracy(
+    def get_tensor_accuracy(
         self, logits: torch.Tensor, targets: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Calculate accuracy for multi-masking, summed over batch.
@@ -144,4 +138,4 @@ class LightningESM(pl.LightningModule):
         masked_preds = torch.masked_select(preds, masked_tokens)
         masked_targets = torch.masked_select(targets, masked_tokens)
 
-        return masked_preds, masked_targets
+        return masked_preds.detach().cpu(), masked_targets.detach().cpu()
