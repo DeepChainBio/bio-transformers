@@ -2,7 +2,7 @@
 This script defines a class which inherits from the TransformersWrapper class, and is
 specific to the ESM model developed by FAIR (https://github.com/facebookresearch/esm).
 """
-import os
+from os.path import join
 from typing import Dict, List, Optional, Tuple, Union
 
 import esm
@@ -155,15 +155,15 @@ class ESMWrapper(TransformersWrapper):
         self,
         train_sequences: Union[List[str], str],
         lr: float = 1.0e-5,
-        warmup_updates: int = 10,
+        warmup_updates: int = 1024,
         warmup_init_lr: float = 1e-7,
         epochs: int = 10,
         batch_size: int = 2,
-        acc_batch_size: int = 2048,
+        acc_batch_size: int = 256,
         masking_ratio: float = 0.025,
         masking_prob: float = 0.8,
         random_token_prob: float = 0.15,
-        toks_per_batch: int = 128,
+        toks_per_batch: int = 2048,
         filter_len=1024,
         accelerator: str = "ddp",
         amp_level: str = "O2",
@@ -171,15 +171,15 @@ class ESMWrapper(TransformersWrapper):
         logs_save_dir: str = "logs",
         logs_name_exp: str = "finetune_masked",
         checkpoint: Optional[str] = None,
-        save_last_checkpoint=True,
+        save_last_checkpoint: bool = True,
     ):
-        """Function to finetuned a model on a specific dataset
+        """Function to finetune a model on a specific dataset
 
-        This function will finetune a the choosen model on a dataset of
+        This function will finetune the choosen model on a dataset of
         sequences with pytorch ligthening. You can modify the masking ratio of AA
-        in the arguments.
-        Be careful with the accelerator that you use. Could meet some troubles depending
-        on the type of GPU you use.
+        in the arguments for better convergence.
+        Be careful with the accelerator that you use. DDP accelerator will
+        launch multiple python process and do not be use in a notebook.
 
         More informations on GPU/accelerator compatibility here :
             https://pytorch-lightning.readthedocs.io/en/stable/advanced/multi_gpu.html
@@ -189,7 +189,8 @@ class ESMWrapper(TransformersWrapper):
             train_sequences : Could be a list of sequences or the path of a
                               fasta file with multiple seqRecords
             lr : learning rate for training phase. Defaults to 1.0e-5.
-            warmup_updates : Number of warming updates. Defaults to 10.
+            warmup_updates : Number of warming updates, number of step while increasing
+            the leraning rate. Defaults to 1024.
             warmup_init_lr :  Initial lr for warming_update. Defaults to 1e-7.
             epochs :  number of epoch for training. Defaults to 10.
             batch_size :  number of sequence to consider in a batch. Defaults to 2.
@@ -199,18 +200,21 @@ class ESMWrapper(TransformersWrapper):
                             Defaults to 0.8.
             random_token_prob : probability that the chose token is replaced with a random token.
                                 Defaults to 0.1.
-            toks_per_batch: Maximum number of token to consider in a batch.Defaults to 128,
+            toks_per_batch: Maximum number of token to consider in a batch.Defaults to 2048.
+                            This argument will set the number of sequences in a batch, which
+                            is dynamically computed. Batch size use accumulate_grad_batches to compute
+                            accumulate_grad_batches parameter.
             extra_toks_per_seq: Defaults to 2,
-            filter_len : Size of sequence to filter. Defaults to 1024.
-            accelerator: type of accelerator for mutli-gpu processing
+            filter_len : Size of sequence to filter. Defaults to 1024. (NOT USED)
+            accelerator: type of accelerator for mutli-gpu processing (DPP recommanded)
             amp_level: allow mixed precision. Defaults to '02'
             precision: reducing precision allows to decrease the GPU memory needed.
                        Defaults to 16 (float16)
-            logs_save_dir : Defaults to logs.
-            logs_name_exp: Name of the experience in the logs
-            checkpoint : Path to a checkpoint file to restore training session
+            logs_save_dir : Defaults directory to logs.
+            logs_name_exp: Name of the experience in the logs.
+            checkpoint : Path to a checkpoint file to restore training session.
             save_last_checkpoint: Save last checkpoint and 2 best trainings models
-                                  to restore training session
+                                  to restore training session. Take a large amout of time and memory.
         """
         if isinstance(train_sequences, str):
             train_sequences = load_fasta(train_sequences)
@@ -276,9 +280,7 @@ class ESMWrapper(TransformersWrapper):
         )
 
         trainer.fit(lightning_model, data_module)
-
-        exp_path = os.path.join(logs_save_dir, logs_name_exp)
-        save_name = self.save_model(exp_path, lightning_model)
+        save_name = self.save_model(join(logs_save_dir, logs_name_exp), lightning_model)
         log.info("Model save at %s." % save_name)
 
         if self.multi_gpu:

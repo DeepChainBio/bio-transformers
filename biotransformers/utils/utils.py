@@ -85,19 +85,22 @@ def load_fasta(path_fasta: str) -> List[str]:
     """
     return [str(record.seq) for record in SeqIO.parse(path_fasta, format="fasta")]
 
+
 def get_logs_version(path_logs):
-    """Get last version of logs folder to save models inside
+    """Get last version of logs folder to save model inside
 
     Args:
-        path_logs (str): path of the experiments folder
+        path_logs (str): path of the logs/experiments folder
     """
     version = str(max([int(fold.split("_")[1]) for fold in os.listdir(path_logs)]))
-    return "version_"+version
+    return "version_" + version
+
 
 def format_backend(backend_list: List[str]) -> List[str]:
     """format of list to display"""
     return ["  *" + " " * 3 + model for model in backend_list]
-    
+
+
 @dataclass
 class TransformersModelProperties:
     """Class to describe some model properties"""

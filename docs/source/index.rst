@@ -42,6 +42,7 @@ developers and researchers at Instadeep.
 
    tutorial/loglikelihood
    tutorial/embeddings
+   tutorial/finetuning
 
 .. toctree::
     :hidden:

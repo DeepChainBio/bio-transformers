@@ -648,9 +648,9 @@ class TransformersWrapper(ABC):
             raise ValueError("Expecting a .pt or .ckpt file")
 
         if self.multi_gpu:
-            self.model.module.load_state_dict(load_model, map_location)
+            self.model.module.load_state_dict(load_model, map_location)  # type: ignore
         else:
-            self.model.load_state_dict(load_model, map_location)
+            self.model.load_state_dict(load_model, map_location)  # type: ignore
 
     def save_model(self, exp_path: str, lightning_model: pl.LightningModule) -> str:
         """Save pytorch model in logs directory
