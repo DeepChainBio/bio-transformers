@@ -8,9 +8,9 @@ hugging face
 from typing import Dict, List, Tuple
 
 import torch
-from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL
+from biotransformers.lightning_utils.data import AlphabetDataLoader
+from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
 from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
-from biotransformers.utils.constant import ROSTLAB_LIST
 from torch.nn import DataParallel
 from transformers import BertForMaskedLM, BertTokenizer
 
@@ -39,6 +39,7 @@ class RostlabWrapper(TransformersWrapper):
         self.model = (
             BertForMaskedLM.from_pretrained(self.model_dir).eval().to(self._device)
         )
+        self.model_type = "rostlab"
         self.hidden_size = self.model.config.hidden_size
         if self.multi_gpu:
             self.model = DataParallel(self.model)
@@ -139,3 +140,24 @@ class RostlabWrapper(TransformersWrapper):
             embeddings = model_outputs.hidden_states[-1].detach().cpu()
 
         return logits, embeddings
+
+    def _get_alphabet_dataloader(self):
+        """Define an alphabet mapping for common method between
+        protbert and ESM
+        """
+
+        def tokenize(x):
+            x_ = [s.replace(" ", "") for s in x]
+            tokens = self.tokenizer(x, return_tensors="pt", padding=True)
+            return x_, tokens["input_ids"]
+
+        alphabet_dl = AlphabetDataLoader(
+            prepend_bos=True,
+            append_eos=True,
+            mask_idx=self.tokenizer.mask_token_id,
+            pad_idx=self.tokenizer.pad_token_id,
+            lambda_toks_to_ids=lambda x: self.tokenizer.convert_tokens_to_ids(x),
+            lambda_tokenizer=lambda x: tokenize(x),
+        )
+
+        return alphabet_dl
