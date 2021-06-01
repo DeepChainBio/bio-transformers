@@ -292,6 +292,7 @@ class ESMWrapper(TransformersWrapper):
 
         if accelerator == "ddp":
             rank = os.environ.get("LOCAL_RANK", None)
+            rank = int(rank) if rank is not None else None  # type: ignore
             if rank == 0:
                 save_path = join(logs_save_dir, logs_name_exp)
                 save_name = self.save_model(save_path, lightning_model)
