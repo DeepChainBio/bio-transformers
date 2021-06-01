@@ -2,6 +2,7 @@
 This script defines a class which inherits from the TransformersWrapper class, and is
 specific to the ESM model developed by FAIR (https://github.com/facebookresearch/esm).
 """
+import os
 from os.path import join
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -288,8 +289,13 @@ class ESMWrapper(TransformersWrapper):
         )
 
         trainer.fit(lightning_model, data_module)
-        save_name = self.save_model(join(logs_save_dir, logs_name_exp), lightning_model)
-        log.info("Model save at %s." % save_name)
+
+        if accelerator == "ddp":
+            rank = os.environ.get("LOCAL_RANK", None)
+            if rank == 0:
+                save_path = join(logs_save_dir, logs_name_exp)
+                save_name = self.save_model(save_path, lightning_model)
+                log.info("Model save at %s." % save_name)
 
         if self.multi_gpu:
             self.model = DataParallel(lightning_model.model).to(self._device)
