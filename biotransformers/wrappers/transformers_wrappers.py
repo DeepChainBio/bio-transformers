@@ -12,8 +12,10 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.tensor
+from biotransformers.lightning_utils.data import convert_ckpt_to_statedict
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.gpus_utils import set_device
+from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.utils import (
     _check_memory_embeddings,
     _check_memory_logits,
@@ -23,6 +25,8 @@ from biotransformers.utils.utils import (
 )
 from torch.nn import functional as F  # noqa: N812
 from tqdm import tqdm
+
+log = logger("transformers_wrapper")
 
 
 class TransformersWrapper(ABC):
@@ -741,14 +745,17 @@ class TransformersWrapper(ABC):
 
         Args:
             model_dir: path file of the pt model or checkpoint.
+                       the checkpoint should be a pytorch model checkpoint
         """
         if not os.path.isfile(model_dir):
             raise FileNotFoundError
 
         if model_dir.endswith(".pt"):
             load_model = torch.load(model_dir)
+            log.info("Load model %s" % model_dir)
         elif model_dir.endswith(".ckpt"):
-            load_model = torch.load(model_dir)["state_dict"]
+            load_model = convert_ckpt_to_statedict(torch.load(model_dir)["state_dict"])
+            log.info("Load checkpoint %s" % model_dir)
         else:
             raise ValueError("Expecting a .pt or .ckpt file")
 
@@ -756,6 +763,7 @@ class TransformersWrapper(ABC):
             self.model.module.load_state_dict(load_model, map_location)  # type: ignore
         else:
             self.model.load_state_dict(load_model, map_location)  # type: ignore
+            self.model.eval()  # type: ignore
 
     def save_model(self, exp_path: str, lightning_model: pl.LightningModule) -> str:
         """Save pytorch model in logs directory

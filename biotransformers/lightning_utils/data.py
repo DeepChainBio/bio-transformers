@@ -1,14 +1,31 @@
 import functools
+from collections import OrderedDict
 from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from biotransformers.utils.constant import NATURAL_AAS_LIST
 from esm.data import Alphabet, BatchConverter
 from sklearn.model_selection import train_test_split
 from torch.utils.data import BatchSampler, DataLoader, Dataset
 
-NATURAL_AAS_LIST = list("ACDEFGHIKLMNPQRSTVWY")
+
+def convert_ckpt_to_statedict(checkpoint_state_dict: OrderedDict) -> OrderedDict:
+    """This function convert a state_dict coming form pytorch lightning checkpoint to
+    a state_dict model that can be load directly in the bio-transformers model.
+
+    The keys are updated so that it  matches those in the bio-transformers
+
+    Args:
+        checkpoint_state_dict: a state_dict loaded from a checkpoint
+    """
+    new_state_dict = OrderedDict()
+    for k, v in checkpoint_state_dict.items():
+        new_k = ".".join(k.split(".")[1:])  # remove model. prefix in key
+        new_state_dict[new_k] = v.to("cpu")  # move tensor to cpu
+
+    return new_state_dict
 
 
 def mask_seq(
@@ -168,23 +185,32 @@ def get_batch_indices(
 
 
 class BatchDataset(Dataset):
-    def __init__(self, sequences: List[str]) -> None:
+    def __init__(self, sequences: List[str], model_type: str) -> None:
         super().__init__()
         self.sequences = np.array(sequences)
+        self.model_type = model_type
 
     def __len__(self):
         return len(self.sequences)
 
     def __getitem__(self, index):
         batch_seq = self.sequences[index].tolist()
-        batch_seq = enumerate(batch_seq)
-        batch_seq = list(batch_seq)
-        return batch_seq
+        if self.model_type == "esm":
+            return self.convert_esm_format(batch_seq)
+        else:
+            return self.convert_rostlab_model(batch_seq)
+
+    def convert_esm_format(self, batch_seq):
+        return list(enumerate(batch_seq))
+
+    def convert_rostlab_model(self, batch_seq):
+        return [" ".join(seq) for seq in batch_seq]
 
 
 def create_dataloader(
     sequences: List[str],
     alphabet: Alphabet,
+    model_type: str,
     filter_len: bool,
     batch_size: int,
     masking_ratio: float,
@@ -199,7 +225,7 @@ def create_dataloader(
     Args:
         filenames: list of sequences
         alphabet: facebook alphabet.
-        filter_len: whether filter data wrt len.
+        filter_len: whether filter data wrt len.batch_seq
         batch_size: num samples per batchs
         num_workers: num of parallel data samplers
         masking_ratio: ratio of tokens to be masked.
@@ -215,7 +241,7 @@ def create_dataloader(
     # sequences = enumerate(sequences)  # type: ignore
     # sequences = list(sequences)
     tokenizer = alphabet.get_batch_converter()
-    dataset = BatchDataset(sequences)
+    dataset = BatchDataset(sequences, model_type)
     b_sampler = BatchSampler(batches, batch_size=1, drop_last=False)
 
     loader = DataLoader(
@@ -245,6 +271,7 @@ class BioDataModule(pl.LightningDataModule):
         self,
         train_sequences: List[str],
         alphabet: Alphabet,
+        model_type: str,
         filter_len: bool,
         batch_size: int,
         masking_ratio: float,
@@ -258,6 +285,7 @@ class BioDataModule(pl.LightningDataModule):
         super().__init__()
         self.train_sequences = train_sequences
         self.alphabet = alphabet
+        self.model_type = model_type
         self.filter_len = filter_len
         self.batch_size = batch_size
         self.masking_ratio = masking_ratio
@@ -290,6 +318,7 @@ class BioDataModule(pl.LightningDataModule):
         return create_dataloader(
             sequences=self.seq_train,
             alphabet=self.alphabet,
+            model_type=self.model_type,
             filter_len=self.filter_len,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -304,6 +333,7 @@ class BioDataModule(pl.LightningDataModule):
         return create_dataloader(
             sequences=self.seq_val,
             alphabet=self.alphabet,
+            model_type=self.model_type,
             filter_len=self.filter_len,
             batch_size=self.batch_size,
             num_workers=self.num_workers,

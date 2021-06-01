@@ -42,6 +42,8 @@ class ESMWrapper(TransformersWrapper):
         super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
 
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
+        # self.model.eval()
+
         self.num_layers = self.model.num_layers
         repr_layers = -1
         self.repr_layers = (repr_layers + self.num_layers + 1) % (self.num_layers + 1)
@@ -111,7 +113,7 @@ class ESMWrapper(TransformersWrapper):
         tokens = []
         for token in tokens_list:
             if token not in self.model_vocabulary:
-                print("Warnings; token", token, "does not belong to model vocabulary")
+                log.warning("token %s does not belong to model vocabulary" % token)
             else:
                 tokens.append(self.token_to_id(token))
 
@@ -242,6 +244,7 @@ class ESMWrapper(TransformersWrapper):
         data_module = BioDataModule(
             train_sequences,
             self.alphabet,
+            "esm",
             filter_len,
             batch_size,
             masking_ratio,
@@ -258,6 +261,8 @@ class ESMWrapper(TransformersWrapper):
             return
 
         logger = CSVLogger(logs_save_dir, name=logs_name_exp)
+        checkpoint_callback = None
+
         if save_last_checkpoint:
             checkpoint_callback = [
                 ModelCheckpoint(
@@ -268,8 +273,6 @@ class ESMWrapper(TransformersWrapper):
                     every_n_val_epochs=3,
                 )
             ]
-        else:
-            checkpoint_callback = None
 
         trainer = Trainer(
             gpus=n_gpus,
