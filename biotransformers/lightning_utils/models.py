@@ -8,14 +8,13 @@ from torch.nn import functional as F  # noqa: N812 pylint: disable=wrong-import-
 from .optimizer import lr_update
 
 
-class LightningESM(pl.LightningModule):
+class LightningModule(pl.LightningModule):
     """Create lightning model to use ddp"""
 
     def __init__(
         self,
         model,
         alphabet,
-        # model_wrapper: str,
         lr: float,
         warmup_end_lr: float,
         warmup_updates: int = 10,
@@ -24,8 +23,6 @@ class LightningESM(pl.LightningModule):
         super().__init__()
         self.model = model
         self.alphabet = alphabet
-        # assert model_wrapper in ["esm", "rostlab"]
-        # self.model_wrapper = model_wrapper
         self.lr = lr
         self.automatic_optimization = True
         self.warmup_updates = warmup_updates

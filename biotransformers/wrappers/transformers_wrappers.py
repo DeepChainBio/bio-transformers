@@ -37,7 +37,7 @@ from torch.nn import functional as F  # noqa: N812
 from tqdm import tqdm
 
 from ..lightning_utils.data import BioDataModule
-from ..lightning_utils.models import LightningESM
+from ..lightning_utils.models import LightningModule
 
 log = logger("transformers_wrapper")
 
@@ -866,7 +866,7 @@ class TransformersWrapper(ABC):
         alphabet = self._get_alphabet_dataloader()
 
         extra_toks_per_seq = int(alphabet.prepend_bos) + int(alphabet.append_eos)
-        lightning_model = LightningESM(
+        lightning_model = LightningModule(
             model=fit_model,
             alphabet=alphabet,
             lr=lr,
