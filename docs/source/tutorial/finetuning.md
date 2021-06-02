@@ -78,7 +78,7 @@ X, y = data.to_npy_arrays(input_names=["sequence"])
 X = X[0]
 
 # Train sequence with length less than 200 AA
-# Test on sequence that was not used fir training.
+# Test on sequence that was not used for training.
 length = np.array(list(map(len, X))) < 200
 train_seq = X[length][15000:20000]
 
