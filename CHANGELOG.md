@@ -1,10 +1,22 @@
 # Change log
 
+# [0.0.8] - 2021-06-03
+Note on the release
+
+Features:
+ - Merge ESM/protbert for finetuning model with pytorch-lightning
+ - Possibility to restore a training session.
+
+Fixed:
+ - Fix conflicts when saving model with DDP
+ - Fix loading checkpoint created by pytorch-lightning
+
+
 # [0.0.7] - 2021-05-12
 Note on the release
 
 Features:
- - Add fasta files support for each comupte function.
+ - Add fasta files support for each compute function.
  - Add train_masked function to finetune model on custom dataset. (Only ESM for the moment, protbert is coming.)
 
 Docs:
