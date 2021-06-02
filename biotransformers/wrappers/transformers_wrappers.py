@@ -6,14 +6,20 @@ sequences, and displays some properties of the transformer model.
 """
 import os
 from abc import ABC, abstractmethod
+from os.path import join
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.tensor
+from biotransformers.lightning_utils.data import (
+    AlphabetDataLoader,
+    convert_ckpt_to_statedict,
+)
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.gpus_utils import set_device
+from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.utils import (
     _check_memory_embeddings,
     _check_memory_logits,
@@ -21,8 +27,19 @@ from biotransformers.utils.utils import (
     get_logs_version,
     load_fasta,
 )
+
+# from esm.data import read_fasta
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import CSVLogger
+from torch.nn import DataParallel
 from torch.nn import functional as F  # noqa: N812
 from tqdm import tqdm
+
+from ..lightning_utils.data import BioDataModule
+from ..lightning_utils.models import LightningModule
+
+log = logger("transformers_wrapper")
 
 
 class TransformersWrapper(ABC):
@@ -115,14 +132,16 @@ class TransformersWrapper(ABC):
         self, sequences_list: List[str], tokens_list: List[str]
     ) -> Tuple[Dict[str, torch.Tensor], torch.tensor, List[int]]:
         """Function to transform tokens string to IDs; it depends on the model used"""
-        return NotImplemented, NotImplemented, NotImplemented
 
     @abstractmethod
     def _model_pass(
         self, model_inputs: Dict[str, torch.tensor]
     ) -> Tuple[torch.tensor, torch.tensor]:
         """Function which computes logits and embeddings based on a list of sequences"""
-        return NotImplemented, NotImplemented
+
+    @abstractmethod
+    def _get_alphabet_dataloader(self) -> AlphabetDataLoader:
+        """Function to build custom alphanbet"""
 
     def _get_num_batch_iter(self, model_inputs: Dict[str, Any], batch_size: int) -> int:
         num_of_sequences = model_inputs["input_ids"].shape[0]
@@ -741,14 +760,17 @@ class TransformersWrapper(ABC):
 
         Args:
             model_dir: path file of the pt model or checkpoint.
+                       the checkpoint should be a pytorch model checkpoint
         """
         if not os.path.isfile(model_dir):
             raise FileNotFoundError
 
         if model_dir.endswith(".pt"):
             load_model = torch.load(model_dir)
+            log.info("Load model %s" % model_dir)
         elif model_dir.endswith(".ckpt"):
-            load_model = torch.load(model_dir)["state_dict"]
+            load_model = convert_ckpt_to_statedict(torch.load(model_dir)["state_dict"])
+            log.info("Load checkpoint %s" % model_dir)
         else:
             raise ValueError("Expecting a .pt or .ckpt file")
 
@@ -756,6 +778,7 @@ class TransformersWrapper(ABC):
             self.model.module.load_state_dict(load_model, map_location)  # type: ignore
         else:
             self.model.load_state_dict(load_model, map_location)  # type: ignore
+            self.model.eval()  # type: ignore
 
     def save_model(self, exp_path: str, lightning_model: pl.LightningModule) -> str:
         """Save pytorch model in logs directory
@@ -764,7 +787,155 @@ class TransformersWrapper(ABC):
             exp_path (str): path of the experiments directory in the logs
         """
         version = get_logs_version(exp_path)
-        save_name = os.path.join(exp_path, version, self.model_dir + "_finetuned.pt")
+        model_dir = self.model_dir.replace("/", "_")
+        save_name = os.path.join(exp_path, version, model_dir + "_finetuned.pt")
         torch.save(lightning_model.model.state_dict(), save_name)
 
         return save_name
+
+    def train_masked(
+        self,
+        train_sequences: Union[List[str], str],
+        lr: float = 1.0e-5,
+        warmup_updates: int = 1024,
+        warmup_init_lr: float = 1e-7,
+        epochs: int = 10,
+        batch_size: int = 2,
+        acc_batch_size: int = 256,
+        masking_ratio: float = 0.025,
+        masking_prob: float = 0.8,
+        random_token_prob: float = 0.15,
+        toks_per_batch: int = 2048,
+        filter_len=1024,
+        accelerator: str = "ddp",
+        amp_level: str = "O2",
+        precision: int = 16,
+        logs_save_dir: str = "logs",
+        logs_name_exp: str = "finetune_masked",
+        checkpoint: Optional[str] = None,
+        save_last_checkpoint: bool = True,
+    ):
+        """Function to finetune a model on a specific dataset
+
+        This function will finetune the choosen model on a dataset of
+        sequences with pytorch ligthening. You can modify the masking ratio of AA
+        in the arguments for better convergence.
+        Be careful with the accelerator that you use. DDP accelerator will
+        launch multiple python process and do not be use in a notebook.
+
+        More informations on GPU/accelerator compatibility here :
+            https://pytorch-lightning.readthedocs.io/en/stable/advanced/multi_gpu.html
+        The wisest choice would be to use DDP for multi-gpu training.
+
+        Args:
+            train_sequences : Could be a list of sequences or the path of a
+                              fasta file with multiple seqRecords
+            lr : learning rate for training phase. Defaults to 1.0e-5.
+            warmup_updates : Number of warming updates, number of step while increasing
+            the leraning rate. Defaults to 1024.
+            warmup_init_lr :  Initial lr for warming_update. Defaults to 1e-7.
+            epochs :  number of epoch for training. Defaults to 10.
+            batch_size :  number of sequence to consider in a batch. Defaults to 2.
+            acc_batch_size : accumulated batch size Defaults to 2048.
+            masking_ratio : ratio of tokens to be masked. Defaults to 0.025.
+            masking_prob :  probability that the chose token is replaced with a mask token.
+                            Defaults to 0.8.
+            random_token_prob : probability that the chose token is replaced with a random token.
+                                Defaults to 0.1.
+            toks_per_batch: Maximum number of token to consider in a batch.Defaults to 2048.
+                            This argument will set the number of sequences in a batch, which
+                            is dynamically computed. Batch size use accumulate_grad_batches to compute
+                            accumulate_grad_batches parameter.
+            extra_toks_per_seq: Defaults to 2,
+            filter_len : Size of sequence to filter. Defaults to 1024. (NOT USED)
+            accelerator: type of accelerator for mutli-gpu processing (DPP recommanded)
+            amp_level: allow mixed precision. Defaults to '02'
+            precision: reducing precision allows to decrease the GPU memory needed.
+                       Defaults to 16 (float16)
+            logs_save_dir : Defaults directory to logs.
+            logs_name_exp: Name of the experience in the logs.
+            checkpoint : Path to a checkpoint file to restore training session.
+            save_last_checkpoint: Save last checkpoint and 2 best trainings models
+                                  to restore training session. Take a large amout of time and memory.
+        """
+        if isinstance(train_sequences, str):
+            train_sequences = load_fasta(train_sequences)
+        _check_sequence(train_sequences, self.model_dir, 1024)  # noqa: ignore
+
+        fit_model = self.model.module if self.multi_gpu else self.model  # type: ignore
+        alphabet = self._get_alphabet_dataloader()
+
+        extra_toks_per_seq = int(alphabet.prepend_bos) + int(alphabet.append_eos)
+        lightning_model = LightningModule(
+            model=fit_model,
+            alphabet=alphabet,
+            lr=lr,
+            warmup_updates=warmup_updates,
+            warmup_init_lr=warmup_init_lr,
+            warmup_end_lr=lr,
+        )
+
+        data_module = BioDataModule(
+            train_sequences,
+            alphabet,
+            filter_len,
+            batch_size,
+            masking_ratio,
+            masking_prob,
+            random_token_prob,
+            toks_per_batch,
+            extra_toks_per_seq,
+        )
+
+        if torch.cuda.is_available():
+            n_gpus = torch.cuda.device_count()
+        else:
+            log.warning("You try to train a transformers without GPU.")
+            return
+
+        logger = CSVLogger(logs_save_dir, name=logs_name_exp)
+        checkpoint_callback = None
+
+        if save_last_checkpoint:
+            checkpoint_callback = [
+                ModelCheckpoint(
+                    save_last=True,
+                    save_top_k=2,
+                    mode="max",
+                    monitor="val_acc",
+                    every_n_val_epochs=3,
+                )
+            ]
+
+        trainer = Trainer(
+            gpus=n_gpus,
+            amp_level=amp_level,
+            precision=precision,
+            accumulate_grad_batches=acc_batch_size // batch_size,
+            max_epochs=epochs,
+            logger=logger,
+            accelerator=accelerator,
+            replace_sampler_ddp=False,
+            resume_from_checkpoint=checkpoint,
+            callbacks=checkpoint_callback,
+        )
+
+        trainer.fit(lightning_model, data_module)
+
+        save_path = join(logs_save_dir, logs_name_exp)
+        if accelerator == "ddp":
+            rank = os.environ.get("LOCAL_RANK", None)
+            rank = int(rank) if rank is not None else None  # type: ignore
+            if rank == 0:
+                save_name = self.save_model(save_path, lightning_model)
+                log.info("Model save at %s." % save_name)
+        else:
+            save_name = self.save_model(save_path, lightning_model)
+            log.info("Model save at %s." % save_name)
+
+        if self.multi_gpu:
+            self.model = DataParallel(lightning_model.model).to(self._device)
+        else:
+            self.model = lightning_model.model.to(self._device)
+
+        log.info("Training completed.")

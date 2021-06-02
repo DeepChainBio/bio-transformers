@@ -8,7 +8,7 @@ from torch.nn import functional as F  # noqa: N812 pylint: disable=wrong-import-
 from .optimizer import lr_update
 
 
-class LightningESM(pl.LightningModule):
+class LightningModule(pl.LightningModule):
     """Create lightning model to use ddp"""
 
     def __init__(

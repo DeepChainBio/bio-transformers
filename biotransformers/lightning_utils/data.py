@@ -1,14 +1,58 @@
 import functools
-from typing import List, Optional, Sequence, Tuple
+from collections import OrderedDict
+from typing import Callable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from biotransformers.utils.constant import NATURAL_AAS_LIST
 from esm.data import Alphabet, BatchConverter
 from sklearn.model_selection import train_test_split
 from torch.utils.data import BatchSampler, DataLoader, Dataset
 
-NATURAL_AAS_LIST = list("ACDEFGHIKLMNPQRSTVWY")
+
+class AlphabetDataLoader:
+    """Class that carries tokenizer information"""
+
+    def __init__(
+        self,
+        prepend_bos: bool,
+        append_eos: bool,
+        mask_idx: int,
+        pad_idx: int,
+        lambda_toks_to_ids: Callable,
+        lambda_tokenizer: Callable,
+    ) -> None:
+        self.prepend_bos = prepend_bos
+        self.append_eos = append_eos
+        self.mask_idx = mask_idx
+        self.padding_idx = pad_idx
+        self.lambda_toks_to_ids = lambda_toks_to_ids
+        self.lambda_tokenizer = lambda_tokenizer
+
+    def tok_to_idx(self, x):
+        return self.lambda_toks_to_ids(x)
+
+    def tokenizer(self):
+        """Return seq-token based on sequence"""
+        return self.lambda_tokenizer
+
+
+def convert_ckpt_to_statedict(checkpoint_state_dict: OrderedDict) -> OrderedDict:
+    """This function convert a state_dict coming form pytorch lightning checkpoint to
+    a state_dict model that can be load directly in the bio-transformers model.
+
+    The keys are updated so that it  m.jionatches those in the bio-transformers
+
+    Args:
+        checkpoint_state_dict: a state_dict loaded from a checkpoint
+    """
+    new_state_dict = OrderedDict()
+    for k, v in checkpoint_state_dict.items():
+        new_k = ".".join(k.split(".")[1:])  # remove model. prefix in key
+        new_state_dict[new_k] = v.to("cpu")  # move tensor to cpu
+
+    return new_state_dict
 
 
 def mask_seq(
@@ -101,11 +145,10 @@ def collate_fn(
         targets: model target
         mask_indices: indices of masked tokens
     """
-    random_token_indices = [alphabet.tok_to_idx[aa] for aa in NATURAL_AAS_LIST]
-    _, seqs, tokens = tokenizer(
+    random_token_indices = [alphabet.tok_to_idx(aa) for aa in NATURAL_AAS_LIST]
+    seqs, tokens = tokenizer(
         samples[0]
     )  # take samples[0] because batch_sampler return list of list
-
     tokens_list, targets_list = [], []
     for i, seq in enumerate(seqs):
         tokens_i, targets_i = mask_seq(
@@ -176,15 +219,12 @@ class BatchDataset(Dataset):
         return len(self.sequences)
 
     def __getitem__(self, index):
-        batch_seq = self.sequences[index].tolist()
-        batch_seq = enumerate(batch_seq)
-        batch_seq = list(batch_seq)
-        return batch_seq
+        return self.sequences[index].tolist()
 
 
 def create_dataloader(
     sequences: List[str],
-    alphabet: Alphabet,
+    alphabet: AlphabetDataLoader,
     filter_len: bool,
     batch_size: int,
     masking_ratio: float,
@@ -199,7 +239,7 @@ def create_dataloader(
     Args:
         filenames: list of sequences
         alphabet: facebook alphabet.
-        filter_len: whether filter data wrt len.
+        filter_len: whether filter data wrt len.batch_seq
         batch_size: num samples per batchs
         num_workers: num of parallel data samplers
         masking_ratio: ratio of tokens to be masked.
@@ -212,27 +252,22 @@ def create_dataloader(
     batches = get_batch_indices(
         sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
     )
-    # sequences = enumerate(sequences)  # type: ignore
-    # sequences = list(sequences)
-    tokenizer = alphabet.get_batch_converter()
+
     dataset = BatchDataset(sequences)
     b_sampler = BatchSampler(batches, batch_size=1, drop_last=False)
 
     loader = DataLoader(
         dataset,
-        # shuffle=True,
-        # batch_size=batch_size,
         num_workers=num_workers,
         collate_fn=functools.partial(
             collate_fn,
-            tokenizer=tokenizer,
+            tokenizer=alphabet.tokenizer(),
             alphabet=alphabet,
             masking_ratio=masking_ratio,
             masking_prob=masking_prob,
             random_token_prob=random_token_prob,
         ),
         pin_memory=True,
-        # drop_last=True,
         worker_init_fn=worker_init_fn,
         batch_sampler=b_sampler,
         sampler=None,
