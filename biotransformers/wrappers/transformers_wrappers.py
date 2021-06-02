@@ -787,7 +787,8 @@ class TransformersWrapper(ABC):
             exp_path (str): path of the experiments directory in the logs
         """
         version = get_logs_version(exp_path)
-        save_name = os.path.join(exp_path, version, self.model_dir + "_finetuned.pt")
+        model_dir = self.model_dir.replace("/", "_")
+        save_name = os.path.join(exp_path, version, model_dir + "_finetuned.pt")
         torch.save(lightning_model.model.state_dict(), save_name)
 
         return save_name
@@ -877,7 +878,6 @@ class TransformersWrapper(ABC):
         data_module = BioDataModule(
             train_sequences,
             alphabet,
-            self.model_type,  # type: ignore
             filter_len,
             batch_size,
             masking_ratio,
@@ -922,15 +922,14 @@ class TransformersWrapper(ABC):
 
         trainer.fit(lightning_model, data_module)
 
+        save_path = join(logs_save_dir, logs_name_exp)
         if accelerator == "ddp":
             rank = os.environ.get("LOCAL_RANK", None)
             rank = int(rank) if rank is not None else None  # type: ignore
             if rank == 0:
-                save_path = join(logs_save_dir, logs_name_exp)
                 save_name = self.save_model(save_path, lightning_model)
                 log.info("Model save at %s." % save_name)
         else:
-            save_path = join(logs_save_dir, logs_name_exp)
             save_name = self.save_model(save_path, lightning_model)
             log.info("Model save at %s." % save_name)
 

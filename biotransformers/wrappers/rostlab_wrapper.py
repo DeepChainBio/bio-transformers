@@ -39,7 +39,6 @@ class RostlabWrapper(TransformersWrapper):
         self.model = (
             BertForMaskedLM.from_pretrained(self.model_dir).eval().to(self._device)
         )
-        self.model_type = "rostlab"
         self.hidden_size = self.model.config.hidden_size
         if self.multi_gpu:
             self.model = DataParallel(self.model)
@@ -146,10 +145,10 @@ class RostlabWrapper(TransformersWrapper):
         protbert and ESM
         """
 
-        def tokenize(x):
-            x_ = [s.replace(" ", "") for s in x]
-            tokens = self.tokenizer(x, return_tensors="pt", padding=True)
-            return x_, tokens["input_ids"]
+        def tokenize(x: List[str]):
+            x_ = [" ".join(seq) for seq in x]
+            tokens = self.tokenizer(x_, return_tensors="pt", padding=True)
+            return x, tokens["input_ids"]
 
         alphabet_dl = AlphabetDataLoader(
             prepend_bos=True,

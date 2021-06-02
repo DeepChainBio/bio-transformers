@@ -34,8 +34,6 @@ class ESMWrapper(TransformersWrapper):
         super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
 
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
-        self.model_type = "esm"
-
         self.num_layers = self.model.num_layers
         repr_layers = -1
         self.repr_layers = (repr_layers + self.num_layers + 1) % (self.num_layers + 1)
@@ -154,8 +152,9 @@ class ESMWrapper(TransformersWrapper):
         protbert and ESM
         """
 
-        def tokenize(x):
-            _, seqs, tokens = self.batch_converter(x)
+        def tokenize(x: List[str]):
+            x_ = list(enumerate(x))
+            _, seqs, tokens = self.batch_converter(x_)
             return seqs, tokens
 
         alphabet_dl = AlphabetDataLoader(
