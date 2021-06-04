@@ -279,7 +279,7 @@ class BioDataModule(pl.LightningDataModule):
     def __init__(
         self,
         train_sequences: List[str],
-        alphabet: Alphabet,
+        alphabet: AlphabetDataLoader,
         filter_len: bool,
         batch_size: int,
         masking_ratio: float,
