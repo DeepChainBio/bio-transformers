@@ -781,7 +781,7 @@ class TransformersWrapper(ABC):
             self.model.load_state_dict(load_model, map_location)  # type: ignore
             self.model.eval()  # type: ignore
 
-    def save_model(self, exp_path: str, lightning_model: pl.LightningModule) -> str:
+    def save_model(self, exp_path: str, lightning_model: pl.LightningModule):
         """Save pytorch model in logs directory
 
         Args:
@@ -789,8 +789,13 @@ class TransformersWrapper(ABC):
         """
         version = get_logs_version(exp_path)
         model_dir = self.model_dir.replace("/", "_")
-        save_name = os.path.join(exp_path, version, model_dir + "_finetuned.pt")
+        if version is not None:
+            save_name = os.path.join(exp_path, version, model_dir + "_finetuned.pt")
+        else:
+            save_name = os.path.join(exp_path, model_dir + "_finetuned.pt")
         torch.save(lightning_model.model.state_dict(), save_name)
+
+        log.info("Model save at %s." % save_name)
 
         return save_name
 
@@ -928,11 +933,9 @@ class TransformersWrapper(ABC):
             rank = os.environ.get("LOCAL_RANK", None)
             rank = int(rank) if rank is not None else None  # type: ignore
             if rank == 0:
-                save_name = self.save_model(save_path, lightning_model)
-                log.info("Model save at %s." % save_name)
+                self.save_model(save_path, lightning_model)
         else:
-            save_name = self.save_model(save_path, lightning_model)
-            log.info("Model save at %s." % save_name)
+            self.save_model(save_path, lightning_model)
 
         if self.multi_gpu:
             self.model = DataParallel(lightning_model.model).to(self._device)

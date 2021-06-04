@@ -123,8 +123,12 @@ def get_logs_version(path_logs):
     Args:
         path_logs (str): path of the logs/experiments folder
     """
-    version = str(max([int(fold.split("_")[1]) for fold in os.listdir(path_logs)]))
-    return "version_" + version
+    try:
+        version = str(max([int(fold.split("_")[1]) for fold in os.listdir(path_logs)]))
+    except:
+        version = None
+    version_num = "version_" + version if version is not None else version
+    return version_num
 
 
 def format_backend(backend_list: List[str]) -> List[str]:
