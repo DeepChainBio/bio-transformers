@@ -1,6 +1,7 @@
 import math
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Tuple
 
 from Bio import SeqIO
@@ -114,6 +115,7 @@ def load_fasta(path_fasta: str) -> List[str]:
     Returns:
         List: List of sequences
     """
+    path_fasta = str(Path(path_fasta).resolve())
     return [str(record.seq) for record in SeqIO.parse(path_fasta, format="fasta")]
 
 
@@ -125,7 +127,8 @@ def get_logs_version(path_logs):
     """
     try:
         version = str(max([int(fold.split("_")[1]) for fold in os.listdir(path_logs)]))
-    except:
+    except Exception as e:
+        log.debug("Found exception %s" % e)
         version = None
     version_num = "version_" + version if version is not None else version
     return version_num
