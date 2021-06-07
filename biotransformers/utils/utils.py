@@ -127,12 +127,13 @@ def get_logs_version(path_logs):
     Args:
         path_logs (str): path of the logs/experiments folder
     """
+    version_num = None
     try:
         version = str(max([int(fold.split("_")[1]) for fold in os.listdir(path_logs)]))
+        version_num = "version_" + version
     except Exception as e:
         log.debug("Found exception %s" % e)
-        version = None
-    version_num = "version_" + version if version is not None else version
+        version_num = None
     return version_num
 
 
