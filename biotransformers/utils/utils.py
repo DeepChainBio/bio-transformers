@@ -2,7 +2,7 @@ import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from Bio import SeqIO
 from biotransformers.utils.logger import logger
@@ -106,7 +106,7 @@ def _check_sequence(sequences_list: List[str], model: str, length: int):
     return
 
 
-def load_fasta(path_fasta: str) -> List[str]:
+def load_fasta(path_fasta: Union[str, Path]) -> List[str]:
     """Read and parse records from a fasta file
 
     Args:
@@ -115,8 +115,10 @@ def load_fasta(path_fasta: str) -> List[str]:
     Returns:
         List: List of sequences
     """
-    path_fasta = str(Path(path_fasta).resolve())
-    return [str(record.seq) for record in SeqIO.parse(path_fasta, format="fasta")]
+    if not isinstance(path_fasta, Path):
+        path_fasta = Path(path_fasta).resolve()
+
+    return [str(record.seq) for record in SeqIO.parse(str(path_fasta), format="fasta")]
 
 
 def get_logs_version(path_logs):
