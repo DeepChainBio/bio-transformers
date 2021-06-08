@@ -225,7 +225,7 @@ class BatchDataset(Dataset):
 def create_dataloader(
     sequences: List[str],
     alphabet: AlphabetDataLoader,
-    filter_len: bool,
+    filter_len: int,
     batch_size: int,
     masking_ratio: float,
     masking_prob: float,
@@ -279,7 +279,7 @@ class BioDataModule(pl.LightningDataModule):
     def __init__(
         self,
         train_sequences: List[str],
-        alphabet: Alphabet,
+        alphabet: AlphabetDataLoader,
         filter_len: bool,
         batch_size: int,
         masking_ratio: float,
