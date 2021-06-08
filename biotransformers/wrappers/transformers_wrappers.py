@@ -7,6 +7,7 @@ sequences, and displays some properties of the transformer model.
 import os
 from abc import ABC, abstractmethod
 from os.path import join
+from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -923,6 +924,7 @@ class TransformersWrapper(ABC):
         trainer.fit(lightning_model, data_module)
 
         save_path = join(logs_save_dir, logs_name_exp)
+        save_path = str(Path(save_path).resolve())
         if accelerator == "ddp":
             rank = os.environ.get("LOCAL_RANK", None)
             rank = int(rank) if rank is not None else None  # type: ignore
