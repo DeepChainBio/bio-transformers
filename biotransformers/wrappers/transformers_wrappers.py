@@ -794,7 +794,6 @@ class TransformersWrapper(ABC):
         else:
             save_name = os.path.join(exp_path, model_dir + "_finetuned.pt")
         torch.save(lightning_model.model.state_dict(), save_name)
-
         log.info("Model save at %s." % save_name)
 
         return save_name
@@ -812,7 +811,7 @@ class TransformersWrapper(ABC):
         masking_prob: float = 0.8,
         random_token_prob: float = 0.15,
         toks_per_batch: int = 2048,
-        filter_len=1024,
+        filter_len: Optional[int] = None,
         accelerator: str = "ddp",
         amp_level: str = "O2",
         precision: int = 16,
@@ -841,7 +840,7 @@ class TransformersWrapper(ABC):
             the leraning rate. Defaults to 1024.
             warmup_init_lr :  Initial lr for warming_update. Defaults to 1e-7.
             epochs :  number of epoch for training. Defaults to 10.
-            batch_size :  number of sequence to consider in a batch. Defaults to 2.
+            batch_size :  mean number of sequence to consider in a batch. Defaults to 2.
             acc_batch_size : accumulated batch size Defaults to 2048.
             masking_ratio : ratio of tokens to be masked. Defaults to 0.025.
             masking_prob :  probability that the chose token is replaced with a mask token.
@@ -853,7 +852,7 @@ class TransformersWrapper(ABC):
                             is dynamically computed. Batch size use accumulate_grad_batches to compute
                             accumulate_grad_batches parameter.
             extra_toks_per_seq: Defaults to 2,
-            filter_len : Size of sequence to filter. Defaults to 1024. (NOT USED)
+            filter_len : Size of sequence to filter. Defaults to None. (NOT USED)
             accelerator: type of accelerator for mutli-gpu processing (DPP recommanded)
             amp_level: allow mixed precision. Defaults to '02'
             precision: reducing precision allows to decrease the GPU memory needed.
@@ -866,7 +865,6 @@ class TransformersWrapper(ABC):
         """
         if isinstance(train_sequences, str):
             train_sequences = load_fasta(train_sequences)
-        _check_sequence(train_sequences, self.model_dir, 1024)  # noqa: ignore
 
         fit_model = self.model.module if self.multi_gpu else self.model  # type: ignore
         alphabet = self._get_alphabet_dataloader()
@@ -885,7 +883,6 @@ class TransformersWrapper(ABC):
             train_sequences,
             alphabet,
             filter_len,
-            batch_size,
             masking_ratio,
             masking_prob,
             random_token_prob,

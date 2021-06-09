@@ -162,6 +162,7 @@ class ESMWrapper(TransformersWrapper):
             append_eos=True,
             mask_idx=self.alphabet.mask_idx,
             pad_idx=self.alphabet.padding_idx,
+            model_dir=self.model_dir,
             lambda_toks_to_ids=lambda x: self.alphabet.tok_to_idx[x],
             lambda_tokenizer=lambda x: tokenize(x),
         )

@@ -155,6 +155,7 @@ class RostlabWrapper(TransformersWrapper):
             append_eos=True,
             mask_idx=self.tokenizer.mask_token_id,
             pad_idx=self.tokenizer.pad_token_id,
+            model_dir=self.model_dir,
             lambda_toks_to_ids=lambda x: self.tokenizer.convert_tokens_to_ids(x),
             lambda_tokenizer=lambda x: tokenize(x),
         )

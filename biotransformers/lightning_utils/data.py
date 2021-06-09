@@ -21,6 +21,7 @@ class AlphabetDataLoader:
         append_eos: bool,
         mask_idx: int,
         pad_idx: int,
+        model_dir: str,
         lambda_toks_to_ids: Callable,
         lambda_tokenizer: Callable,
     ) -> None:
@@ -28,6 +29,7 @@ class AlphabetDataLoader:
         self.append_eos = append_eos
         self.mask_idx = mask_idx
         self.padding_idx = pad_idx
+        self.model_dir = model_dir
         self.lambda_toks_to_ids = lambda_toks_to_ids
         self.lambda_tokenizer = lambda_tokenizer
 
@@ -234,12 +236,41 @@ def collate_fn(
     return tokens, targets
 
 
+def _filter_sequence(
+    sequences_list: List[str], model: str, filter_len: int
+) -> List[str]:
+    """Function that filter the length of a sequence list
+
+    Args:
+        sequences_list : list of sequences
+        model : name of the model
+        length : length limit to consider
+    Raises:
+        ValueError is model filter_len < 0
+    """
+
+    if model == "esm1b_t33_650M_UR50S":
+        filter_len = min(filter_len, 1024) if filter_len is not None else 1024
+        return [seq for seq in sequences_list if len(seq) < filter_len]
+
+    if filter_len is not None:
+        if filter_len <= 0:
+            raise ValueError("filter_len argument should be > 0")
+        return [seq for seq in sequences_list if len(seq) < filter_len]
+
+    return sequences_list
+
+
 def get_batch_indices(
-    sequence_strs, toks_per_batch: int, extra_toks_per_seq: int = 0
+    sequence_strs,
+    toks_per_batch: int,
+    extra_toks_per_seq: int = 0,
 ) -> List[List[int]]:
     """Get the batch idx based on the number of tokens in sequences
 
     Args:
+        sequence_strs: list of string
+        filter_len :
         toks_per_batch (int): Maxi number of token per batch
         extra_toks_per_seq (int, optional): . Defaults to 0.
 
@@ -247,7 +278,6 @@ def get_batch_indices(
         List: List of batches indexes
     """
     buffer_type = List[int]
-
     sizes = [(len(s), i) for i, s in enumerate(sequence_strs)]
     sizes.sort()
     batches: List[buffer_type] = []
@@ -277,7 +307,6 @@ def create_dataloader(
     sequences: List[str],
     alphabet: AlphabetDataLoader,
     filter_len: int,
-    batch_size: int,
     masking_ratio: float,
     masking_prob: float,
     random_token_prob: float,
@@ -291,7 +320,6 @@ def create_dataloader(
         filenames: list of sequences
         alphabet: facebook alphabet.
         filter_len: whether filter data wrt len.batch_seq
-        batch_size: num samples per batchs
         num_workers: num of parallel data samplers
         masking_ratio: ratio of tokens to be masked.
         masking_prob: probability that the chose token is replaced with a mask token.
@@ -300,6 +328,8 @@ def create_dataloader(
     Returns:
         torch DataLoader
     """
+    sequences = _filter_sequence(sequences, alphabet.model_dir, filter_len)
+
     batches = get_batch_indices(
         sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
     )
@@ -331,8 +361,7 @@ class BioDataModule(pl.LightningDataModule):
         self,
         train_sequences: List[str],
         alphabet: AlphabetDataLoader,
-        filter_len: bool,
-        batch_size: int,
+        filter_len: int,
         masking_ratio: float,
         masking_prob: float,
         random_token_prob: float,
@@ -345,7 +374,6 @@ class BioDataModule(pl.LightningDataModule):
         self.train_sequences = train_sequences
         self.alphabet = alphabet
         self.filter_len = filter_len
-        self.batch_size = batch_size
         self.masking_ratio = masking_ratio
         self.masking_prob = masking_prob
         self.random_token_prob = random_token_prob
@@ -377,7 +405,6 @@ class BioDataModule(pl.LightningDataModule):
             sequences=self.seq_train,
             alphabet=self.alphabet,
             filter_len=self.filter_len,
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
             masking_ratio=self.masking_ratio,
             masking_prob=self.masking_prob,
@@ -391,7 +418,6 @@ class BioDataModule(pl.LightningDataModule):
             sequences=self.seq_val,
             alphabet=self.alphabet,
             filter_len=self.filter_len,
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
             masking_ratio=self.masking_ratio,
             masking_prob=self.masking_prob,
