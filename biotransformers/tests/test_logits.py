@@ -14,11 +14,11 @@ test_params = [
 @pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params)
 def test_logits_type(init_model, batch_size, tokens_list, pass_mode):
     test_trans = init_model
-    logits, labels = test_trans.compute_logits(
+    logits = test_trans.compute_logits(
         test_sequences,
         batch_size=batch_size,
         tokens_list=tokens_list,
         pass_mode=pass_mode,
     )
-    assert isinstance(logits, np.ndarray)
-    assert isinstance(labels, np.ndarray)
+    assert isinstance(logits, list)
+    assert isinstance(logits[0], np.ndarray)

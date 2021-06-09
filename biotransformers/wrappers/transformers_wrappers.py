@@ -243,6 +243,30 @@ class TransformersWrapper(ABC):
         mapping = dict(zip(tokens, range(len(tokens))))
         return mapping[label]
 
+    def _split_logits(
+        self, sequence_list: List[str], logits: torch.Tensor, tokens_list: List[str]
+    ):
+        """split logits according to the tokens provided
+
+        The loggits are splitted based on the size of the sequences filter.
+        For each sequence, we only keep the AA in the tokens_list
+
+        Args:
+            sequence_list (List[str]): [description]
+            logits (torch.Tensor): [description]
+            tokens (List[str]): [description]
+        """
+
+        def filter_sequence(sequence: str):
+            return "".join([aa for aa in list(sequence) if aa in tokens_list])
+
+        filter_seq_list = list(map(filter_sequence, sequence_list))
+        lengths = [len(sequence) for sequence in filter_seq_list]
+        splitted_logits = torch.split(logits, lengths, dim=0)
+        splitted_logits = [logits.numpy() for logits in splitted_logits]
+
+        return splitted_logits
+
     def _filter_logits(
         self,
         logits: torch.Tensor,
@@ -514,9 +538,7 @@ class TransformersWrapper(ABC):
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, labels = self._filter_logits(logits, labels, tokens)
 
-        lengths = [len(sequence) for sequence in sequences]
-        splitted_logits = torch.split(logits, lengths, dim=0)
-        splitted_logits = [logits.numpy() for logits in splitted_logits]
+        splitted_logits = self._split_logits(sequences, logits, tokens_list)
 
         return splitted_logits
 
