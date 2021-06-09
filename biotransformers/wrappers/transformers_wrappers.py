@@ -263,7 +263,6 @@ class TransformersWrapper(ABC):
         filter_seq_list = list(map(filter_sequence, sequence_list))
         lengths = [len(sequence) for sequence in filter_seq_list]
         splitted_logits = torch.split(logits, lengths, dim=0)
-        splitted_logits = [logits.numpy() for logits in splitted_logits]
 
         return splitted_logits
 
@@ -539,12 +538,13 @@ class TransformersWrapper(ABC):
         logits, labels = self._filter_logits(logits, labels, tokens)
 
         splitted_logits = self._split_logits(sequences, logits, tokens_list)
+        splitted_logits = [logits.numpy() for logits in splitted_logits]
 
         return splitted_logits
 
     def compute_probabilities(
         self,
-        sequences_list: List[str],
+        sequences: List[str],
         batch_size: int = 1,
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
@@ -562,7 +562,7 @@ class TransformersWrapper(ABC):
         the corresponding probabilities.
 
         Args:
-            sequences_list: List of sequences
+            sequences: List of sequences
             batch_size: number of sequences to consider for the forward pass
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             tokens_list: List of tokens to consider
@@ -573,25 +573,22 @@ class TransformersWrapper(ABC):
         if tokens_list is None:
             tokens_list = NATURAL_AAS_LIST
 
-        _check_sequence(sequences_list, self.model_dir, 1024)
-        _check_memory_logits(sequences_list, self.vocab_size, pass_mode)
+        _check_sequence(sequences, self.model_dir, 1024)
+        _check_memory_logits(sequences, self.vocab_size, pass_mode)
 
         inputs, labels, tokens = self._process_sequences_and_tokens(
-            sequences_list, tokens_list
+            sequences, tokens_list
         )
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         logits, _ = self._filter_logits(logits, labels, tokens)
-
-        lengths = [len(sequence) for sequence in sequences_list]
-        splitted_logits = torch.split(logits, lengths, dim=0)
+        splitted_logits = self._split_logits(sequences, logits, tokens_list)
 
         softmax = torch.nn.Softmax(dim=-1)
         splitted_probabilities = [softmax(logits) for logits in splitted_logits]
 
         def _get_probabilities_dict(probs: torch.Tensor) -> Dict[str, float]:
             return {
-                aa: float(probs[i].cpu().numpy())
-                for i, aa in enumerate(NATURAL_AAS_LIST)
+                aa: float(probs[i].cpu().numpy()) for i, aa in enumerate(tokens_list)
             }
 
         probabilities = [
