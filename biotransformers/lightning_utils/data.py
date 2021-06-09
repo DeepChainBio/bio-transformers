@@ -9,7 +9,7 @@ from biotransformers.utils.constant import NATURAL_AAS_LIST
 from esm.data import Alphabet, BatchConverter
 from sklearn.model_selection import train_test_split
 from torch._six import int_classes as _int_classes
-from torch.utils.data import BatchSampler, DataLoader, Dataset, Sampler
+from torch.utils.data import DataLoader, Dataset, Sampler
 
 
 class AlphabetDataLoader:
@@ -41,6 +41,9 @@ class AlphabetDataLoader:
 
 class CustomBatchSampler(Sampler):
     r"""Wraps another sampler to yield a mini-batch of indices.
+
+    This custom BatchSampler is inspired from the torch class BatchSampler.
+    It takes a list of indexes and shuffle the indexes at each epochs.
 
     Args:
         sampler (List): List of indexes.
@@ -86,6 +89,18 @@ class CustomBatchSampler(Sampler):
             return (len(self.sampler) + self.batch_size - 1) // self.batch_size
 
 
+class BatchDataset(Dataset):
+    def __init__(self, sequences: List[str]) -> None:
+        super().__init__()
+        self.sequences = np.array(sequences)
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def __getitem__(self, index):
+        return self.sequences[index].tolist()
+
+
 def convert_ckpt_to_statedict(checkpoint_state_dict: OrderedDict) -> OrderedDict:
     """This function convert a state_dict coming form pytorch lightning checkpoint to
     a state_dict model that can be load directly in the bio-transformers model.
@@ -101,6 +116,17 @@ def convert_ckpt_to_statedict(checkpoint_state_dict: OrderedDict) -> OrderedDict
         new_state_dict[new_k] = v.to("cpu")  # move tensor to cpu
 
     return new_state_dict
+
+
+def worker_init_fn(worker_id: int):
+    """Set numpy random seed for each worker.
+
+    https://github.com/pytorch/pytorch/issues/5059#issuecomment-404232359
+
+    Args:
+        worker_id: unique id for each worker
+    """
+    np.random.seed(np.random.get_state()[1][0] + worker_id)
 
 
 def mask_seq(
@@ -156,17 +182,6 @@ def mask_seq(
     targets[non_mask_indices] = pad_idx
 
     return tokens, targets
-
-
-def worker_init_fn(worker_id: int):
-    """Set numpy random seed for each worker.
-
-    https://github.com/pytorch/pytorch/issues/5059#issuecomment-404232359
-
-    Args:
-        worker_id: unique id for each worker
-    """
-    np.random.seed(np.random.get_state()[1][0] + worker_id)
 
 
 def collate_fn(
@@ -258,19 +273,6 @@ def get_batch_indices(
     return batches
 
 
-class BatchDataset(Dataset):
-    def __init__(self, sequences: List[str]) -> None:
-        super().__init__()
-        self.sequences = np.array(sequences)
-
-    def __len__(self):
-        return len(self.sequences)
-
-    def __getitem__(self, index):
-        print(index)
-        return self.sequences[index].tolist()
-
-
 def create_dataloader(
     sequences: List[str],
     alphabet: AlphabetDataLoader,
@@ -303,7 +305,7 @@ def create_dataloader(
     )
 
     dataset = BatchDataset(sequences)
-    b_sampler = BatchSampler(batches, batch_size=1, drop_last=False)
+    b_sampler = CustomBatchSampler(batches, batch_size=1, drop_last=False)
 
     loader = DataLoader(
         dataset,
