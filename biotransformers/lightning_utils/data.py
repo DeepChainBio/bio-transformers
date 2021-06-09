@@ -8,7 +8,8 @@ import torch
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from esm.data import Alphabet, BatchConverter
 from sklearn.model_selection import train_test_split
-from torch.utils.data import BatchSampler, DataLoader, Dataset
+from torch._six import int_classes as _int_classes
+from torch.utils.data import BatchSampler, DataLoader, Dataset, Sampler
 
 
 class AlphabetDataLoader:
@@ -36,6 +37,53 @@ class AlphabetDataLoader:
     def tokenizer(self):
         """Return seq-token based on sequence"""
         return self.lambda_tokenizer
+
+
+class CustomBatchSampler(Sampler):
+    r"""Wraps another sampler to yield a mini-batch of indices.
+
+    Args:
+        sampler (List): List of indexes.
+        batch_size (int): Size of mini-batch.
+        drop_last (bool): If ``True``, the sampler will drop the last batch if
+            its size would be less than ``batch_size``
+    """
+
+    def __init__(self, sampler, batch_size, drop_last):
+        if (
+            not isinstance(batch_size, _int_classes)
+            or isinstance(batch_size, bool)
+            or batch_size <= 0
+        ):
+            raise ValueError(
+                "batch_size should be a positive integer value, "
+                "but got batch_size={}".format(batch_size)
+            )
+        if not isinstance(drop_last, bool):
+            raise ValueError(
+                "drop_last should be a boolean value, but got "
+                "drop_last={}".format(drop_last)
+            )
+        self.sampler = sampler
+        self.batch_size = batch_size
+        self.drop_last = drop_last
+
+    def __iter__(self):
+        batch = []
+        np.random.shuffle(self.sampler)
+        for idx in self.sampler:
+            batch.append(idx)
+            if len(batch) == self.batch_size:
+                yield batch
+                batch = []
+        if len(batch) > 0 and not self.drop_last:
+            yield batch
+
+    def __len__(self):
+        if self.drop_last:
+            return len(self.sampler) // self.batch_size
+        else:
+            return (len(self.sampler) + self.batch_size - 1) // self.batch_size
 
 
 def convert_ckpt_to_statedict(checkpoint_state_dict: OrderedDict) -> OrderedDict:
@@ -181,7 +229,7 @@ def get_batch_indices(
         extra_toks_per_seq (int, optional): . Defaults to 0.
 
     Returns:
-        List: List of batches indexesxs
+        List: List of batches indexes
     """
     buffer_type = List[int]
 
@@ -219,6 +267,7 @@ class BatchDataset(Dataset):
         return len(self.sequences)
 
     def __getitem__(self, index):
+        print(index)
         return self.sequences[index].tolist()
 
 
