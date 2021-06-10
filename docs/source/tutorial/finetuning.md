@@ -31,7 +31,7 @@ Seven arguments are important for the training:
  - **lr**: the default learning rate (keep it low : <5e10-4)
  - **warmup_updates**:  the number of step (not epochs, optimizer step) to do while increasing the leraning rate from a **warmup_init_lr** to **lr**.
 - **epochs** :  number of epoch for training. Defaults to 10.
-- **batch_size** :  This size is only uses internally to compute the **accumulate_grad_batches** for gradient accumulation (TO BE UPDATED). The **toks_per_batch** will dynamically determine the number of sequences in a batch, in order to avoir GPU saturation.
+- **batch_size** :  This size is only uses internally to compute the **accumulate_grad_batches** for gradient accumulation (TO BE UPDATED). The **toks_per_batch** will dynamically determine the number of sequences in a batch, in order to avoid GPU saturation.
 - **acc_batch_size** : Number of batch to consider befor computing gradient.
 
 Three arguments allow to custom the masking function used for building the training dataset:
