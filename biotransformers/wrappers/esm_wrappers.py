@@ -96,15 +96,9 @@ class ESMWrapper(TransformersWrapper):
         return self.hidden_size
 
     def _process_sequences_and_tokens(
-        self, sequences_list: List[str], tokens_list: List[str]
-    ) -> Tuple[Dict[str, torch.tensor], torch.tensor, List[int]]:
+        self, sequences_list: List[str]
+    ) -> Dict[str, torch.tensor]:
         """Function to transform tokens string to IDs; it depends on the model used"""
-        tokens = []
-        for token in tokens_list:
-            if token not in self.model_vocabulary:
-                log.warning("token %s does not belong to model vocabulary" % token)
-            else:
-                tokens.append(self.token_to_id(token))
 
         _, _, all_tokens = self.batch_converter(
             [("", sequence) for sequence in sequences_list]
@@ -117,7 +111,7 @@ class ESMWrapper(TransformersWrapper):
             "attention_mask": 1 * (all_tokens != self.token_to_id(self.pad_token)),
             "token_type_ids": torch.zeros(all_tokens.shape),
         }
-        return encoded_inputs, all_tokens, tokens
+        return encoded_inputs
 
     def _model_pass(
         self, model_inputs: Dict[str, torch.tensor]
