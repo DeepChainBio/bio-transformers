@@ -488,7 +488,7 @@ class TransformersWrapper(ABC):
         batch_size: int = 1,
         pool_mode: Tuple[str, ...] = ("cls", "mean", "full"),
         silent: bool = False,
-    ) -> Dict[str, List[np.ndarray]]:
+    ) -> Dict[str, Union[List[np.ndarray], np.ndarray]]:
         """Function that computes embeddings of sequences.
 
         The embedding of one sequence has a shape (sequence_length, embedding_size)
@@ -543,9 +543,11 @@ class TransformersWrapper(ABC):
         if "full" in pool_mode:
             embeddings_dict["full"] = filtered_embeddings
         if "cls" in pool_mode:
-            embeddings_dict["cls"] = cls_embeddings
+            embeddings_dict["cls"] = np.stack(cls_embeddings)
         if "mean" in pool_mode:
-            embeddings_dict["mean"] = [np.mean(e, axis=0) for e in filtered_embeddings]
+            embeddings_dict["mean"] = np.stack(
+                [np.mean(e, axis=0) for e in filtered_embeddings]
+            )
 
         return embeddings_dict
 
