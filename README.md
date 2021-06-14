@@ -36,7 +36,7 @@ This package provides a unified interface to use all these models - which we cal
  - [ESM](https://github.com/facebookresearch/esm/)
  - [Protbert](https://github.com/agemagician/ProtTrans)
 
-## What is a transformers?
+## What is a transformer?
 `Transformers` are an AI language model that has had huge impact in speech recognition and automated chatbots and has now been pointed out as a revolutionising technique to understand the language of proteins, offering an innovative approach to study and design proteins. They have been introduced in [Attention is all you need](https://arxiv.org/abs/1706.03762) paper. This [blog post](https://jalammar.github.io/illustrated-transformer/) can give you an in depth view of the transformer architecture and the mathematics behind.
 
 
