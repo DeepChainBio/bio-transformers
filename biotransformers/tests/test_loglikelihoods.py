@@ -6,8 +6,8 @@ test_sequences = ["AAAA", "AKKF", "AHHFK", "KKKKKKKLLL"]
 
 test_params = [
     (1, list("ACDEFGHIKLMNPQRSTVWY"), "forward"),
-    (2, ["A", "F", "K"], "masked"),
-    (10, ["A"], "forward"),
+    (2, list("ACDEFGHIKLMNPQRSTVWY") + ["MASK"], "masked"),
+    (10, list("ACDEFGHIKLMNPQRSTVWY") + ["MASK"], "forward"),
 ]
 
 
@@ -22,7 +22,6 @@ def test_loglikelihoods_type_shape_and_range(
         tokens_list=tokens_list,
         pass_mode=pass_mode,
     )
-    assert isinstance(loglikelihoods, np.ndarray)
-    assert loglikelihoods.shape == (len(test_sequences),)
+    assert len(loglikelihoods) == len(test_sequences)
     for loglikelihood in loglikelihoods:
         assert loglikelihood <= 0 or np.isnan(loglikelihood)

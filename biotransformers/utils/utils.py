@@ -102,7 +102,28 @@ def _check_sequence(sequences_list: List[str], model: str, length: int):
                 f"with esm1b_t33_650M_UR50S, use esm1_t34_670M_UR100 or "
                 f"filter the sequence length"
             )
-    return
+
+
+def _check_tokens_list(sequences_list: List[str], tokens_list: List[str]):
+    """Function that check if the list of tokens contains at least the tokens
+    that are in the sequences.
+
+    Args:
+        sequences_list : list of sequences
+        tokens_list : list of tokens to consider
+    Raises:
+        ValueError if some tokens in the sequences are not in the tokens_list
+    """
+    tokens = []
+    for sequence in sequences_list:
+        tokens += list(sequence)
+        tokens = list(set(tokens))
+
+    for token in tokens:
+        if token not in tokens_list:
+            raise ValueError(
+                f"Token {token} is present in the sequences but not in the tokens_list."
+            )
 
 
 def load_fasta(path_fasta: str) -> List[str]:

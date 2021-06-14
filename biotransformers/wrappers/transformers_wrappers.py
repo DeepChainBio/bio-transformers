@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from os.path import join
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from copy import deepcopy
 
 import numpy as np
 import pytorch_lightning as pl
@@ -25,6 +26,7 @@ from biotransformers.utils.utils import (
     _check_memory_embeddings,
     _check_memory_logits,
     _check_sequence,
+    _check_tokens_list,
     get_logs_version,
     load_fasta,
 )
@@ -201,10 +203,13 @@ class TransformersWrapper(ABC):
                 new_token_type_ids.append(zeros)
                 mask_id.append(i)
             mask_ids.append(mask_id)
-        model_inputs["input_ids"] = torch.stack(new_input_ids)
-        model_inputs["attention_mask"] = torch.stack(new_attention_mask)
-        model_inputs["token_type_ids"] = torch.stack(new_token_type_ids)
-        return model_inputs, mask_ids
+
+        model_inputs_out = deepcopy(model_inputs)
+        model_inputs_out["input_ids"] = torch.stack(new_input_ids)
+        model_inputs_out["attention_mask"] = torch.stack(new_attention_mask)
+        model_inputs_out["token_type_ids"] = torch.stack(new_token_type_ids)
+
+        return model_inputs_out, mask_ids
 
     def _gather_masked_outputs(
         self, model_outputs: torch.Tensor, masked_ids_list: List[List]
@@ -331,7 +336,7 @@ class TransformersWrapper(ABC):
 
         # Perform inference in model to compute the logits
         inputs = self._process_sequences_and_tokens(sequences)
-        labels = inputs["inputs_ids"]
+        labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
 
         # Remove padded logits
@@ -345,6 +350,7 @@ class TransformersWrapper(ABC):
             for logit, label in zip(logits, labels)
         ]
 
+        # List of arrays of shape (seq_length, 1)
         return logits
 
     def compute_probabilities(
@@ -390,6 +396,7 @@ class TransformersWrapper(ABC):
 
         _check_sequence(sequences, self.model_dir, 1024)
         _check_memory_logits(sequences, self.vocab_size, pass_mode)
+        _check_tokens_list(sequences, tokens_list)
 
         # Perform inference in model to compute the logits
         inputs = self._process_sequences_and_tokens(sequences)
@@ -401,9 +408,15 @@ class TransformersWrapper(ABC):
 
         # Set to -inf logits that correspond to tokens that are not in tokens list
         vocabulary_mask = torch.from_numpy(self.get_vocabulary_mask(tokens_list))
+
+        # Avoid printing warnings
+        np.seterr(divide="ignore")
+
         masked_logits = []
         for logit in logits:
-            masked_logit = logit + torch.tile(np.log(vocabulary_mask), (logit.shape[0], 1))
+            masked_logit = logit + torch.tile(
+                np.log(vocabulary_mask), (logit.shape[0], 1)
+            )
             masked_logits.append(masked_logit)
 
         # Use softmax to compute probabilities frm logits
@@ -563,9 +576,11 @@ class TransformersWrapper(ABC):
         # Perform inference in model to compute the logits
         inputs = self._process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
-        labels = inputs["inputs_ids"]
+        labels = inputs["input_ids"]
+
         # Get the predicted labels
         predicted_labels = torch.argmax(logits, dim=-1)
+
         # Compute the accuracy
         accuracy = float(torch.mean(torch.eq(predicted_labels, labels).float()))
 
