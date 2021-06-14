@@ -400,10 +400,10 @@ class TransformersWrapper(ABC):
         logits = [logit[:length, :] for logit, length in zip(list(logits), lengths)]
 
         # Set to -inf logits that correspond to tokens that are not in tokens list
-        vocabulary_mask = self.get_vocabulary_mask(tokens_list)
+        vocabulary_mask = torch.from_numpy(self.get_vocabulary_mask(tokens_list))
         masked_logits = []
         for logit in logits:
-            masked_logit = logit + np.tile(np.log(vocabulary_mask), (logit.shape[0], 1))
+            masked_logit = logit + torch.tile(np.log(vocabulary_mask), (logit.shape[0], 1))
             masked_logits.append(masked_logit)
 
         # Use softmax to compute probabilities frm logits
@@ -515,6 +515,7 @@ class TransformersWrapper(ABC):
         _, embeddings = self._model_evaluation(
             inputs, batch_size=batch_size, silent=silent
         )
+        embeddings = [e.cpu().numpy() for e in embeddings]
 
         # Remove class token and padding
         filtered_embeddings = [
