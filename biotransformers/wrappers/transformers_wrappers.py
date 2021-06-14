@@ -311,14 +311,13 @@ class TransformersWrapper(ABC):
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
-        It returns a list of logits for each sequence. Each sequence in the list
-        contains only the amino acid of interest.
+        It returns a list of logits arrays for each sequence.
 
         Args:
             sequences_list: List of sequences
             batch_size: number of sequences to consider for the forward pass
             pass_mode: Mode of model evaluation ('forward' or 'masked')
-
+            silent: whether to print progress bar in console
 
         Returns:
             List[np.ndarray]: logits in np.ndarray format
@@ -367,12 +366,20 @@ class TransformersWrapper(ABC):
         In these dictionaries, the keys are the amino-acids and the value
         the corresponding probabilities.
 
+        Both ProtBert and ESM models have more tokens than the 20 natural amino-acids
+        (for instance MASK or PAD tokens). It might not be of interest to take these
+        tokens into account when computing probabilities or log-likelihood. By default
+        we remove them and compute probabilities only over the 20 natural amino-acids.
+        This behavior can be overridden through the tokens_list argument that enable
+        the user to choose the tokens to consider when computing probabilities.
+
         Args:
             sequences_list: List of sequences
             batch_size: number of sequences to consider for the forward pass
-            pass_mode: Mode of model evaluation ('forward' or 'masked')
             tokens_list: List of tokens to consider
+            pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
+
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
@@ -429,13 +436,22 @@ class TransformersWrapper(ABC):
         pass_mode: str = "forward",
         silent: bool = False,
     ) -> List[float]:
-        """Function that computes loglikelihoods of sequences
+        """Function that computes loglikelihoods of sequences.
+        It returns a list of float values.
+
+        Both ProtBert and ESM models have more tokens than the 20 natural amino-acids
+        (for instance MASK or PAD tokens). It might not be of interest to take these
+        tokens into account when computing probabilities or log-likelihood. By default
+        we remove them and compute probabilities only over the 20 natural amino-acids.
+        This behavior can be overridden through the tokens_list argument that enable
+        the user to choose the tokens to consider when computing probabilities.
 
         Args:
             sequences: List of sequences
             batch_size: Batch size
-            pass_mode: Mode of model evaluation ('forward' or 'masked')
             tokens_list: List of tokens to consider
+            pass_mode: Mode of model evaluation ('forward' or 'masked')
+            silent : display or not progress bar
 
         Returns:
             List[float]: list of log-likelihoods, one per sequence
@@ -464,18 +480,25 @@ class TransformersWrapper(ABC):
     ) -> Dict[str, List[np.ndarray]]:
         """Function that computes embeddings of sequences.
 
-        The embedding has a size (n_sequence, num_tokens, embeddings_size) so we use
-        an aggregation function specified in pool_mode to aggregate the tensor on
-        the num_tokens dimension. 'mean' signifies that we take the mean over the
-        num_tokens dimension.
+        The full embedding has a size (n_sequence, num_tokens, embeddings_size), thus
+        we may want to use an aggregation function specified in pool_mode to aggregate
+        the tensor on the num_tokens dimension. It might for instance avoid blowing
+        the machine RAM when computing embeddings for a large number of sequences.
+        'mean' signifies that we take the mean over the num_tokens dimension. 'cls'
+        means that only the class token embedding is used.
+
+        This function returns a dictionary of lists. The dictionary will have one key
+        per pool-mode that has been specified. The corresponding value is a list of
+        embeddings, one per sequence in sequences.
 
         Args:
             sequences: List of sequences or path of fasta file
             batch_size: Batch size
             pool_mode: Mode of pooling ('cls', 'mean', 'full')
             silent : whereas to display or not progress bar
+
         Returns:
-             Dict[str, List[np.ndarray]]: todo: complete it
+             Dict[str, List[np.ndarray]]: dict matching pool-mode and list of embeddings
         """
 
         if isinstance(sequences, str):
@@ -525,6 +548,7 @@ class TransformersWrapper(ABC):
             sequences (Union[List[str],str]): list of sequence or fasta file
             batch_size ([type], optional): [description]. Defaults to 1.
             pass_mode ([type], optional): [description]. Defaults to "forward".
+            silent : whereas to display or not progress bar
 
         Returns:
             float: model's accuracy over the given sequences
