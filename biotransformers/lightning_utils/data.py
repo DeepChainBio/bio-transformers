@@ -48,8 +48,9 @@ class CustomBatchSampler(Sampler):
     It takes a list of indexes and shuffle the indexes at each epochs.
 
     Args:
-        sampler (List): List of indexes.
-        batch_size (int): Size of mini-batch.
+        sampler (List): List of indexes. indexes are a collections of List[int],
+        corresponding to the index of the protein sequence.
+        batch_size (int): Size of mini-batch. 1 in our case, a batch are already of correct size.
         drop_last (bool): If ``True``, the sampler will drop the last batch if
             its size would be less than ``batch_size``
     """
