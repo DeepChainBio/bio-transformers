@@ -413,8 +413,8 @@ class TransformersWrapper(ABC):
 
         masked_logits = []
         for logit in logits:
-            masked_logit = logit + torch.tile(
-                np.log(vocabulary_mask), (logit.shape[0], 1)
+            masked_logit = logit + torch.from_numpy(
+                np.tile(np.log(vocabulary_mask), (logit.shape[0], 1))
             )
             masked_logits.append(masked_logit)
 
