@@ -6,10 +6,10 @@ sequences, and displays some properties of the transformer model.
 """
 import os
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from os.path import join
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
-from copy import deepcopy
 
 import numpy as np
 import pytorch_lightning as pl
@@ -339,12 +339,10 @@ class TransformersWrapper(ABC):
         labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
 
-
         # Remove padded logits
         lengths = [len(sequence) for sequence in sequences]
         logits = [logit[:length, :] for logit, length in zip(list(logits), lengths)]
         labels = [label[:length, :] for label, length in zip(list(labels), lengths)]
-
 
         # Keep only corresponding to amino acids that are in the sequence
         logits = [
@@ -493,10 +491,12 @@ class TransformersWrapper(ABC):
     ) -> Dict[str, List[np.ndarray]]:
         """Function that computes embeddings of sequences.
 
-        The full embedding has a size (n_sequence, num_tokens, embeddings_size), thus
-        we may want to use an aggregation function specified in pool_mode to aggregate
-        the tensor on the num_tokens dimension. It might for instance avoid blowing
-        the machine RAM when computing embeddings for a large number of sequences.
+        The embedding of one sequence has a shape (sequence_length, embedding_size)
+        where embedding_size equals 768 or 1024., thus we may want to use an aggregation
+        function specified in pool_mode to aggregate the tensor on the num_tokens dimension.
+        It might for instance avoid blowing the machine RAM when computing embeddings
+        for a large number of sequences.
+
         'mean' signifies that we take the mean over the num_tokens dimension. 'cls'
         means that only the class token embedding is used.
 
@@ -528,15 +528,15 @@ class TransformersWrapper(ABC):
         _, embeddings = self._model_evaluation(
             inputs, batch_size=batch_size, silent=silent
         )
-        embeddings = [e.cpu().numpy() for e in embeddings]
+        embeddings = [emb.cpu().numpy() for emb in embeddings]
 
         # Remove class token and padding
         filtered_embeddings = [
-            e[1 : (length + 1), :] for e, length in zip(list(embeddings), lengths)
+            emb[1 : (length + 1), :] for emb, length in zip(list(embeddings), lengths)
         ]
 
         # Keep class token only
-        cls_embeddings = [e[0, :] for e in list(embeddings)]
+        cls_embeddings = [emb[0, :] for emb in list(embeddings)]
 
         embeddings_dict = {}
         # Keep only what's necessary

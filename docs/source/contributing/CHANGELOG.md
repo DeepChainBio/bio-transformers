@@ -1,17 +1,36 @@
 # Change log
 
-# [0.0.9] - 2021-06-14
+# [0.0.10] - 2021-06-14
 Note on the release
 
 Features:
  - Add BIO_LOG_LEVEL environnement variable to control logging message
+ - Check if every unique amino acids in sequences are in tokens_list
 
 Fixed:
  - Add shuffling in batch_sampler
  - Fix tokens argument
 
 Changed:
+ - Modified the signature of some functions to improve clarity
+ - Update `train_masked` method to `finetune`
 
+Removed:
+ - Remove the tokens_list argument when not necessary and tried to make its usage clearer
+ - Remove functions:
+    - _filter_and_pool_embeddings
+    - _split_logits
+    -  _slabels_remaping
+    - _filter_logits
+    -  _filter_loglikelihood
+    - _compute_accuracy
+    - _compute_calibration
+
+
+# [0.0.9] - 2021-06-04
+
+Fixed:
+ - Batch_sampler issue
 
 # [0.0.8] - 2021-06-03
 Note on the release

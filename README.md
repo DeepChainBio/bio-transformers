@@ -43,18 +43,18 @@ This package provides a unified interface to use all these models - which we cal
 When trained with a large database on a particular language, such as English, the model learns about the words and grammar and can generate complete sentences when prompted. Let’s look at the following example:
 
 <p align="center">
-  <img width="30%" src="./.source/_static/transformers.png">
+  <img width="50%" src="./.source/_static/transformers.png">
 </p>
 
  ### Why transformers for protein
  Proteins are molecules that perform critical functions in all living beings. It consists of one or more strings of amino acids. There are only 20 different amino acids and the different combinations of them have resulted in thousands of functional proteins in humans. If we consider amino acids as words that constitute proteins, which are the sentences, then we could use transformers to understand the language of proteins. When trained with the billions of protein sequences identified so far across multiple species, a transformer is capable of understanding what sequences of amino acids make sense from a language perspective and can propose new combinations.
 
 <p align="center">
-  <img width="30%" src="./.source/_static/protein.png">
+  <img width="50%" src="./.source/_static/protein.png">
 </p>
 
 <p align="center">
-  <img width="80%" src="./.source/_static/sequence.png">
+  <img width="100%" src="./.source/_static/sequence.png">
 </p>
 
 Querying a transformer trained in the language of proteins on a particular sequence provides a wealth of information about the protein. As seen in the above example, the transformer can tell you which amino acids might be key and need to be present at the protein of interest from a language perspective. This information is of particular interest when trying to understand amino acid regions that might be essential to protein function or stability.
