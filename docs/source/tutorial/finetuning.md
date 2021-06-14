@@ -1,11 +1,11 @@
 # Finetuning
 
 ## How to finetune a model?
-`bio-transformers` uses pytorch-lightning to easily load pre-trained model and finetune it on your own datasets. The method `train_masked` automatically scale on your visible GPU to train in parallel thanks to the different accelerator.
+`bio-transformers` uses pytorch-lightning to easily load pre-trained model and finetune it on your own datasets. The method `finetune` automatically scale on your visible GPU to train in parallel thanks to the different accelerator.
 
 It is strongly recommended to use the `DDP` accelerator for training : [ddp](https://pytorch.org/docs/stable/notes/ddp.html). You should know that `DDP` will launch several python instances, as a consequence, a model should be finetuned in a separate script, and not be mixed with inference function like `compute_loglikelihood` or `compute_embeddings` to avoid GPU conflicts.
 
-The model will be finetuned randomly by masking a proportion of amino acid in a sequence it commonly does in most state of the art paper.
+The model will be finetuned randomly by masking a proportion of amino acid in a sequence it commonly does in most state of the art paper. By default, 15% of amino acids will be masked;
 
 ## Caution
 
@@ -66,7 +66,7 @@ length = np.array(list(map(len, X))) < 200
 train_seq = X[length][:15000]
 bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda")
 
-bio_trans.train_masked(
+bio_trans.finetune(
     train_seq,
     lr=1.0e-5,
     warmup_init_lr=1e-7,

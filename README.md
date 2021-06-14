@@ -161,7 +161,7 @@ length = np.array(list(map(len, X))) < 200
 train_seq = X[length][:15000]
 bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda")
 
-bio_trans.train_masked(
+bio_trans.finetune(
     train_seq,
     lr=1.0e-5,
     warmup_init_lr=1e-7,
