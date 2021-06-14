@@ -25,8 +25,11 @@
 </details>
 
 # Bio-transformers
-`bio-transformers` is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings.
+`bio-transformers` is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings. 🧬 🧬
+
 This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities ,embeddings or easily finetune your model on multiple-GPUs.
+
+📕 Please find the documentation [here](https://bio-transformers.readthedocs.io/en/latest/).
 
  You can find the original repositories for the models here :
  - [ESM](https://github.com/facebookresearch/esm/)
@@ -39,6 +42,10 @@ It is recommended to work with conda environments in order to manage the specifi
   conda activate bio-transformers
   pip install bio-transformers
 ```
+
+### Dev environment
+If you want to contribute to the development, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 # Usage
 
 ## Quick start

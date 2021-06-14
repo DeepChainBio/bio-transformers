@@ -1,5 +1,18 @@
 # Change log
 
+# [0.0.9] - 2021-06-14
+Note on the release
+
+Features:
+ - Add BIO_LOG_LEVEL environnement variable to control logging message
+
+Fixed:
+ - Add shuffling in batch_sampler
+ - Fix tokens arguement
+
+Changed:
+
+
 # [0.0.8] - 2021-06-03
 Note on the release
 
