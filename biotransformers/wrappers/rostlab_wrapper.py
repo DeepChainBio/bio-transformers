@@ -95,15 +95,10 @@ class RostlabWrapper(TransformersWrapper):
         return self.hidden_size
 
     def _process_sequences_and_tokens(
-        self, sequences_list: List[str], tokens_list: List[str]
-    ) -> Tuple[Dict[str, torch.tensor], torch.tensor, List[int]]:
+        self,
+        sequences_list: List[str],
+    ) -> Dict[str, torch.tensor]:
         """Function to transform tokens string to IDs; it depends on the model used"""
-        tokens = []
-        for token in tokens_list:
-            if token not in self.model_vocabulary:
-                print("Warnings; token", token, "does not belong to model vocabulary")
-            else:
-                tokens.append(self.token_to_id(token))
 
         separated_sequences_list = [" ".join(seq) for seq in sequences_list]
         encoded_inputs = self.tokenizer(
@@ -112,7 +107,7 @@ class RostlabWrapper(TransformersWrapper):
             padding=True,
         ).to("cpu")
 
-        return encoded_inputs, encoded_inputs["input_ids"], tokens
+        return encoded_inputs
 
     def _model_pass(
         self, model_inputs: Dict[str, torch.tensor]
