@@ -1,5 +1,6 @@
 """Test module for testing embeddings function"""
 import pytest
+import numpy as np
 
 test_sequences = ["AAAA", "AKKF", "AHHFK", "KKKKKKKLLL"]
 
@@ -22,3 +23,8 @@ def test_embeddings_type_and_shape(init_model, batch_size, pool_mode):
     if "full" in pool_mode:
         for emb, sequence in zip(embeddings["full"], test_sequences):
             assert emb.shape[0] == len(sequence)
+    if "cls" in pool_mode:
+        assert isinstance(embeddings["cls"], np.ndarray)
+
+    if "mean" in pool_mode:
+        assert isinstance(embeddings["mean"], np.ndarray)
