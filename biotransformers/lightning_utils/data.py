@@ -8,7 +8,8 @@ import torch
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from esm.data import Alphabet, BatchConverter
 from sklearn.model_selection import train_test_split
-from torch.utils.data import BatchSampler, DataLoader, Dataset
+from torch._six import int_classes as _int_classes
+from torch.utils.data import DataLoader, Dataset, Sampler
 
 
 class AlphabetDataLoader:
@@ -20,6 +21,7 @@ class AlphabetDataLoader:
         append_eos: bool,
         mask_idx: int,
         pad_idx: int,
+        model_dir: str,
         lambda_toks_to_ids: Callable,
         lambda_tokenizer: Callable,
     ) -> None:
@@ -27,6 +29,7 @@ class AlphabetDataLoader:
         self.append_eos = append_eos
         self.mask_idx = mask_idx
         self.padding_idx = pad_idx
+        self.model_dir = model_dir
         self.lambda_toks_to_ids = lambda_toks_to_ids
         self.lambda_tokenizer = lambda_tokenizer
 
@@ -36,6 +39,69 @@ class AlphabetDataLoader:
     def tokenizer(self):
         """Return seq-token based on sequence"""
         return self.lambda_tokenizer
+
+
+class CustomBatchSampler(Sampler):
+    r"""Wraps another sampler to yield a mini-batch of indices.
+
+    This custom BatchSampler is inspired from the torch class BatchSampler.
+    It takes a list of indexes and shuffle the indexes at each epochs.
+
+    Args:
+        sampler (List): List of indexes. indexes are a collections of List[int],
+        corresponding to the index of the protein sequence.
+        batch_size (int): Size of mini-batch. 1 in our case, a batch are already of correct size.
+        drop_last (bool): If ``True``, the sampler will drop the last batch if
+            its size would be less than ``batch_size``
+    """
+
+    def __init__(self, sampler, batch_size, drop_last):
+        if (
+            not isinstance(batch_size, _int_classes)
+            or isinstance(batch_size, bool)
+            or batch_size <= 0
+        ):
+            raise ValueError(
+                "batch_size should be a positive integer value, "
+                "but got batch_size={}".format(batch_size)
+            )
+        if not isinstance(drop_last, bool):
+            raise ValueError(
+                "drop_last should be a boolean value, but got "
+                "drop_last={}".format(drop_last)
+            )
+        self.sampler = sampler
+        self.batch_size = batch_size
+        self.drop_last = drop_last
+
+    def __iter__(self):
+        batch = []
+        np.random.shuffle(self.sampler)
+        for idx in self.sampler:
+            batch.append(idx)
+            if len(batch) == self.batch_size:
+                yield batch
+                batch = []
+        if len(batch) > 0 and not self.drop_last:
+            yield batch
+
+    def __len__(self):
+        if self.drop_last:
+            return len(self.sampler) // self.batch_size
+        else:
+            return (len(self.sampler) + self.batch_size - 1) // self.batch_size
+
+
+class BatchDataset(Dataset):
+    def __init__(self, sequences: List[str]) -> None:
+        super().__init__()
+        self.sequences = np.array(sequences)
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def __getitem__(self, index):
+        return self.sequences[index].tolist()
 
 
 def convert_ckpt_to_statedict(checkpoint_state_dict: OrderedDict) -> OrderedDict:
@@ -53,6 +119,17 @@ def convert_ckpt_to_statedict(checkpoint_state_dict: OrderedDict) -> OrderedDict
         new_state_dict[new_k] = v.to("cpu")  # move tensor to cpu
 
     return new_state_dict
+
+
+def worker_init_fn(worker_id: int):
+    """Set numpy random seed for each worker.
+
+    https://github.com/pytorch/pytorch/issues/5059#issuecomment-404232359
+
+    Args:
+        worker_id: unique id for each worker
+    """
+    np.random.seed(np.random.get_state()[1][0] + worker_id)
 
 
 def mask_seq(
@@ -110,17 +187,6 @@ def mask_seq(
     return tokens, targets
 
 
-def worker_init_fn(worker_id: int):
-    """Set numpy random seed for each worker.
-
-    https://github.com/pytorch/pytorch/issues/5059#issuecomment-404232359
-
-    Args:
-        worker_id: unique id for each worker
-    """
-    np.random.seed(np.random.get_state()[1][0] + worker_id)
-
-
 def collate_fn(
     samples: Sequence[Tuple[str, str]],
     tokenizer: BatchConverter,
@@ -171,20 +237,48 @@ def collate_fn(
     return tokens, targets
 
 
+def _filter_sequence(
+    sequences_list: List[str], model: str, filter_len: int
+) -> List[str]:
+    """Function that filter the length of a sequence list
+
+    Args:
+        sequences_list : list of sequences
+        model : name of the model
+        length : length limit to consider
+    Raises:
+        ValueError is model filter_len < 0
+    """
+
+    if model == "esm1b_t33_650M_UR50S":
+        filter_len = min(filter_len, 1024) if filter_len is not None else 1024
+        return [seq for seq in sequences_list if len(seq) < filter_len]
+
+    if filter_len is not None:
+        if filter_len <= 0:
+            raise ValueError("filter_len argument should be > 0")
+        return [seq for seq in sequences_list if len(seq) < filter_len]
+
+    return sequences_list
+
+
 def get_batch_indices(
-    sequence_strs, toks_per_batch: int, extra_toks_per_seq: int = 0
+    sequence_strs,
+    toks_per_batch: int,
+    extra_toks_per_seq: int = 0,
 ) -> List[List[int]]:
     """Get the batch idx based on the number of tokens in sequences
 
     Args:
+        sequence_strs: list of string
+        filter_len :
         toks_per_batch (int): Maxi number of token per batch
         extra_toks_per_seq (int, optional): . Defaults to 0.
 
     Returns:
-        List: List of batches indexesxs
+        List: List of batches indexes
     """
     buffer_type = List[int]
-
     sizes = [(len(s), i) for i, s in enumerate(sequence_strs)]
     sizes.sort()
     batches: List[buffer_type] = []
@@ -210,23 +304,10 @@ def get_batch_indices(
     return batches
 
 
-class BatchDataset(Dataset):
-    def __init__(self, sequences: List[str]) -> None:
-        super().__init__()
-        self.sequences = np.array(sequences)
-
-    def __len__(self):
-        return len(self.sequences)
-
-    def __getitem__(self, index):
-        return self.sequences[index].tolist()
-
-
 def create_dataloader(
     sequences: List[str],
     alphabet: AlphabetDataLoader,
-    filter_len: bool,
-    batch_size: int,
+    filter_len: int,
     masking_ratio: float,
     masking_prob: float,
     random_token_prob: float,
@@ -240,7 +321,6 @@ def create_dataloader(
         filenames: list of sequences
         alphabet: facebook alphabet.
         filter_len: whether filter data wrt len.batch_seq
-        batch_size: num samples per batchs
         num_workers: num of parallel data samplers
         masking_ratio: ratio of tokens to be masked.
         masking_prob: probability that the chose token is replaced with a mask token.
@@ -249,12 +329,14 @@ def create_dataloader(
     Returns:
         torch DataLoader
     """
+    sequences = _filter_sequence(sequences, alphabet.model_dir, filter_len)
+
     batches = get_batch_indices(
         sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
     )
 
     dataset = BatchDataset(sequences)
-    b_sampler = BatchSampler(batches, batch_size=1, drop_last=False)
+    b_sampler = CustomBatchSampler(batches, batch_size=1, drop_last=False)
 
     loader = DataLoader(
         dataset,
@@ -280,8 +362,7 @@ class BioDataModule(pl.LightningDataModule):
         self,
         train_sequences: List[str],
         alphabet: AlphabetDataLoader,
-        filter_len: bool,
-        batch_size: int,
+        filter_len: int,
         masking_ratio: float,
         masking_prob: float,
         random_token_prob: float,
@@ -294,7 +375,6 @@ class BioDataModule(pl.LightningDataModule):
         self.train_sequences = train_sequences
         self.alphabet = alphabet
         self.filter_len = filter_len
-        self.batch_size = batch_size
         self.masking_ratio = masking_ratio
         self.masking_prob = masking_prob
         self.random_token_prob = random_token_prob
@@ -326,7 +406,6 @@ class BioDataModule(pl.LightningDataModule):
             sequences=self.seq_train,
             alphabet=self.alphabet,
             filter_len=self.filter_len,
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
             masking_ratio=self.masking_ratio,
             masking_prob=self.masking_prob,
@@ -340,7 +419,6 @@ class BioDataModule(pl.LightningDataModule):
             sequences=self.seq_val,
             alphabet=self.alphabet,
             filter_len=self.filter_len,
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
             masking_ratio=self.masking_ratio,
             masking_prob=self.masking_prob,

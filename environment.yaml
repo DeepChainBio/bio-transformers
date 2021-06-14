@@ -1,7 +1,0 @@
-name: bio-transformers
-channels:
-  - conda-forge
-  - defaults
-dependencies:
-  - python=3.7
-  - pre-commit=2.2.0

@@ -7,14 +7,31 @@ It is strongly recommended to use the `DDP` accelerator for training : [ddp](htt
 
 The model will be finetuned randomly by masking a proportion of amino acid in a sequence it commonly does in most state of the art paper.
 
+## Caution
+
+This method is developed to be runned on GPU, please take care to have the proper CUDA installation.
+
+Do not train model `DDP` **accelerator** in a notebook. Do not mix training and compute inference function like `compute_accuracy` or `compute_loglikelihood`  in the same script except with `DP` acceletator.
+ With `DDP`, load the finetune model in a separate script like below.
+
+```python
+from biotransformers import BioTransformers
+
+bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda", multi_gpu=True)
+bio_trans.load_model("logs/finetune_masked/version_X/esm1_t6_43M_UR50S_finetuned.pt")
+acc_after = bio_trans.compute_accuracy(..., batch_size=32)
+```
+
 ## Parameters
-The function can handle a fasta file or a list of sequences directly.
+The function can handle a fasta file or a list of sequences directly:
+
+ - **train_sequences**: Could be a list of sequence of a the path of a fasta files with SeqRecords.
 
 Seven arguments are important for the training:
  - **lr**: the default learning rate (keep it low : <5e10-4)
  - **warmup_updates**:  the number of step (not epochs, optimizer step) to do while increasing the leraning rate from a **warmup_init_lr** to **lr**.
 - **epochs** :  number of epoch for training. Defaults to 10.
-- **batch_size** :  This size is only uses internally to compute the **accumulate_grad_batches** for gradient accumulation. The **toks_per_batch** will dynamically determine the number of sequences in a batch, in order to avoir GPU saturation.
+- **batch_size** :  This size is only uses internally to compute the **accumulate_grad_batches** for gradient accumulation (TO BE UPDATED). The **toks_per_batch** will dynamically determine the number of sequences in a batch, in order to avoid GPU saturation.
 - **acc_batch_size** : Number of batch to consider befor computing gradient.
 
 Three arguments allow to custom the masking function used for building the training dataset:

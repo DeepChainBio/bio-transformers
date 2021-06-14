@@ -52,11 +52,18 @@ developers and researchers at Instadeep.
    tutorial/finetuning
 
 .. toctree::
-    :hidden:
-    :maxdepth: 2
-    :caption: Api reference
+   :hidden:
+   :maxdepth: 2
+   :caption: Api reference
 
     api/biotransformers
+
+.. toctree::
+   :hidden:
+   :maxdepth: 0
+   :caption: Contributing
+
+   tutorial/loglikelihood
 
 
 .. _documentation: documentation/course.html

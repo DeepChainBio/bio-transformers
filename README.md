@@ -24,13 +24,42 @@
 - [License](#license)
 </details>
 
-# Bio-transformers
-`bio-transformers` is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings.
-This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities ,embeddings or easily finetune your model on multiple-GPUs.
+# 🧬 Bio-transformers
+`bio-transformers` is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings. We leverage these state of the art models in a simple interface with practical functionnalities.
+
+This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities, embeddings or easily finetune your model on multiple-GPUs.
+
+📕 Please find the documentation [here](https://bio-transformers.readthedocs.io/en/latest/).
+
 
  You can find the original repositories for the models here :
  - [ESM](https://github.com/facebookresearch/esm/)
  - [Protbert](https://github.com/agemagician/ProtTrans)
+
+## What is a transformers?
+`Transformers` are an AI language model that has had huge impact in speech recognition and automated chatbots and has now been pointed out as a revolutionising technique to understand the language of proteins, offering an innovative approach to study and design proteins. They have been introduced in [Attention is all you need](https://arxiv.org/abs/1706.03762) paper. This [blog post](https://jalammar.github.io/illustrated-transformer/) can give you an in depth view of the transformer architecture and the mathematics behind.
+
+
+When trained with a large database on a particular language, such as English, the model learns about the words and grammar and can generate complete sentences when prompted. Let’s look at the following example:
+
+<p align="center">
+  <img width="30%" src="./.source/_static/transformers.png">
+</p>
+
+ ### Why transformers for protein
+ Proteins are molecules that perform critical functions in all living beings. It consists of one or more strings of amino acids. There are only 20 different amino acids and the different combinations of them have resulted in thousands of functional proteins in humans. If we consider amino acids as words that constitute proteins, which are the sentences, then we could use transformers to understand the language of proteins. When trained with the billions of protein sequences identified so far across multiple species, a transformer is capable of understanding what sequences of amino acids make sense from a language perspective and can propose new combinations.
+
+<p align="center">
+  <img width="30%" src="./.source/_static/protein.png">
+</p>
+
+<p align="center">
+  <img width="80%" src="./.source/_static/sequence.png">
+</p>
+
+Querying a transformer trained in the language of proteins on a particular sequence provides a wealth of information about the protein. As seen in the above example, the transformer can tell you which amino acids might be key and need to be present at the protein of interest from a language perspective. This information is of particular interest when trying to understand amino acid regions that might be essential to protein function or stability.
+
+# Getting started
 
 ## Installation
 It is recommended to work with conda environments in order to manage the specific dependencies of this package.
@@ -39,6 +68,10 @@ It is recommended to work with conda environments in order to manage the specifi
   conda activate bio-transformers
   pip install bio-transformers
 ```
+
+### Dev environment
+If you want to contribute to the development, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 # Usage
 
 ## Quick start
@@ -61,7 +94,10 @@ Use backend in this list :
 ```
 
 ## Embeddings
-Choose a backend and pass a list of sequences of Amino acids to compute the embeddings.
+
+The embedding of a an object is a representation of the object in a lower dimensional space. In this lower space, it is easier to manipulate, visualize, and apply mathematical functions on proteins' projection. Embeddings model will take a sequence of amino acids in input (string) and return a vector of lower dimension.
+
+You can choose a backend and pass a list of sequences of Amino acids to compute the embeddings.
 By default, the ```compute_embeddings``` function returns the ```<CLS>``` token embeddings.
 You can add a ```pool_mode``` in addition, so you can compute the mean of the tokens embeddings.
 
@@ -81,8 +117,10 @@ mean_emb = embeddings['mean']
 ```
 
 ### Multi-gpu
+
 If you have access to multiple GPUs, you can activate the ```multi_gpu``` option to speed-up the inference.
 This option relies on ```torch.nn.DataParallel```.
+
 ```python
 bio_trans = BioTransformers(backend="protbert",multi_gpu=True)
 embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'))
@@ -93,6 +131,7 @@ embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'))
 The protein loglikelihood is a metric that estimates the joint probability of observing a given sequence of amino acids. The idea behind such an estimator is to approximate the probability that a mutated protein will be “natural”, and can effectively be produced by a cell.
 
 These metrics rely on transformers language models. These models are trained to predict a “masked” amino acid in a sequence. As a consequence, they can provide us with an estimate of the probability of observing an amino acid given the “context” (the surrounding amino acids).  By multiplying individual probabilities computed for a given amino-acid given its context, we obtain a pseudo-likelihood, which can be a candidate estimator to approximate sequence stability.
+
 ```python
 from biotransformers import BioTransformers
 
@@ -140,7 +179,7 @@ bio_trans.train_masked(
 # Roadmap:
   - support MSA transformers
 
-# Citations
+# ✏️  Citations
 Here some papers on interest on the subject.
 
 The excellent ProtBert work can be found at [(biorxiv preprint)](https://www.biorxiv.org/content/10.1101/2020.07.12.199554v3.full.pdf):
@@ -196,6 +235,6 @@ For the MSA Transformer, see [the following paper (biorxiv preprint)](https://do
 
 
 
-# License
+# 📘 License
 
 This source code is licensed under the **Apache 2** license found in the `LICENSE` file in the root directory.
