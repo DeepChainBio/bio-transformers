@@ -46,7 +46,7 @@ When trained with a large database on a particular language, such as English, th
   <img width="50%" src="./.source/_static/transformers.png">
 </p>
 
- ### Why transformers for protein
+ ### Why transformers for protein ?
  Proteins are molecules that perform critical functions in all living beings. It consists of one or more strings of amino acids. There are only 20 different amino acids and the different combinations of them have resulted in thousands of functional proteins in humans. If we consider amino acids as words that constitute proteins, which are the sentences, then we could use transformers to understand the language of proteins. When trained with the billions of protein sequences identified so far across multiple species, a transformer is capable of understanding what sequences of amino acids make sense from a language perspective and can propose new combinations.
 
 <p align="center">
@@ -121,9 +121,11 @@ mean_emb = embeddings['mean']
 If you have access to multiple GPUs, you can activate the ```multi_gpu``` option to speed-up the inference.
 This option relies on ```torch.nn.DataParallel```.
 
+Caution: put a batch_size > 1 with multi_gpu.
+
 ```python
 bio_trans = BioTransformers(backend="protbert",multi_gpu=True)
-embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'))
+embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'), batch_size=2)
 ```
 
 

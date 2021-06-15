@@ -22,4 +22,4 @@ dependencies:
     - torch>=1.7.0
     - torchmetrics==0.3.2
     - tqdm>=4.60.0
-    - transformers==4.5.1
+    - transformers>=4.6.1,<4.7

@@ -24,7 +24,7 @@ sequences = [
     ]
 
 
-embeddings = bio_trans.compute_loglikelihood(sequences)
+embeddings = bio_trans.compute_loglikelihood(sequences, batch_size=2)
 ```
 
 ### Different pass mode
@@ -41,5 +41,6 @@ embeddings = bio_trans.compute_loglikelihood(sequences, pass_mode="masked")
 The method give the ability to compute the loglikelihood for only a provided list of amino acids, which will be considered.
 
 ```python
-embeddings = bio_trans.compute_loglikelihood(sequences, tokens_list=["L","E","R","S","K"])
+UNNATURAL = list("ACDEFGHIKLMNPQRSTVWY") + ["-"]
+embeddings = bio_trans.compute_loglikelihood(sequences, tokens_list=UNNATURAL)
 ```

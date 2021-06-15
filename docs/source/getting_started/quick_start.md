@@ -21,10 +21,12 @@ All the GPUs available are used.
 ```python
 sequences = [
         "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
-        "KALTARQQEVFDLIRDHISQTGMPPTRAEIAQRLGFRSPNAAEEHLKALARKGVIEIVSGASRGIRLLQEE",
+        "RSKEPVSGFDLIRDHISQTGMPPTRAEIARSKEPVSGRKGVIEIVSGASRGIRLLQEE",
+        "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
+        "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
     ]
 
-bio_trans = BioTransformers(backend="protbert",multi_gpu=True)
+bio_trans = BioTransformers(backend="protbert",multi_gpu=True,batch_size=2)
 embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'))
 
 cls_emb = embeddings['cls']
