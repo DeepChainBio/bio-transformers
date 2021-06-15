@@ -63,7 +63,7 @@ developers and researchers at Instadeep.
    :maxdepth: 0
    :caption: Contributing
 
-   tutorial/loglikelihood
-
+   contributing/CHANGELOG
+   contributing/CONTRIBUTING
 
 .. _documentation: documentation/course.html
