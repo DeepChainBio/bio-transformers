@@ -25,6 +25,58 @@ pre-commit install
 pre-commit run --all-files
 ```
 
+# Git conventions
+
+- The section relies on the [Commit Message Guidelines](https://github.com/angular/angular/blob/master/CONTRIBUTING.md#commit)
+- It provides conventions to write commits messages based on the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+
+- It aims to :
+    - Get a well-structured and easily understandable git history
+    - Generate changelogs easily for each release since we can use scripts that parse the commit messages
+
+
+The commit messages must have the following structure :
+
+```
+<type>(<scope>): <subject>
+<BLANK LINE>
+<body>
+<BLANK LINE>
+<footer>
+```
+
+- `<type>` section :
+    - It is mandatory
+    - It must be one of the following :
+        - build: Changes to our deployment configuration (e.g. docker, requirements)
+        - ci : Changes to our CI configuration files and scripts
+        - chore: Changes not linked to CI / build or the code (e.g. add issue templates)
+        - docs : Documentation changes
+        - feat : A new feature
+        - fix : A bug fix
+        - perf : A code change that improves performance
+        - revert: Linked to a revert of a commit
+        - refactor : A code change that neither fixes a bug nor adds a feature
+
+        - style : Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+        - test : Adding missing tests or correcting existing tests
+
+- `<scope>` section:
+    - optional
+    - describes module affected by changes
+
+- `<subject>` section :
+    - It is mandatory
+    - It contains a succinct description of the change
+    - Few recommendations about the subject :
+        - use the imperative, present tense: "change" not "changed" nor "changes"
+        - don't capitalize the first letter
+        - no dot (.) at the end
+
+- <body> section :
+    - It is optional
+    - It is an extension of the <subject> section used to add a longer description about the changes if relevant
+
 ## Coding conventions
 
 Please respect the following conventions to contribute to the code:
