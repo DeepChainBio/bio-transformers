@@ -40,6 +40,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
-        files: ./coverage1.xml
+        files: ./coverage.xml
         path_to_write_report: ./coverage/codecov_report.txt
         verbose: true
