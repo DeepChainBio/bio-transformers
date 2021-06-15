@@ -9,7 +9,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)
 [![Documentation Status](https://readthedocs.org/projects/bio-transformers/badge/?version=latest)](https://bio-transformers.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/delfosseaurelien/bio-transformers/branch/main/graph/badge.svg?token=URROG4GV2C)](https://codecov.io/gh/delfosseaurelien/bio-transformers)
+[![codecov](https://codecov.io/gh/delfosseaurelien/bio-transformers/branch/develop/graph/badge.svg?token=URROG4GV2C)](https://codecov.io/gh/delfosseaurelien/bio-transformers)
 
 <details><summary>Table of contents</summary>
 
