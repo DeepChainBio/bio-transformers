@@ -10,6 +10,7 @@ Features:
 Fixed:
  - Add shuffling in batch_sampler (lightning_utils)
  - Fix tokens argument for dataloader (lightning_utils)
+ - Fix rtd CI to separates docs and package environment.
 
 Changed:
  - Modified the signature of some functions to improve clarity (tansformers_wrappers)
