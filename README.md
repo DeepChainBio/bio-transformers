@@ -110,7 +110,7 @@ sequences = [
     ]
 
 bio_trans = BioTransformers(backend="protbert")
-embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'))
+embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'),batch_size=2)
 
 cls_emb = embeddings['cls']
 mean_emb = embeddings['mean']
@@ -128,7 +128,6 @@ bio_trans = BioTransformers(backend="protbert",multi_gpu=True)
 embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'), batch_size=2)
 ```
 
-
 ## Pseudo-Loglikelihood
 The protein loglikelihood is a metric that estimates the joint probability of observing a given sequence of amino acids. The idea behind such an estimator is to approximate the probability that a mutated protein will be “natural”, and can effectively be produced by a cell.
 
@@ -143,7 +142,7 @@ sequences = [
     ]
 
 bio_trans = BioTransformers(backend="protbert",device="cuda:0")
-loglikelihood = bio_trans.compute_loglikelihood(sequences)
+loglikelihood = bio_trans.compute_loglikelihood(sequences,batch_size=2)
 ```
 ## Finetune pre-trained transformers on your dataset
 

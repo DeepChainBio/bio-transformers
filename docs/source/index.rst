@@ -56,14 +56,13 @@ developers and researchers at Instadeep.
    :maxdepth: 2
    :caption: Api reference
 
-    api/biotransformers
+   api/biotransformers
 
 .. toctree::
    :hidden:
    :maxdepth: 0
    :caption: Contributing
 
-   contributing/CHANGELOG
    contributing/CONTRIBUTING
 
 .. _documentation: documentation/course.html
