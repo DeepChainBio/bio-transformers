@@ -72,6 +72,19 @@ It is recommended to work with conda environments in order to manage the specifi
 ### Dev environment
 If you want to contribute to the development, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+### Docker
+You can directly use a docker image for using bio-transformers or for development. The image is based on cuda11.1, be sure to use it on GPU.
+Build the image:
+
+```
+docker build --tag biotransformers-dev .
+```
+
+Run interactively with GPUs:
+```
+docker run -t -i --gpus all biotransformers-dev
+```
+
 # Usage
 
 ## Quick start
