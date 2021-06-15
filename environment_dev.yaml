@@ -1,6 +1,6 @@
 name: bio-transformers-dev
 channels:
-  - conda-forge
+  #- conda-forge
   - defaults
 dependencies:
   - python=3.7
