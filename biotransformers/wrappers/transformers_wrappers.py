@@ -28,7 +28,6 @@ from biotransformers.utils.utils import (
     load_fasta,
 )
 
-# from esm.data import read_fasta
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger
