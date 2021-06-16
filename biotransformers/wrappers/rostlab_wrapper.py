@@ -34,11 +34,16 @@ class RostlabWrapper(LanguageModel):
         self.tokenizer = BertTokenizer.from_pretrained(
             model_dir, do_lower_case=False, padding=True
         )
-        self.model = (
+        self._model = (
             BertForMaskedLM.from_pretrained(self._model_dir).eval().to(self._device)
         )
-        self.hidden_size = self.model.config.hidden_size
+        self.hidden_size = self._model.config.hidden_size
         self.mask_pipeline = None
+
+    @property
+    def model(self) -> torch.nn.Module:
+        """Return torch model."""
+        return self._model
 
     @property
     def clean_model_id(self) -> str:
@@ -90,6 +95,16 @@ class RostlabWrapper(LanguageModel):
         """Returns size of the embeddings"""
         return self.hidden_size
 
+    def save_model(self, path: str):
+        """Save model."""
+        # TODO: write it
+        pass
+
+    def load_model(self, path: str):
+        """Load model."""
+        # TODO: write it
+        pass
+
     def process_sequences_and_tokens(
         self,
         sequences_list: List[str],
@@ -125,13 +140,13 @@ class RostlabWrapper(LanguageModel):
             model_inputs = {
                 key: value.to(self._device) for key, value in model_inputs.items()
             }
-            model_outputs = self.model(**model_inputs, output_hidden_states=True)
+            model_outputs = self._model(**model_inputs, output_hidden_states=True)
             logits = model_outputs.logits.detach().cpu()
             embeddings = model_outputs.hidden_states[-1].detach().cpu()
 
         return logits, embeddings
 
-    def _get_alphabet_dataloader(self):
+    def get_alphabet_dataloader(self):
         """Define an alphabet mapping for common method between
         protbert and ESM
         """

@@ -20,7 +20,7 @@ class LanguageModel(ABC):
     @property
     def model_id(self) -> str:
         """Model ID, as specified in the model directory"""
-        return self.model_dir.lower()
+        return self._model_dir.lower()
 
     @abstractmethod
     @property
@@ -91,6 +91,20 @@ class LanguageModel(ABC):
         pass
 
     @abstractmethod
+    @property
+    def model(self) -> torch.nn.Module:
+        """Return torch model."""
+        pass
+
+    def save_model(self, path: str):
+        """Save model."""
+        # TODO: implement it
+
+    def load_model(self, path: str):
+        """Load model."""
+        # TODO: implement it
+
+    @abstractmethod
     def model_pass(
         self, model_inputs: Dict[str, torch.tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -110,7 +124,7 @@ class LanguageModel(ABC):
         pass
 
     @abstractmethod
-    def _get_alphabet_dataloader(self):
+    def get_alphabet_dataloader(self):
         """Define an alphabet mapping for common method between
         protbert and ESM
         """

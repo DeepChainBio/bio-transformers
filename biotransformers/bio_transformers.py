@@ -31,16 +31,14 @@ class BioTransformers:
         if backend.__contains__("esm"):
             model_dir = backend
             return TransformersWrapper(
-                model_dir=model_dir,
-                language_model_cls=ESMWrapper,
-                num_gpus=num_gpus
+                model_dir=model_dir, language_model_cls=ESMWrapper, num_gpus=num_gpus
             )
         else:
             model_dir = MAPPING_PROTBERT[backend]
             return TransformersWrapper(
                 model_dir=model_dir,
                 language_model_cls=RostlabWrapper,
-                num_gpus=num_gpus
+                num_gpus=num_gpus,
             )
 
     @staticmethod

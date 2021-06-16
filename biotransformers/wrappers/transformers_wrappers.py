@@ -7,7 +7,6 @@ sequences, and displays some properties of the transformer model.
 import os
 import ray
 
-from abc import ABC, abstractmethod
 from copy import deepcopy
 from os.path import join
 from pathlib import Path
@@ -17,10 +16,6 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.tensor
-from biotransformers.lightning_utils.data import (
-    AlphabetDataLoader,
-    convert_ckpt_to_statedict,
-)
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.wrappers.language_model import LanguageModel
 from biotransformers.utils.logger import logger  # noqa
@@ -37,7 +32,6 @@ from biotransformers.utils.utils import (
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger
-from torch.nn import DataParallel
 from tqdm import tqdm
 
 from ..lightning_utils.data import BioDataModule
@@ -46,7 +40,7 @@ from ..lightning_utils.models import LightningModule
 log = logger("transformers_wrapper")
 
 
-class TransformersWrapper(ABC):
+class TransformersWrapper:
     """
     Abstract class that uses pretrained transformers model to evaluate
     a protein likelihood so as other insights.
@@ -67,14 +61,23 @@ class TransformersWrapper(ABC):
         self._model_dir = model_dir
         self._num_gpus = num_gpus
 
+        if num_gpus >= 1:
+            assert torch.cuda.is_available(), "Cuda is not available."
+            assert torch.cuda.device_count() >= num_gpus, "Not enough available GPUs."
+
         if num_gpus <= 1:
-            device = 'cpu' if num_gpus == 0 else 'cuda'
-            self._language_model = language_model_cls(model_dir=model_dir, device=device)
+            device = "cpu" if num_gpus == 0 else "cuda"
+            self._language_model = language_model_cls(
+                model_dir=model_dir, device=device
+            )
             self._multi_gpus = False
         else:
-            self._language_model = language_model_cls(model_dir=model_dir, device='cpu')
-            ray_language_model_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
-            self._workers = [ray_language_model_cls.remote(model_dir=model_dir, device='cuda:0')]
+            self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
+            self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
+            self._workers = [
+                self._ray_cls.remote(model_dir=model_dir, device="cuda:0")
+                for _ in range(num_gpus)
+            ]
             self._multi_gpus = True
 
     def get_vocabulary_mask(self, tokens_list: List[str]) -> np.ndarray:
@@ -212,12 +215,16 @@ class TransformersWrapper(ABC):
             # Split in large batches
             for batch_inputs in tqdm(
                 self._generate_chunks(model_inputs, self._num_gpus * batch_size),
-                total=self._get_num_batch_iter(model_inputs, self._num_gpus * batch_size),
+                total=self._get_num_batch_iter(
+                    model_inputs, self._num_gpus * batch_size
+                ),
                 disable=silent,
             ):
                 # Split large batch into smaller batches, when per GPU worker
                 jobs = []
-                for i, worker_batch in enumerate(self._generate_chunks(batch_inputs, batch_size)):
+                for i, worker_batch in enumerate(
+                    self._generate_chunks(batch_inputs, batch_size)
+                ):
                     jobs.append(self._workers[i].model_pass.remote(worker_batch))
                 # Launch parallel execution in background
                 outs = ray.get(jobs)
@@ -231,7 +238,9 @@ class TransformersWrapper(ABC):
                 total=self._get_num_batch_iter(model_inputs, batch_size),
                 disable=silent,
             ):
-                batch_logits, batch_embeddings = self._language_model.model_pass(batch_inputs)
+                batch_logits, batch_embeddings = self._language_model.model_pass(
+                    batch_inputs
+                )
                 embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
                 logits = torch.cat((logits, batch_logits), dim=0)
 
@@ -548,38 +557,8 @@ class TransformersWrapper(ABC):
 
         return accuracy
 
-    def load_model(self, model_dir: str, map_location=None):
-        """Load state_dict a finetune pytorch model ro a checkpoint directory
-
-        More informations about how to load a model with map_location:
-            https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-model-for-inference
-
-        Args:
-            model_dir: path file of the pt model or checkpoint.
-                       the checkpoint should be a pytorch model checkpoint
-        """
-        if not os.path.isfile(model_dir):
-            raise FileNotFoundError
-
-        if model_dir.endswith(".pt"):
-            load_model = torch.load(model_dir)
-            log.info("Load model %s" % model_dir)
-        elif model_dir.endswith(".ckpt"):
-            load_model = convert_ckpt_to_statedict(torch.load(model_dir)["state_dict"])
-            log.info("Load checkpoint %s" % model_dir)
-        else:
-            raise ValueError("Expecting a .pt or .ckpt file")
-
-        if self._multi_gpus:
-            # todo: manage that
-            self.model.module.load_state_dict(load_model, map_location)  # type: ignore
-        else:
-            self.model.load_state_dict(load_model, map_location)  # type: ignore
-            self.model.eval()  # type: ignore
-
-    def save_model(self, exp_path: str, lightning_model: pl.LightningModule):
+    def _save_model(self, exp_path: str, lightning_model: pl.LightningModule):
         """Save pytorch model in logs directory
-
         Args:
             exp_path (str): path of the experiments directory in the logs
         """
@@ -662,8 +641,11 @@ class TransformersWrapper(ABC):
         if isinstance(train_sequences, str):
             train_sequences = load_fasta(train_sequences)
 
-        fit_model = self.model.module if self.multi_gpu else self.model  # type: ignore
-        alphabet = self._get_alphabet_dataloader()
+        # Free resources used by ray before finetuning with Lightning
+        del self._workers
+
+        fit_model = self._language_model.model  # type: ignore
+        alphabet = self._language_model.get_alphabet_dataloader()
 
         extra_toks_per_seq = int(alphabet.prepend_bos) + int(alphabet.append_eos)
         lightning_model = LightningModule(
@@ -686,11 +668,8 @@ class TransformersWrapper(ABC):
             extra_toks_per_seq,
         )
 
-        if torch.cuda.is_available():
-            n_gpus = torch.cuda.device_count()
-        else:
-            log.warning("You try to train a transformers without GPU.")
-            return
+        if self._num_gpus == 0:
+            raise ValueError("You try to train a transformers without GPU.")
 
         logger = CSVLogger(logs_save_dir, name=logs_name_exp)
         checkpoint_callback = None
@@ -707,7 +686,7 @@ class TransformersWrapper(ABC):
             ]
 
         trainer = Trainer(
-            gpus=n_gpus,
+            gpus=self._num_gpus,
             amp_level=amp_level,
             precision=precision,
             accumulate_grad_batches=acc_batch_size // batch_size,
@@ -726,13 +705,20 @@ class TransformersWrapper(ABC):
             rank = os.environ.get("LOCAL_RANK", None)
             rank = int(rank) if rank is not None else None  # type: ignore
             if rank == 0:
-                self.save_model(save_path, lightning_model)
+                self._save_model(save_path, lightning_model)
         else:
-            self.save_model(save_path, lightning_model)
+            self._save_model(save_path, lightning_model)
 
-        if self.multi_gpu:
-            self.model = DataParallel(lightning_model.model).to(self._device)
-        else:
-            self.model = lightning_model.model.to(self._device)
+        # Load new model
+        self._language_model.load_model(save_path)
+
+        if self._multi_gpus:
+            # Create ray workers as they have been deleted at the beginning
+            self._workers = [
+                self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
+                for _ in range(self._num_gpus)
+            ]
+            # Load new model one ach worker
+            ray.get([worker.load_model.remote(save_path) for worker in self._workers])
 
         log.info("Training completed.")

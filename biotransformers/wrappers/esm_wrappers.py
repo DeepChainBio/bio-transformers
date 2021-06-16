@@ -32,13 +32,18 @@ class ESMWrapper(LanguageModel):
 
         super().__init__(model_dir=model_dir, device=device)
 
-        self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
-        self.num_layers = self.model.num_layers
+        self._model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
+        self.num_layers = self._model.num_layers
         repr_layers = -1
         self.repr_layers = (repr_layers + self.num_layers + 1) % (self.num_layers + 1)
-        self.hidden_size = self.model.args.embed_dim
-        self.model = self.model.to(self._device)
+        self.hidden_size = self._model.args.embed_dim
+        self._model = self._model.to(self._device)
         self.batch_converter = self.alphabet.get_batch_converter()
+
+    @property
+    def model(self) -> torch.nn.Module:
+        """Return torch model."""
+        return self._model
 
     @property
     def clean_model_id(self) -> str:
@@ -125,7 +130,7 @@ class ESMWrapper(LanguageModel):
                     * embeddings [num_seqs, max_len_seqs+1, embedding_size]
         """
         with torch.no_grad():
-            model_outputs = self.model(
+            model_outputs = self._model(
                 model_inputs["input_ids"].to(self._device),
                 repr_layers=[self.repr_layers],
             )
@@ -136,7 +141,7 @@ class ESMWrapper(LanguageModel):
 
         return logits, embeddings
 
-    def _get_alphabet_dataloader(self):
+    def get_alphabet_dataloader(self):
         """Define an alphabet mapping for common method between
         protbert and ESM
         """
