@@ -1,5 +1,5 @@
 """
-This script defines a class which inherits from the TransformersWrapper class, and is
+This script defines a class which inherits from the LanguageModel class, and is
 specific to the Rostlab models (eg ProtBert and ProtBert-BFD) developed by
 hugging face
 - ProtBert: https://huggingface.co/Rostlab/prot_bert
@@ -10,12 +10,11 @@ from typing import Dict, List, Tuple
 import torch
 from biotransformers.lightning_utils.data import AlphabetDataLoader
 from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
-from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
-from torch.nn import DataParallel
+from biotransformers.wrappers.language_model import LanguageModel
 from transformers import BertForMaskedLM, BertTokenizer
 
 
-class RostlabWrapper(TransformersWrapper):
+class RostlabWrapper(LanguageModel):
     """
     Class that uses a rostlab type of pretrained transformers model to evaluate
     a protein likelihood so as other insights.
@@ -30,18 +29,15 @@ class RostlabWrapper(TransformersWrapper):
             )
             model_dir = DEFAULT_ROSTLAB_MODEL
 
-        super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
+        super().__init__(model_dir=model_dir, device=device)
 
         self.tokenizer = BertTokenizer.from_pretrained(
             model_dir, do_lower_case=False, padding=True
         )
-        self.model_dir = model_dir
         self.model = (
-            BertForMaskedLM.from_pretrained(self.model_dir).eval().to(self._device)
+            BertForMaskedLM.from_pretrained(self._model_dir).eval().to(self._device)
         )
         self.hidden_size = self.model.config.hidden_size
-        if self.multi_gpu:
-            self.model = DataParallel(self.model)
         self.mask_pipeline = None
 
     @property
@@ -94,7 +90,7 @@ class RostlabWrapper(TransformersWrapper):
         """Returns size of the embeddings"""
         return self.hidden_size
 
-    def _process_sequences_and_tokens(
+    def process_sequences_and_tokens(
         self,
         sequences_list: List[str],
     ) -> Dict[str, torch.tensor]:
@@ -109,7 +105,7 @@ class RostlabWrapper(TransformersWrapper):
 
         return encoded_inputs
 
-    def _model_pass(
+    def model_pass(
         self, model_inputs: Dict[str, torch.tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -150,7 +146,7 @@ class RostlabWrapper(TransformersWrapper):
             append_eos=True,
             mask_idx=self.tokenizer.mask_token_id,
             pad_idx=self.tokenizer.pad_token_id,
-            model_dir=self.model_dir,
+            model_dir=self._model_dir,
             lambda_toks_to_ids=lambda x: self.tokenizer.convert_tokens_to_ids(x),
             lambda_tokenizer=lambda x: tokenize(x),
         )

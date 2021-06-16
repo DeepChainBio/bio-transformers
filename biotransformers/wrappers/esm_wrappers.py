@@ -1,5 +1,5 @@
 """
-This script defines a class which inherits from the TransformersWrapper class, and is
+This script defines a class which inherits from the LanguageModel class, and is
 specific to the ESM model developed by FAIR (https://github.com/facebookresearch/esm).
 """
 
@@ -10,19 +10,18 @@ import torch
 from biotransformers.lightning_utils.data import AlphabetDataLoader
 from biotransformers.utils.constant import DEFAULT_ESM_MODEL, ESM_LIST
 from biotransformers.utils.logger import logger  # noqa
-from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
-from torch.nn import DataParallel
+from biotransformers.wrappers.language_model import LanguageModel
 
 log = logger("esm_wrapper")
 
 
-class ESMWrapper(TransformersWrapper):
+class ESMWrapper(LanguageModel):
     """
     Class that uses an ESM type of pretrained transformers model to evaluate
     a protein likelihood so as other insights.
     """
 
-    def __init__(self, model_dir: str, device, multi_gpu):
+    def __init__(self, model_dir: str, device):
 
         if model_dir not in ESM_LIST:
             print(
@@ -31,18 +30,14 @@ class ESMWrapper(TransformersWrapper):
             )
             model_dir = DEFAULT_ESM_MODEL
 
-        super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
+        super().__init__(model_dir=model_dir, device=device)
 
         self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
         self.num_layers = self.model.num_layers
         repr_layers = -1
         self.repr_layers = (repr_layers + self.num_layers + 1) % (self.num_layers + 1)
         self.hidden_size = self.model.args.embed_dim
-
-        if self.multi_gpu:
-            self.model = DataParallel(self.model).to(self._device)
-        else:
-            self.model = self.model.to(self._device)
+        self.model = self.model.to(self._device)
         self.batch_converter = self.alphabet.get_batch_converter()
 
     @property
@@ -95,7 +90,7 @@ class ESMWrapper(TransformersWrapper):
         """Returns size of the embeddings"""
         return self.hidden_size
 
-    def _process_sequences_and_tokens(
+    def process_sequences_and_tokens(
         self, sequences_list: List[str]
     ) -> Dict[str, torch.tensor]:
         """Function to transform tokens string to IDs; it depends on the model used"""
@@ -113,7 +108,7 @@ class ESMWrapper(TransformersWrapper):
         }
         return encoded_inputs
 
-    def _model_pass(
+    def model_pass(
         self, model_inputs: Dict[str, torch.tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -156,7 +151,7 @@ class ESMWrapper(TransformersWrapper):
             append_eos=True,
             mask_idx=self.alphabet.mask_idx,
             pad_idx=self.alphabet.padding_idx,
-            model_dir=self.model_dir,
+            model_dir=self._model_dir,
             lambda_toks_to_ids=lambda x: self.alphabet.tok_to_idx[x],
             lambda_tokenizer=lambda x: tokenize(x),
         )

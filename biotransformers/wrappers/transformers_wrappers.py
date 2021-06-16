@@ -5,11 +5,13 @@ It allows to derive probabilities, embeddings and log-likelihoods based on input
 sequences, and displays some properties of the transformer model.
 """
 import os
+import ray
+
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from os.path import join
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union, Type
 
 import numpy as np
 import pytorch_lightning as pl
@@ -20,7 +22,7 @@ from biotransformers.lightning_utils.data import (
     convert_ckpt_to_statedict,
 )
 from biotransformers.utils.constant import NATURAL_AAS_LIST
-from biotransformers.utils.gpus_utils import set_device
+from biotransformers.wrappers.language_model import LanguageModel
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.utils import (
     _check_memory_embeddings,
@@ -53,107 +55,44 @@ class TransformersWrapper(ABC):
     def __init__(
         self,
         model_dir: str,
-        _device: Optional[str] = None,
-        multi_gpu: bool = False,
-        mask_bool: bool = False,
+        language_model_cls: Type[LanguageModel],
+        num_gpus: int = 0,
     ):
         """Initialize Transformers wrapper
 
         Args:
             model_dir: name directory of the pretrained model
-            _device: type of device to use (cpu or cuda).
-            multi_gpu: turn on to True to use multigpu
-            mask_bool: Wether to use mask or not for inference.
+            num_gpus: number of gpus to use. If set to 0, it uses the cpu.
         """
-        _device, _multi_gpu = set_device(_device, multi_gpu)
+        self._model_dir = model_dir
+        self._num_gpus = num_gpus
 
-        self._device = torch.device(_device)
-        self.multi_gpu = _multi_gpu
-        self.model_dir = model_dir
-        self.mask_bool = mask_bool
-
-    @property
-    def model_id(self) -> str:
-        """Model ID, as specified in the model directory"""
-        return self.model_dir.lower()
-
-    @property
-    @abstractmethod
-    def clean_model_id(self) -> str:
-        """Clean model ID (in case the model directory is not)"""
-
-    @property
-    @abstractmethod
-    def model_vocabulary(self) -> List[str]:
-        """Returns the whole vocabulary list"""
-
-    @property
-    @abstractmethod
-    def vocab_size(self) -> int:
-        """Returns the whole vocabulary size"""
-
-    @property
-    @abstractmethod
-    def mask_token(self) -> str:
-        """Representation of the mask token (as a string)"""
-
-    @property
-    @abstractmethod
-    def pad_token(self) -> str:
-        """Representation of the pad token (as a string)"""
-
-    @property
-    @abstractmethod
-    def begin_token(self) -> str:
-        """Representation of the beginning of sentence token (as a string).
-        Returns an empty string if no such token"""
-
-    @property
-    @abstractmethod
-    def end_token(self) -> str:
-        """Representation of the end of sentence token (as a string).
-        Returns an empty string if no such token."""
-
-    @property
-    @abstractmethod
-    def does_end_token_exist(self) -> bool:
-        """Returns true if a end of sequence token exists"""
-
-    @property
-    @abstractmethod
-    def token_to_id(self):
-        """Returns a function which maps tokens to IDs"""
-
-    @property
-    @abstractmethod
-    def embeddings_size(self) -> int:
-        """Returns size of the embeddings"""
+        if num_gpus <= 1:
+            device = 'cpu' if num_gpus == 0 else 'cuda'
+            self._language_model = language_model_cls(model_dir=model_dir, device=device)
+            self._multi_gpus = False
+        else:
+            self._language_model = language_model_cls(model_dir=model_dir, device='cpu')
+            ray_language_model_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
+            self._workers = [ray_language_model_cls.remote(model_dir=model_dir, device='cuda:0')]
+            self._multi_gpus = True
 
     def get_vocabulary_mask(self, tokens_list: List[str]) -> np.ndarray:
         """Returns a mask ove the model tokens."""
         # Compute a mask over vocabulary to decide which value to keep or not
         vocabulary_mask = np.array(
-            [1.0 if token in tokens_list else 0.0 for token in self.model_vocabulary]
+            [
+                1.0 if token in tokens_list else 0.0
+                for token in self._language_model.model_vocabulary
+            ]
         )
         return vocabulary_mask
 
-    @abstractmethod
-    def _process_sequences_and_tokens(
-        self, sequences_list: List[str]
-    ) -> Dict[str, torch.Tensor]:
-        """Function to transform tokens string to IDs; it depends on the model used"""
-
-    @abstractmethod
-    def _model_pass(
-        self, model_inputs: Dict[str, torch.tensor]
-    ) -> Tuple[torch.tensor, torch.tensor]:
-        """Function which computes logits and embeddings based on a list of sequences"""
-
-    @abstractmethod
-    def _get_alphabet_dataloader(self) -> AlphabetDataLoader:
-        """Function to build custom alphanbet"""
-
     def _get_num_batch_iter(self, model_inputs: Dict[str, Any], batch_size: int) -> int:
+        """
+        Get the number of batches when spliting model_inputs into chunks
+        of size batch_size.
+        """
         num_of_sequences = model_inputs["input_ids"].shape[0]
         num_batch_iter = int(np.ceil(num_of_sequences / batch_size))
         return num_batch_iter
@@ -191,10 +130,13 @@ class TransformersWrapper(ABC):
             model_inputs["token_type_ids"],
         ):
             mask_id = []
-            for i in range(1, sum(binary_mask) - self.does_end_token_exist * 1):
+            mask_token = self._language_model.mask_token
+            does_end_token_exist = self._language_model.does_end_token_exist
+
+            for i in range(1, sum(binary_mask) - does_end_token_exist * 1):
                 mask_sequence = torch.tensor(
                     sequence[:i].tolist()
-                    + [self.token_to_id(self.mask_token)]
+                    + [self._language_model.token_to_id(mask_token)]
                     + sequence[i + 1 :].tolist(),
                     dtype=torch.int64,
                 )
@@ -266,15 +208,32 @@ class TransformersWrapper(ABC):
         logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
         embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
 
-        for batch_inputs in tqdm(
-            self._generate_chunks(model_inputs, batch_size),
-            total=self._get_num_batch_iter(model_inputs, batch_size),
-            disable=silent,
-        ):
-            batch_logits, batch_embeddings = self._model_pass(batch_inputs)
-
-            embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
-            logits = torch.cat((logits, batch_logits), dim=0)
+        if self._multi_gpus:
+            # Split in large batches
+            for batch_inputs in tqdm(
+                self._generate_chunks(model_inputs, self._num_gpus * batch_size),
+                total=self._get_num_batch_iter(model_inputs, self._num_gpus * batch_size),
+                disable=silent,
+            ):
+                # Split large batch into smaller batches, when per GPU worker
+                jobs = []
+                for i, worker_batch in enumerate(self._generate_chunks(batch_inputs, batch_size)):
+                    jobs.append(self._workers[i].model_pass.remote(worker_batch))
+                # Launch parallel execution in background
+                outs = ray.get(jobs)
+                # Gather the result
+                for batch_logits, batch_embeddings in outs:
+                    embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
+                    logits = torch.cat((logits, batch_logits), dim=0)
+        else:
+            for batch_inputs in tqdm(
+                self._generate_chunks(model_inputs, batch_size),
+                total=self._get_num_batch_iter(model_inputs, batch_size),
+                disable=silent,
+            ):
+                batch_logits, batch_embeddings = self._language_model.model_pass(batch_inputs)
+                embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
+                logits = torch.cat((logits, batch_logits), dim=0)
 
         return logits, embeddings
 
@@ -331,11 +290,11 @@ class TransformersWrapper(ABC):
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
 
-        _check_sequence(sequences, self.model_dir, 1024)
-        _check_memory_logits(sequences, self.vocab_size, pass_mode)
+        _check_sequence(sequences, self._model_dir, 1024)
+        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
 
         # Perform inference in model to compute the logits
-        inputs = self._process_sequences_and_tokens(sequences)
+        inputs = self._language_model.process_sequences_and_tokens(sequences)
         labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
 
@@ -393,12 +352,12 @@ class TransformersWrapper(ABC):
             sequences = load_fasta(sequences)
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
 
-        _check_sequence(sequences, self.model_dir, 1024)
-        _check_memory_logits(sequences, self.vocab_size, pass_mode)
+        _check_sequence(sequences, self._model_dir, 1024)
+        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
         _check_tokens_list(sequences, tokens_list)
 
         # Perform inference in model to compute the logits
-        inputs = self._process_sequences_and_tokens(sequences)
+        inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
 
         # Remove padded logits
@@ -426,7 +385,7 @@ class TransformersWrapper(ABC):
         def _get_probabilities_dict(probs: torch.Tensor) -> Dict[str, float]:
             return {
                 token: float(probs[i].cpu().numpy())
-                for i, token in enumerate(self.model_vocabulary)
+                for i, token in enumerate(self._language_model.model_vocabulary)
                 if token in tokens_list
             }
 
@@ -517,14 +476,15 @@ class TransformersWrapper(ABC):
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
 
-        _check_sequence(sequences, self.model_dir, 1024)
-        _check_memory_embeddings(sequences, self.embeddings_size, pool_mode)
+        _check_sequence(sequences, self._model_dir, 1024)
+        embedding_size = self._language_model.embeddings_size
+        _check_memory_embeddings(sequences, embedding_size, pool_mode)
 
         # Get the sequences lengths
         lengths = [len(sequence) for sequence in sequences]
 
         # Compute a forward pass to get the embeddings
-        inputs = self._process_sequences_and_tokens(sequences)
+        inputs = self._language_model.process_sequences_and_tokens(sequences)
         _, embeddings = self._model_evaluation(
             inputs, batch_size=batch_size, silent=silent
         )
@@ -572,11 +532,11 @@ class TransformersWrapper(ABC):
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
 
-        _check_sequence(sequences, self.model_dir, 1024)
-        _check_memory_logits(sequences, self.vocab_size, pass_mode)
+        _check_sequence(sequences, self._model_dir, 1024)
+        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
 
         # Perform inference in model to compute the logits
-        inputs = self._process_sequences_and_tokens(sequences)
+        inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         labels = inputs["input_ids"]
 
@@ -610,7 +570,8 @@ class TransformersWrapper(ABC):
         else:
             raise ValueError("Expecting a .pt or .ckpt file")
 
-        if self.multi_gpu:
+        if self._multi_gpus:
+            # todo: manage that
             self.model.module.load_state_dict(load_model, map_location)  # type: ignore
         else:
             self.model.load_state_dict(load_model, map_location)  # type: ignore
@@ -623,7 +584,7 @@ class TransformersWrapper(ABC):
             exp_path (str): path of the experiments directory in the logs
         """
         version = get_logs_version(exp_path)
-        model_dir = self.model_dir.replace("/", "_")
+        model_dir = self._model_dir.replace("/", "_")
         if version is not None:
             save_name = os.path.join(exp_path, version, model_dir + "_finetuned.pt")
         else:

@@ -4,6 +4,7 @@ from biotransformers.utils.constant import BACKEND_LIST, MAPPING_PROTBERT
 from biotransformers.utils.utils import format_backend
 from biotransformers.wrappers.esm_wrappers import ESMWrapper
 from biotransformers.wrappers.rostlab_wrapper import RostlabWrapper
+from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
 
 
 class BioTransformers:
@@ -15,25 +16,31 @@ class BioTransformers:
     def __init__(
         self,
         backend: str = "esm1_t6_43M_UR50S",
-        device: str = None,
-        multi_gpu: bool = False,
+        num_gpus: int = 0,
     ):
         pass
 
     def __new__(
         cls,
         backend: str = "esm1_t6_43M_UR50S",
-        device: str = None,
-        multi_gpu: bool = False,
+        num_gpus: int = 0,
     ):
         format_list = "\n".join(format_backend(BACKEND_LIST))
         assert backend in BACKEND_LIST, f"Choose backend in \n\n{format_list}"
 
         if backend.__contains__("esm"):
-            return ESMWrapper(backend, device=device, multi_gpu=multi_gpu)
+            model_dir = backend
+            return TransformersWrapper(
+                model_dir=model_dir,
+                language_model_cls=ESMWrapper,
+                num_gpus=num_gpus
+            )
         else:
-            return RostlabWrapper(
-                MAPPING_PROTBERT[backend], device=device, multi_gpu=multi_gpu
+            model_dir = MAPPING_PROTBERT[backend]
+            return TransformersWrapper(
+                model_dir=model_dir,
+                language_model_cls=RostlabWrapper,
+                num_gpus=num_gpus
             )
 
     @staticmethod
