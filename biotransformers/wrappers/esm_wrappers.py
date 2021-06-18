@@ -99,13 +99,10 @@ class ESMWrapper(TransformersWrapper):
         self, sequences_list: List[str]
     ) -> Dict[str, torch.tensor]:
         """Function to transform tokens string to IDs; it depends on the model used"""
-
         _, _, all_tokens = self.batch_converter(
             [("", sequence) for sequence in sequences_list]
         )
-
         all_tokens = all_tokens.to("cpu")
-
         encoded_inputs = {
             "input_ids": all_tokens,
             "attention_mask": 1 * (all_tokens != self.token_to_id(self.pad_token)),

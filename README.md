@@ -24,7 +24,11 @@
 - [License](#license)
 </details>
 
+
 # 🧬 Bio-transformers
+
+## Overview
+
 `bio-transformers` is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings. We leverage these state of the art models in a simple interface with practical functionnalities.
 
 This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities, embeddings or easily finetune your model on multiple-GPUs.
@@ -59,30 +63,67 @@ When trained with a large database on a particular language, such as English, th
 
 Querying a transformer trained in the language of proteins on a particular sequence provides a wealth of information about the protein. As seen in the above example, the transformer can tell you which amino acids might be key and need to be present at the protein of interest from a language perspective. This information is of particular interest when trying to understand amino acid regions that might be essential to protein function or stability.
 
-# Getting started
+## Getting started
 
 ## Installation
 It is recommended to work with conda environments in order to manage the specific dependencies of this package.
+The `bio-transformers` package can be found on [pypi](https://pypi.org/project/bio-transformers/).
+
+### Work with conda environment
+
+1. Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/products/individual)
+
+2. Create a virtual environment and activate it.
+
 ```bash
-  conda create --name bio-transformers python=3.7 -y
-  conda activate bio-transformers
+  conda create --name bio-transformers python=3.7 -y && conda activate bio-transformers
+```
+
+3. Install the package in environment.
+
+```bash
   pip install bio-transformers
 ```
 
-### Dev environment
-If you want to contribute to the development, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+### Environment for developing
 
-### Docker
+Conda:
+
+1. Clone this git repo via HTTPS or SSH:
+
+ ```bash
+ git clone https://github.com/DeepChainBio/bio-transformers
+ cd bio-transformers
+ ```
+
+2. Create developement environment based on the yaml file.
+
+```bash
+conda env create -f environment_dev.yaml
+conda activate bio-transformers-dev
+```
+
+3. Install package and pre-commit hooks.
+
+```
+pip install -e .
+pre-commit install
+```
+
+Docker:
+
 You can directly use a docker image for using bio-transformers or for development. The image is based on cuda11.1, be sure to use it on GPU.
-Build the image:
+
+1. Build the image:
 
 ```
-docker build --tag biotransformers-dev .
+docker build --tag instadeep/biotransformers-dev .
 ```
 
-Run interactively with GPUs:
+2. Run interactively with GPUs:
 ```
 docker run -t -i --gpus all biotransformers-dev
+docker run --rm -it -v  /home/bio-transformers:/app/bio-transformers instadeep/biotransformers-dev /bin/bash
 ```
 
 # Usage
@@ -159,7 +200,7 @@ loglikelihood = bio_trans.compute_loglikelihood(sequences,batch_size=2)
 ```
 ## Finetune pre-trained transformers on your dataset
 
-You can use the `train_masked` function to finetune your backend on your dataset. The model is automatically scaled on the available GPUs. More information on the [documentation](https://bio-transformers.readthedocs.io/en/main/getting_started/quick_start.html#display-available-backend)
+You can use the `finetune` function to finetune your backend on your dataset. The model is automatically scaled on the available GPUs. More information on the [documentation](https://bio-transformers.readthedocs.io/en/main/getting_started/quick_start.html#display-available-backend)
 
 ```python
 import biodatasets
