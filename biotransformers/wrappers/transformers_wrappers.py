@@ -4,22 +4,23 @@ specific to a given transformers implementation can inherit.
 It allows to derive probabilities, embeddings and log-likelihoods based on inputs
 sequences, and displays some properties of the transformer model.
 """
+import math
 import os
-import ray
-
 from copy import deepcopy
 from os.path import join
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union, Type
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import pytorch_lightning as pl
+import ray
 import torch
 import torch.tensor
 from biotransformers.utils.constant import NATURAL_AAS_LIST
-from biotransformers.wrappers.language_model import LanguageModel
 from biotransformers.utils.logger import logger  # noqa
+from biotransformers.utils.tqdm_utils import ProgressBar
 from biotransformers.utils.utils import (
+    _check_batch_size,
     _check_memory_embeddings,
     _check_memory_logits,
     _check_sequence,
@@ -27,11 +28,10 @@ from biotransformers.utils.utils import (
     get_logs_version,
     load_fasta,
 )
-
+from biotransformers.wrappers.language_model import LanguageModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger
-from tqdm import tqdm
 
 from ..lightning_utils.data import BioDataModule
 from ..lightning_utils.models import LightningModule
@@ -59,23 +59,18 @@ class TransformersWrapper:
         """
         self._model_dir = model_dir
         self._num_gpus = num_gpus
-
         if num_gpus >= 1:
             assert torch.cuda.is_available(), "Cuda is not available."
             assert torch.cuda.device_count() >= num_gpus, "Not enough available GPUs."
-
         if num_gpus <= 1:
             device = "cpu" if num_gpus == 0 else "cuda"
-            self._language_model = language_model_cls(
-                model_dir=model_dir, device=device
-            )
+            self._language_model = language_model_cls(model_dir=model_dir, device=device)
             self._multi_gpus = False
         else:
             self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
             self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
             self._workers = [
-                self._ray_cls.remote(model_dir=model_dir, device="cuda:0")
-                for _ in range(num_gpus)
+                self._ray_cls.remote(model_dir=model_dir, device="cuda:0") for _ in range(num_gpus)
             ]
             self._multi_gpus = True
 
@@ -92,8 +87,7 @@ class TransformersWrapper:
 
     def _get_num_batch_iter(self, model_inputs: Dict[str, Any], batch_size: int) -> int:
         """
-        Get the number of batches when spliting model_inputs into chunks
-        of size batch_size.
+        Get the number of batches when spliting model_inputs into chunks of size batch_size.
         """
         num_of_sequences = model_inputs["input_ids"].shape[0]
         num_batch_iter = int(np.ceil(num_of_sequences / batch_size))
@@ -168,9 +162,7 @@ class TransformersWrapper:
             model_outputs (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
         """
         max_length = model_outputs.shape[1]
-        inf_tensor = -float("Inf") * torch.ones(
-            [1, model_outputs.shape[2]], dtype=torch.float32
-        )
+        inf_tensor = -float("Inf") * torch.ones([1, model_outputs.shape[2]], dtype=torch.float32)
         sequences_list = []
         start_id = 0
         for mask_id in masked_ids_list:
@@ -206,51 +198,37 @@ class TransformersWrapper:
                     * embeddings [num_seqs, max_len_seqs+1, embedding_size]
         """
         silent = kwargs.get("silent", False)
-        # Initialize logits and embeddings before looping over batches
-        logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
-        embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
-
+        num_inputs = model_inputs["input_ids"].shape[0]
+        n_updates = math.ceil(num_inputs / batch_size)
         if self._multi_gpus:
-            # Split in large batches
-            for batch_inputs in tqdm(
-                self._generate_chunks(model_inputs, self._num_gpus * batch_size),
-                total=self._get_num_batch_iter(
-                    model_inputs, self._num_gpus * batch_size
-                ),
-                disable=silent,
+            jobs = []
+            # Initialize logits and embeddings before looping over batches
+            logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
+            embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
+            pb = ProgressBar(n_updates)
+            actor = pb.actor
+            for i, batch_inputs in enumerate(
+                self._generate_chunks(model_inputs, math.ceil(num_inputs / self._num_gpus))
             ):
                 # Split large batch into smaller batches, when per GPU worker
-                jobs = []
-                for i, worker_batch in enumerate(
-                    self._generate_chunks(batch_inputs, batch_size)
-                ):
-                    jobs.append(self._workers[i].model_pass.remote(worker_batch))
-                # Launch parallel execution in background
-                outs = ray.get(jobs)
-                # Gather the result
-                for batch_logits, batch_embeddings in outs:
-                    embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
-                    logits = torch.cat((logits, batch_logits), dim=0)
-        else:
-            for batch_inputs in tqdm(
-                self._generate_chunks(model_inputs, batch_size),
-                total=self._get_num_batch_iter(model_inputs, batch_size),
-                disable=silent,
-            ):
-                batch_logits, batch_embeddings = self._language_model.model_pass(
-                    batch_inputs
+                # Send tqdm progress bar
+                jobs.append(
+                    self._workers[i].model_pass.remote(batch_inputs, batch_size, silent, actor)
                 )
+            pb.print_until_done()
+            # Launch parallel execution in background
+            outs = ray.get(jobs)
+            # Gather the result
+            for batch_logits, batch_embeddings in outs:
                 embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
                 logits = torch.cat((logits, batch_logits), dim=0)
+        else:
+            logits, embeddings = self._language_model.model_pass(model_inputs, batch_size, silent)
 
         return logits, embeddings
 
     def _compute_logits(
-        self,
-        model_inputs: Dict[str, torch.Tensor],
-        batch_size: int,
-        pass_mode: str,
-        **kwargs
+        self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str, **kwargs
     ) -> torch.Tensor:
         """Intermediate function to compute logits
 
@@ -264,14 +242,10 @@ class TransformersWrapper:
         """
         if pass_mode == "masked":
             model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
-            logits, _ = self._model_evaluation(
-                model_inputs, batch_size=batch_size, **kwargs
-            )
+            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size, **kwargs)
             logits = self._gather_masked_outputs(logits, masked_ids_list)
         elif pass_mode == "forward":
-            logits, _ = self._model_evaluation(
-                model_inputs, batch_size=batch_size, **kwargs
-            )
+            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size, **kwargs)
         return logits
 
     def compute_logits(
@@ -297,7 +271,7 @@ class TransformersWrapper:
 
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
-
+        _check_batch_size(batch_size, self._num_gpus)
         _check_sequence(sequences, self._model_dir, 1024)
         _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
 
@@ -305,18 +279,14 @@ class TransformersWrapper:
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
-
         # Remove padded logits
         lengths = [len(sequence) for sequence in sequences]
         logits = [logit[:length, :] for logit, length in zip(list(logits), lengths)]
         labels = [label[:length, :] for label, length in zip(list(labels), lengths)]
-
         # Keep only corresponding to amino acids that are in the sequence
         logits = [
-            torch.gather(logit, dim=-1, index=label).numpy()
-            for logit, label in zip(logits, labels)
+            torch.gather(logit, dim=-1, index=label).numpy() for logit, label in zip(logits, labels)
         ]
-
         # List of arrays of shape (seq_length, 1)
         return logits
 
@@ -359,7 +329,7 @@ class TransformersWrapper:
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
-
+        _check_batch_size(batch_size, self._num_gpus)
         _check_sequence(sequences, self._model_dir, 1024)
         _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
         _check_tokens_list(sequences, tokens_list)
@@ -367,14 +337,11 @@ class TransformersWrapper:
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
-
         # Remove padded logits
         lengths = [len(sequence) for sequence in sequences]
         logits = [logit[:length, :] for logit, length in zip(list(logits), lengths)]
-
         # Set to -inf logits that correspond to tokens that are not in tokens list
         vocabulary_mask = torch.from_numpy(self.get_vocabulary_mask(tokens_list))
-
         # Avoid printing warnings
         np.seterr(divide="ignore")
 
@@ -384,7 +351,6 @@ class TransformersWrapper:
                 np.tile(np.log(vocabulary_mask), (logit.shape[0], 1))
             )
             masked_logits.append(masked_logit)
-
         # Use softmax to compute probabilities frm logits
         # Due to the -inf, probs of tokens that are not in token list will be zero
         softmax = torch.nn.Softmax(dim=-1)
@@ -398,10 +364,7 @@ class TransformersWrapper:
             }
 
         probabilities_dict = [
-            {
-                key: _get_probabilities_dict(value)
-                for key, value in dict(enumerate(probs)).items()
-            }
+            {key: _get_probabilities_dict(value) for key, value in dict(enumerate(probs)).items()}
             for probs in probabilities
         ]
         return probabilities_dict
@@ -440,13 +403,9 @@ class TransformersWrapper:
         log_likelihoods = []
         for sequence, probabilities_dict in zip(sequences, probabilities):
             log_likelihood = np.sum(
-                [
-                    np.log(probabilities_dict[i][sequence[i]])
-                    for i in range(len(sequence))
-                ]
+                [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]
             )
             log_likelihoods.append(float(log_likelihood))
-
         return log_likelihoods
 
     def compute_embeddings(
@@ -480,32 +439,24 @@ class TransformersWrapper:
         Returns:
              Dict[str, List[np.ndarray]]: dict matching pool-mode and list of embeddings
         """
-
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
-
         _check_sequence(sequences, self._model_dir, 1024)
-        embedding_size = self._language_model.embeddings_size
-        _check_memory_embeddings(sequences, embedding_size, pool_mode)
+        _check_batch_size(batch_size, self._num_gpus)
+        _check_memory_embeddings(sequences, self._language_model.embeddings_size, pool_mode)
 
         # Get the sequences lengths
         lengths = [len(sequence) for sequence in sequences]
-
         # Compute a forward pass to get the embeddings
         inputs = self._language_model.process_sequences_and_tokens(sequences)
-        _, embeddings = self._model_evaluation(
-            inputs, batch_size=batch_size, silent=silent
-        )
+        _, embeddings = self._model_evaluation(inputs, batch_size=batch_size, silent=silent)
         embeddings = [emb.cpu().numpy() for emb in embeddings]
-
         # Remove class token and padding
         filtered_embeddings = [
             emb[1 : (length + 1), :] for emb, length in zip(list(embeddings), lengths)
         ]
-
         # Keep class token only
         cls_embeddings = [emb[0, :] for emb in list(embeddings)]
-
         embeddings_dict = {}
         # Keep only what's necessary
         if "full" in pool_mode:
@@ -513,10 +464,7 @@ class TransformersWrapper:
         if "cls" in pool_mode:
             embeddings_dict["cls"] = np.stack(cls_embeddings)
         if "mean" in pool_mode:
-            embeddings_dict["mean"] = np.stack(
-                [np.mean(e, axis=0) for e in filtered_embeddings]
-            )
-
+            embeddings_dict["mean"] = np.stack([np.mean(e, axis=0) for e in filtered_embeddings])
         return embeddings_dict
 
     def compute_accuracy(
@@ -539,25 +487,43 @@ class TransformersWrapper:
         """
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
-
         _check_sequence(sequences, self._model_dir, 1024)
+        _check_batch_size(batch_size, self._num_gpus)
         _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         labels = inputs["input_ids"]
-
         # Get the predicted labels
         predicted_labels = torch.argmax(logits, dim=-1)
-
         # Compute the accuracy
         accuracy = float(torch.mean(torch.eq(predicted_labels, labels).float()))
-
         return accuracy
 
+    def load_model(self, model_dir: str, map_location=None):
+        """Load state_dict a finetune pytorch model ro a checkpoint directory
+
+        More informations about how to load a model with map_location:
+            https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-model-for-inference
+
+        Args:
+            model_dir: path file of the pt model or checkpoint.
+                       the checkpoint should be a pytorch model checkpoint
+        """
+        if not os.path.isfile(model_dir):
+            raise FileNotFoundError
+
+        if self._multi_gpus:
+            ray.get(
+                [worker._load_model.remote(model_dir, map_location) for worker in self._workers]
+            )
+            pass
+        else:
+            self._language_model._load_model(model_dir, map_location)  # type: ignore # type: ignore
+
     def _save_model(self, exp_path: str, lightning_model: pl.LightningModule):
-        """Save pytorch model in logs directory
+        """Save pytorch model in pytorch-lightning logs directory
         Args:
             exp_path (str): path of the experiments directory in the logs
         """
@@ -623,8 +589,8 @@ class TransformersWrapper:
                                 Defaults to 0.1.
             toks_per_batch: Maximum number of token to consider in a batch.Defaults to 2048.
                             This argument will set the number of sequences in a batch, which
-                            is dynamically computed. Batch size use accumulate_grad_batches to compute
-                            accumulate_grad_batches parameter.
+                            is dynamically computed. Batch size use accumulate_grad_batches
+                            to compute accumulate_grad_batches parameter.
             extra_toks_per_seq: Defaults to 2,
             filter_len : Size of sequence to filter. Defaults to None. (NOT USED)
             accelerator: type of accelerator for mutli-gpu processing (DPP recommanded)
@@ -635,7 +601,8 @@ class TransformersWrapper:
             logs_name_exp: Name of the experience in the logs.
             checkpoint : Path to a checkpoint file to restore training session.
             save_last_checkpoint: Save last checkpoint and 2 best trainings models
-                                  to restore training session. Take a large amout of time and memory.
+                                  to restore training session. Take a large amout of time
+                                  and memory.
         """
         if isinstance(train_sequences, str):
             train_sequences = load_fasta(train_sequences)
@@ -709,7 +676,7 @@ class TransformersWrapper:
             self._save_model(save_path, lightning_model)
 
         # Load new model
-        self._language_model.load_model(save_path)
+        self._language_model._load_model(save_path)
 
         if self._multi_gpus:
             # Create ray workers as they have been deleted at the beginning

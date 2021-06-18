@@ -67,8 +67,7 @@ class CustomBatchSampler(Sampler):
             )
         if not isinstance(drop_last, bool):
             raise ValueError(
-                "drop_last should be a boolean value, but got "
-                "drop_last={}".format(drop_last)
+                "drop_last should be a boolean value, but got " "drop_last={}".format(drop_last)
             )
         self.sampler = sampler
         self.batch_size = batch_size
@@ -165,9 +164,7 @@ def mask_seq(
     mask_num = int(np.ceil(seq_len * masking_ratio))
     targets = tokens.detach().clone()
     # sample indices
-    mask_indices = sorted(
-        np.random.choice(seq_len, mask_num, replace=False) + int(prepend_bos)
-    )
+    mask_indices = sorted(np.random.choice(seq_len, mask_num, replace=False) + int(prepend_bos))
     # mask tokens
     for idx in mask_indices:
         rand = np.random.random()
@@ -237,10 +234,11 @@ def collate_fn(
     return tokens, targets
 
 
-def _filter_sequence(
-    sequences_list: List[str], model: str, filter_len: int
-) -> List[str]:
+def _filter_sequence(sequences_list: List[str], model: str, filter_len: int) -> List[str]:
     """Function that filter the length of a sequence list
+
+    Filtering depends on the type of model. It is automatically enforce as ESM1b
+    does'nt manage sequence longer that 1024.
 
     Args:
         sequences_list : list of sequences
@@ -268,6 +266,13 @@ def get_batch_indices(
     extra_toks_per_seq: int = 0,
 ) -> List[List[int]]:
     """Get the batch idx based on the number of tokens in sequences
+
+    It computes a list of list of int which are the list of the indexes to consider
+    to build a batch.
+    Example:
+        returning [[1,3,8],[4,7,10],[11],[12]] means that the first batch  will be
+        composed of sequence at index 1,3,8 for the first batch, sequence 11 for the
+        third batch. The idea is to consider a maximum number of tokens per batch.
 
     Args:
         sequence_strs: list of string
@@ -390,9 +395,7 @@ class BioDataModule(pl.LightningDataModule):
 
         # Assign train/val datasets for use in dataloaders
         if stage == "fit" or stage is None:
-            self.seq_train, self.seq_val = train_test_split(
-                self.train_sequences, test_size=0.2
-            )
+            self.seq_train, self.seq_val = train_test_split(self.train_sequences, test_size=0.2)
 
             # Optionally...
             # self.dims = tuple(self.mnist_train[0][0].shape)

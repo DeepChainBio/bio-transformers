@@ -1,6 +1,7 @@
 """Main module to build either ESM or protbert model"""
 
 from biotransformers.utils.constant import BACKEND_LIST, MAPPING_PROTBERT
+from biotransformers.utils.deprecated import deprecated_alias
 from biotransformers.utils.utils import format_backend
 from biotransformers.wrappers.esm_wrappers import ESMWrapper
 from biotransformers.wrappers.rostlab_wrapper import RostlabWrapper
@@ -20,6 +21,7 @@ class BioTransformers:
     ):
         pass
 
+    @deprecated_alias(multi_gpu="num_gpus")
     def __new__(
         cls,
         backend: str = "esm1_t6_43M_UR50S",
@@ -27,6 +29,8 @@ class BioTransformers:
     ):
         format_list = "\n".join(format_backend(BACKEND_LIST))
         assert backend in BACKEND_LIST, f"Choose backend in \n\n{format_list}"
+        if not type(num_gpus) == int:
+            raise TypeError(f"num_gpus should be of type int, not {type(num_gpus)}.")
 
         if backend.__contains__("esm"):
             model_dir = backend
