@@ -122,8 +122,7 @@ docker build --tag instadeep/biotransformers-dev .
 
 2. Run interactively with GPUs:
 ```
-docker run -t -i --gpus all biotransformers-dev
-docker run --rm -it -v  /home/bio-transformers:/app/bio-transformers instadeep/biotransformers-dev /bin/bash
+docker run --rm -it --gpus all -v  /home/bio-transformers:/app/bio-transformers instadeep/biotransformers-dev /bin/bash
 ```
 
 # Usage
