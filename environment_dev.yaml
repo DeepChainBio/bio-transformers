@@ -4,9 +4,9 @@ channels:
   - defaults
 dependencies:
   - python=3.7
-  - pip=20.2.4
+  - pip=20.0.2
   - pip:
-    - sphinx
+    - sphinx==4.0.2
     - sphinx-notfound-page==0.6
     #- sphinx_rtd_theme==0.5.2
     - sphinx-book-theme
@@ -24,5 +24,5 @@ dependencies:
     - torchmetrics==0.3.2
     - tqdm>=4.60.0
     - transformers>=4.6.1,<4.7
-    - myst-parser
-    - myst-nb
+    - myst-parser==0.15.1
+    - myst-nb==0.12.3
