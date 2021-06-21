@@ -1,4 +1,4 @@
-## Logging
+# Logging
 
 When running bio-transformers, printed messages are entirely controles by bio-transformers code.
 The log level controls which types of log messages would be printed.

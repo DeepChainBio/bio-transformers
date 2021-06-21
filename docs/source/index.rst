@@ -41,6 +41,7 @@ developers and researchers at Instadeep.
    :caption: Documentation
 
    documentation/course
+   documentation/logging
 
 .. toctree::
    :hidden:

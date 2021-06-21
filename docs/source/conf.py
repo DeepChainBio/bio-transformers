@@ -19,7 +19,6 @@ sys.path.insert(0, os.path.abspath("../.."))
 
 
 # -- Project information -----------------------------------------------------
-import sphinx_rtd_theme
 
 project = "bio-transformers"
 copyright = "2021, instadeep"
