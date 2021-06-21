@@ -50,17 +50,37 @@ exclude_patterns = []
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+html_title = f"bio-transformers v{release}"
+html_logo = "_static/deepchain-small.png"
 
 extensions = [
     "sphinx.ext.autodoc",  # autodoc for API
     "sphinx_tabs.tabs",  # for tabs in rst
-    "m2r2",  # for supporting md files
+    # "m2r2",  # for supporting md files
     "notfound.extension",  # for 404 pages
     "sphinx.ext.napoleon",  # extensions for google style docstring
+    "myst_parser",
 ]
 
+html_theme_options = {
+    "theme_dev_mode": True,
+    "path_to_docs": "docs",
+    "repository_url": "https://github.com/DeepChainBio/deep-chain-apps",
+    # "repository_branch": "gh-pages",  # For testing
+    "use_edit_page_button": True,
+    # "use_issues_button": True,
+    "use_repository_button": True,
+    "use_download_button": True,
+    # For testing
+    # "use_fullscreen_button": False,
+    # "home_page_in_toc": True,
+    # "single_page": True,
+    # "extra_footer": "<a href='https://google.com'>Test</a>",  # DEPRECATED KEY
+    # "extra_navbar": "<a href='https://google.com'>Test</a>",
+    # "show_navbar_depth": 2,
+}
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_book_theme"
 source_suffix = [".rst", ".md"]
 
 
