@@ -21,8 +21,9 @@ By default, the ``pool_mode`` argument contains 3 mode:
 
 If you want to make the inference on several GPUs, you have to intialize ray as below to use instantiate multiple workers.
 
-:::{tip}
+```{tip}
 ``batch_size`` corresponds to the number of sequence that you want to distribute on each GPU.
+```
 
 .. code-block:: python
 
