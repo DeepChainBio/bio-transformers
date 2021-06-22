@@ -31,9 +31,9 @@
 
 `bio-transformers` is a python wrapper on top of the **ESM/Protbert** models, which are **Transformers protein language models**, trained on millions of proteins and used to predict embeddings. We leverage these state of the art models in a simple interface with practical functionnalities.
 
-This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities, embeddings or easily finetune your model on multiple-GPUs.
+This package provides a unified interface to use all these models - which we call `backends`. For instance you'll be able to compute natural amino-acids probabilities, embeddings or easily finetune your model on multiple-GPUs with `Ray`.
 
-📕 Please find the documentation [here](https://bio-transformers.readthedocs.io/en/latest/).
+📕 Please refer to the documentation [here](https://bio-transformers.readthedocs.io/en/latest/).
 
 
  You can find the original repositories for the models here :
@@ -68,6 +68,9 @@ Querying a transformer trained in the language of proteins on a particular seque
 ## Installation
 It is recommended to work with conda environments in order to manage the specific dependencies of this package.
 The `bio-transformers` package can be found on [pypi](https://pypi.org/project/bio-transformers/).
+
+Please note that you are suppose to have a correct cuda/torch installation before installing this library.
+
 
 ### Work with conda environment
 
@@ -121,6 +124,7 @@ docker build --tag instadeep/biotransformers-dev .
 ```
 
 2. Run interactively with GPUs:
+
 ```
 docker run -t -i --gpus all biotransformers-dev
 docker run --rm -it -v  /home/bio-transformers:/app/bio-transformers instadeep/biotransformers-dev /bin/bash
@@ -129,13 +133,16 @@ docker run --rm -it -v  /home/bio-transformers:/app/bio-transformers instadeep/b
 # Usage
 
 ## Quick start
+
 The main class ```BioTranformers``` allows developers to use Protbert and ESM backends
 
 ```python
 > from biotransformers import BioTransformers
 > BioTransformers.list_backend()
 ```
-```
+
+```python
+>>
 Use backend in this list :
 
     *   esm1_t34_670M_UR100
@@ -172,33 +179,38 @@ mean_emb = embeddings['mean']
 
 ### Multi-gpu
 
-If you have access to multiple GPUs, you can activate the ```multi_gpu``` option to speed-up the inference.
-This option relies on ```torch.nn.DataParallel```.
+If you have access to multiple GPUs, you can specify the ```num_gpus``` option to speed-up the inference. Please refer to this [section](https://bio-transformers.readthedocs.io/en/develop/documentation/multi_gpus.html) to have a full understanding.
 
-Caution: put a batch_size > 1 with multi_gpu.
+This option relies on  `Ray` since version 0.0.11 (```torch.nn.DataParallel``` and `multi_gpu` option deprecated.)
 
 ```python
-bio_trans = BioTransformers(backend="protbert",multi_gpu=True)
+import ray
+
+ray.init()
+bio_trans = BioTransformers(backend="protbert",num_gpus=2)
 embeddings = bio_trans.compute_embeddings(sequences, pool_mode=('cls','mean'), batch_size=2)
 ```
 
 
 ## Pseudo-Loglikelihood
+
 The protein loglikelihood is a metric that estimates the joint probability of observing a given sequence of amino acids. The idea behind such an estimator is to approximate the probability that a mutated protein will be “natural”, and can effectively be produced by a cell.
 
 These metrics rely on transformers language models. These models are trained to predict a “masked” amino acid in a sequence. As a consequence, they can provide us with an estimate of the probability of observing an amino acid given the “context” (the surrounding amino acids).  By multiplying individual probabilities computed for a given amino-acid given its context, we obtain a pseudo-likelihood, which can be a candidate estimator to approximate sequence stability.
 
 ```python
 from biotransformers import BioTransformers
+import ray
 
 sequences = [
         "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
         "KALTARQQEVFDLIRDHISQTGMPPTRAEIAQRLGFRSPNAAEEHLKALARKGVIEIVSGASRGIRLLQEE",
     ]
 
-bio_trans = BioTransformers(backend="protbert",device="cuda:0")
+bio_trans = BioTransformers(backend="protbert",num_gpus=1)
 loglikelihood = bio_trans.compute_loglikelihood(sequences)
 ```
+
 ## Finetune pre-trained transformers on your dataset
 
 You can use the `finetune` function to finetune your backend on your dataset. The model is automatically scaled on the available GPUs. More information on the [documentation](https://bio-transformers.readthedocs.io/en/main/getting_started/quick_start.html#display-available-backend)
@@ -207,6 +219,7 @@ You can use the `finetune` function to finetune your backend on your dataset. Th
 import biodatasets
 import numpy as np
 from biotransformers import BioTransformers
+import ray
 
 data = biodatasets.load_dataset("swissProt")
 X, y = data.to_npy_arrays(input_names=["sequence"])
@@ -215,7 +228,9 @@ X = X[0]
 # Train on small sequences
 length = np.array(list(map(len, X))) < 200
 train_seq = X[length][:15000]
-bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda")
+
+ray.init()
+bio_trans = BioTransformers("esm1_t6_43M_UR50S", num_gpus=2)
 
 bio_trans.finetune(
     train_seq,
@@ -233,9 +248,11 @@ bio_trans.finetune(
 ```
 
 # Roadmap:
-  - support MSA transformers
+
+- support MSA transformers
 
 # ✏️  Citations
+
 Here some papers on interest on the subject.
 
 The excellent ProtBert work can be found at [(biorxiv preprint)](https://www.biorxiv.org/content/10.1101/2020.07.12.199554v3.full.pdf):

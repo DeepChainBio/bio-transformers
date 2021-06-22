@@ -14,12 +14,12 @@ There are multiple different methods to install Bio-transformers:
 Install torch/cuda
 ------------------
 
-.. WARNING:: ``Bio-transformers`` doesn't manage the installation of cuda toolkit and torch gpu version.
+.. WARNING:: ``bio-transformers`` doesn't manage the installation of cuda toolkit and torch gpu version.
 
-If you want to find a specific version or torch based on your CUDA setup, please refer to this `page <https://pytorch.org/get-started/previous-versions/>`_.
+If you want to find a specific version or torch based on your CUDA setup, please refer to this `page <https://pytorch.org/get-started/previous-versions/>`_
 
-The Dockerfile provided in the `<github repository https://github.com/DeepChainBio/bio-transformers>`_ relies on :
-     - pip install torch==1.8.0+cu111 torchvision==0.9.0+cu111 torchaudio==0.8.0 -f https://download.pytorch.org/whl/torch_stable.html
+The Dockerfile provided in the `github repository <https://github.com/DeepChainBio/bio-transformers>`_ relies on :
+    - `pip install torch==1.8.0+cu111 torchvision==0.9.0+cu111 torchaudio==0.8.0 -f https://download.pytorch.org/whl/torch_stable.html`
 
 Install in conda environment
 ----------------------------
