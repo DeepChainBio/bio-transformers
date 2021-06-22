@@ -1,5 +1,5 @@
 """
-This script defines a class which inherits from the TransformersWrapper class, and is
+This script defines a class which inherits from the LanguageModel class, and is
 specific to the ESM model developed by FAIR (https://github.com/facebookresearch/esm).
 """
 
@@ -7,43 +7,43 @@ from typing import Dict, List, Tuple
 
 import esm
 import torch
-from biotransformers.lightning_utils.data import AlphabetDataLoader
+from biotransformers.lightning_utils.data import (
+    AlphabetDataLoader,
+    convert_ckpt_to_statedict,
+)
 from biotransformers.utils.constant import DEFAULT_ESM_MODEL, ESM_LIST
 from biotransformers.utils.logger import logger  # noqa
-from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
-from torch.nn import DataParallel
+from biotransformers.utils.utils import _generate_chunks, _get_num_batch_iter
+from biotransformers.wrappers.language_model import LanguageModel
+from ray.actor import ActorHandle
+from tqdm import tqdm
 
 log = logger("esm_wrapper")
 
 
-class ESMWrapper(TransformersWrapper):
+class ESMWrapper(LanguageModel):
     """
     Class that uses an ESM type of pretrained transformers model to evaluate
     a protein likelihood so as other insights.
     """
 
-    def __init__(self, model_dir: str, device, multi_gpu):
-
+    def __init__(self, model_dir: str, device):
         if model_dir not in ESM_LIST:
-            print(
-                f"Model dir '{model_dir}' not recognized. "
-                f"Using '{DEFAULT_ESM_MODEL}' as default"
-            )
+            print(f"Model dir '{model_dir}' not recognized. Using '{DEFAULT_ESM_MODEL}' as default")
             model_dir = DEFAULT_ESM_MODEL
-
-        super().__init__(model_dir, _device=device, multi_gpu=multi_gpu)
-
-        self.model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
-        self.num_layers = self.model.num_layers
+        super().__init__(model_dir=model_dir, device=device)
+        self._model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
+        self.num_layers = self._model.num_layers
         repr_layers = -1
         self.repr_layers = (repr_layers + self.num_layers + 1) % (self.num_layers + 1)
-        self.hidden_size = self.model.args.embed_dim
-
-        if self.multi_gpu:
-            self.model = DataParallel(self.model).to(self._device)
-        else:
-            self.model = self.model.to(self._device)
+        self.hidden_size = self._model.args.embed_dim
+        self._model = self._model.to(self._device)
         self.batch_converter = self.alphabet.get_batch_converter()
+
+    @property
+    def model(self) -> torch.nn.Module:
+        """Return torch model."""
+        return self._model
 
     @property
     def clean_model_id(self) -> str:
@@ -95,13 +95,9 @@ class ESMWrapper(TransformersWrapper):
         """Returns size of the embeddings"""
         return self.hidden_size
 
-    def _process_sequences_and_tokens(
-        self, sequences_list: List[str]
-    ) -> Dict[str, torch.tensor]:
+    def process_sequences_and_tokens(self, sequences_list: List[str]) -> Dict[str, torch.Tensor]:
         """Function to transform tokens string to IDs; it depends on the model used"""
-        _, _, all_tokens = self.batch_converter(
-            [("", sequence) for sequence in sequences_list]
-        )
+        _, _, all_tokens = self.batch_converter([("", sequence) for sequence in sequences_list])
         all_tokens = all_tokens.to("cpu")
         encoded_inputs = {
             "input_ids": all_tokens,
@@ -110,35 +106,71 @@ class ESMWrapper(TransformersWrapper):
         }
         return encoded_inputs
 
-    def _model_pass(
-        self, model_inputs: Dict[str, torch.tensor]
+    def _load_model(self, path_model: str, map_location=None):
+        """Load model."""
+        if path_model.endswith(".pt"):
+            loaded_model = torch.load(path_model)
+        elif path_model.endswith(".ckpt"):
+            loaded_model = convert_ckpt_to_statedict(torch.load(path_model)["state_dict"])
+        else:
+            raise ValueError("Expecting a .pt or .ckpt file")
+        self._model.load_state_dict(loaded_model, map_location)
+        self._model.eval()
+        log.info("Load model %s" % path_model)
+
+    def model_pass(
+        self,
+        model_inputs: Dict[str, torch.Tensor],
+        batch_size: int,
+        silent: bool = False,
+        pba: ActorHandle = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Function which computes logits and embeddings based on a list of sequences,
         a provided batch size and an inference configuration. The output is obtained
         by computing a forward pass through the model ("forward inference")
 
+        The datagenerator is not the same the multi_gpus inference. We use a tqdm progress bar
+        that is updated by the worker. The progress bar is instantiated before ray.remote
+
         Args:
             model_inputs (Dict[str, torch.tensor]): [description]
-
+            batch_size (int): size of the batch
+            silent : display or not progress bar
+            pba : tqdm progress bar for ray actor
         Returns:
             Tuple[torch.tensor, torch.tensor]:
                     * logits [num_seqs, max_len_seqs, vocab_size]
                     * embeddings [num_seqs, max_len_seqs+1, embedding_size]
         """
-        with torch.no_grad():
-            model_outputs = self.model(
-                model_inputs["input_ids"].to(self._device),
-                repr_layers=[self.repr_layers],
+        if pba is None:
+            batch_generator = tqdm(
+                _generate_chunks(model_inputs, batch_size),
+                total=_get_num_batch_iter(model_inputs, batch_size),
+                disable=silent,
             )
-            logits = model_outputs["logits"].detach().cpu()
-            embeddings = (
-                model_outputs["representations"][self.repr_layers].detach().cpu()
-            )
+        else:
+            batch_generator = _generate_chunks(model_inputs, batch_size)
 
+        logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
+        embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
+        for batch_inputs in batch_generator:
+            with torch.no_grad():
+                model_outputs = self._model(
+                    batch_inputs["input_ids"].to(self._device),
+                    repr_layers=[self.repr_layers],
+                )
+                batch_logits = model_outputs["logits"].detach().cpu()
+                batch_embeddings = model_outputs["representations"][self.repr_layers].detach().cpu()
+                embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
+                logits = torch.cat((logits, batch_logits), dim=0)
+
+            # tqdm worker update
+            if pba is not None:
+                pba.update.remote(1)
         return logits, embeddings
 
-    def _get_alphabet_dataloader(self):
+    def get_alphabet_dataloader(self):
         """Define an alphabet mapping for common method between
         protbert and ESM
         """
@@ -153,7 +185,7 @@ class ESMWrapper(TransformersWrapper):
             append_eos=True,
             mask_idx=self.alphabet.mask_idx,
             pad_idx=self.alphabet.padding_idx,
-            model_dir=self.model_dir,
+            model_dir=self._model_dir,
             lambda_toks_to_ids=lambda x: self.alphabet.tok_to_idx[x],
             lambda_tokenizer=lambda x: tokenize(x),
         )

@@ -1,15 +1,16 @@
 # Finetuning
 
 ## How to finetune a model?
+
 `bio-transformers` uses pytorch-lightning to easily load pre-trained model and finetune it on your own datasets. The method `finetune` automatically scale on your visible GPU to train in parallel thanks to the different accelerator.
 
 It is strongly recommended to use the `DDP` accelerator for training : [ddp](https://pytorch.org/docs/stable/notes/ddp.html). You should know that `DDP` will launch several python instances, as a consequence, a model should be finetuned in a separate script, and not be mixed with inference function like `compute_loglikelihood` or `compute_embeddings` to avoid GPU conflicts.
 
 The model will be finetuned randomly by masking a proportion of amino acid in a sequence it commonly does in most state of the art paper. By default, 15% of amino acids will be masked;
 
-## Caution
-
-This method is developed to be runned on GPU, please take care to have the proper CUDA installation.
+```{caution}
+This method is developed to be runned on GPU, please take care to have the proper CUDA installation. Refer to this section for more informations.
+```
 
 Do not train model `DDP` **accelerator** in a notebook. Do not mix training and compute inference function like `compute_accuracy` or `compute_loglikelihood`  in the same script except with `DP` acceletator.
  With `DDP`, load the finetune model in a separate script like below.
@@ -17,19 +18,21 @@ Do not train model `DDP` **accelerator** in a notebook. Do not mix training and 
 ```python
 from biotransformers import BioTransformers
 
-bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda", multi_gpu=True)
+bio_trans = BioTransformers("esm1_t6_43M_UR50S", num_gpus=1)
 bio_trans.load_model("logs/finetune_masked/version_X/esm1_t6_43M_UR50S_finetuned.pt")
 acc_after = bio_trans.compute_accuracy(..., batch_size=32)
 ```
 
 ## Parameters
+
 The function can handle a fasta file or a list of sequences directly:
 
- - **train_sequences**: Could be a list of sequence of a the path of a fasta files with SeqRecords.
+- **train_sequences**: Could be a list of sequence of a the path of a fasta files with SeqRecords.
 
 Seven arguments are important for the training:
- - **lr**: the default learning rate (keep it low : <5e10-4)
- - **warmup_updates**:  the number of step (not epochs, optimizer step) to do while increasing the leraning rate from a **warmup_init_lr** to **lr**.
+
+- **lr**: the default learning rate (keep it low : <5e10-4)
+- **warmup_updates**:  the number of step (not epochs, optimizer step) to do while increasing the leraning rate from a **warmup_init_lr** to **lr**.
 - **epochs** :  number of epoch for training. Defaults to 10.
 - **batch_size** :  This size is only uses internally to compute the **accumulate_grad_batches** for gradient accumulation (TO BE UPDATED). The **toks_per_batch** will dynamically determine the number of sequences in a batch, in order to avoid GPU saturation.
 - **acc_batch_size** : Number of batch to consider befor computing gradient.
@@ -56,6 +59,7 @@ Training on some swissprot sequences. Training only works on GPU.
 import biodatasets
 import numpy as np
 from biotransformers import BioTransformers
+import ray
 
 data = biodatasets.load_dataset("swissProt")
 X, y = data.to_npy_arrays(input_names=["sequence"])
@@ -64,7 +68,9 @@ X = X[0]
 # Train on small sequence
 length = np.array(list(map(len, X))) < 200
 train_seq = X[length][:15000]
-bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda")
+
+ray.init()
+bio_trans = BioTransformers("esm1_t6_43M_UR50S", num_gpus=4)
 
 bio_trans.finetune(
     train_seq,
@@ -89,6 +95,8 @@ You can easily assees the quality of your finetuning by using the provided funct
 import biodatasets
 import numpy as np
 from biotransformers import BioTransformers
+import ray
+
 
 data = biodatasets.load_dataset("swissProt")
 X, y = data.to_npy_arrays(input_names=["sequence"])
@@ -99,11 +107,15 @@ X = X[0]
 length = np.array(list(map(len, X))) < 200
 train_seq = X[length][15000:20000]
 
-bio_trans = BioTransformers("esm1_t6_43M_UR50S", device="cuda", multi_gpu=True)
+ray.init()
+bio_trans = BioTransformers("esm1_t6_43M_UR50S", num_gpus=4)
 acc_before = bio_trans.compute_accuracy(train_seq, batch_size=32)
 print(f"Accuracy before finetuning : {acc_before}")
 ```
+
+```python
 >> Accuracy before finetuning : 0.46
+```
 
 ```python
 bio_trans.load_model("logs/finetune_masked/version_X/esm1_t6_43M_UR50S_finetuned.pt")
@@ -111,4 +123,6 @@ acc_after = bio_trans.compute_accuracy(train_seq, batch_size=32)
 print(f"Accuracy after finetuning : {acc_after}")
 ```
 
->> Accuracy after finetuning : 0.76
+```python
+>> Accuracy before finetuning : 0.76
+```

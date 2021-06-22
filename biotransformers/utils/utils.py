@@ -1,10 +1,11 @@
 import math
 import os
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Tuple, Union
 
+import numpy as np
 from Bio import SeqIO
+from biotransformers.utils.constant import BACKEND_LIST
 from biotransformers.utils.logger import logger
 
 log = logger("utils")
@@ -50,8 +51,7 @@ def _check_memory_embeddings(
 
     if is_warning:
         log.warning(
-            "Embeddings will need about %s of memory."
-            "Please make sure you have enough space",
+            "Embeddings will need about %s of memory." "Please make sure you have enough space",
             memory_convert_bytes,
         )
 
@@ -60,9 +60,9 @@ def _check_memory_logits(sequences_list: List[str], vocab_size: int, pass_mode: 
     """Function to compute the memory taken by the logits with float64 number.
 
     Args:
-        sequences_list ([type]): [description]
-        vocab_size ([type]): [description]
-        pass_mode ([type]): [description]
+        sequences_list (str): sequences of proteins
+        vocab_size (int]): Size of the vocabulary
+        pass_mode (str): 'forward' or 'masked'
     """
     num_of_sequences = len(sequences_list)
     sum_seq_len = sum([len(seq) for seq in sequences_list])
@@ -93,10 +93,8 @@ def _check_sequence(sequences_list: List[str], model: str, length: int):
     Raises:
         ValueError is model esm1b_t33_650M_UR50S and sequence_length >1024
     """
-
     if model == "esm1b_t33_650M_UR50S":
         is_longer = list(map(lambda x: len(x) > length, sequences_list))
-
         if sum(is_longer) > 0:
             raise ValueError(
                 f"You cant't pass sequence with length more than {length} "
@@ -119,12 +117,39 @@ def _check_tokens_list(sequences_list: List[str], tokens_list: List[str]):
     for sequence in sequences_list:
         tokens += list(sequence)
         tokens = list(set(tokens))
-
     for token in tokens:
         if token not in tokens_list:
             raise ValueError(
                 f"Token {token} is present in the sequences but not in the tokens_list."
             )
+
+
+def _check_batch_size(batch_size: int, num_gpus: int):
+    if not isinstance(batch_size, int):
+        raise TypeError("batch_size should be of type int")
+    if num_gpus > 1:
+        if batch_size < num_gpus:
+            raise ValueError("With num_gpus>1, batch_size should be at least equal to num_gpus.")
+
+
+def _get_num_batch_iter(model_inputs: Dict[str, Any], batch_size: int) -> int:
+    """
+    Get the number of batches when spliting model_inputs into chunks
+    of size batch_size.
+    """
+    num_of_sequences = model_inputs["input_ids"].shape[0]
+    num_batch_iter = int(np.ceil(num_of_sequences / batch_size))
+    return num_batch_iter
+
+
+def _generate_chunks(
+    model_inputs: Dict[str, Any], batch_size: int
+) -> Generator[Dict[str, Iterable], None, None]:
+    """Yield a dictionnary of tensor"""
+    num_of_sequences = model_inputs["input_ids"].shape[0]
+    for i in range(0, num_of_sequences, batch_size):
+        batch_sequence = {key: value[i : (i + batch_size)] for key, value in model_inputs.items()}
+        yield batch_sequence
 
 
 def load_fasta(path_fasta: Union[str, Path]) -> List[str]:
@@ -138,7 +163,6 @@ def load_fasta(path_fasta: Union[str, Path]) -> List[str]:
     """
     if not isinstance(path_fasta, Path):
         path_fasta = Path(path_fasta).resolve()
-
     return [str(record.seq) for record in SeqIO.parse(str(path_fasta), format="fasta")]
 
 
@@ -150,6 +174,7 @@ def get_logs_version(path_logs):
     """
     version_num = None
     try:
+        # Folder version organize like version_x >> catch the 'x' integer
         version = str(max([int(fold.split("_")[1]) for fold in os.listdir(path_logs)]))
         version_num = "version_" + version
     except Exception as e:
@@ -163,34 +188,10 @@ def format_backend(backend_list: List[str]) -> List[str]:
     return ["  *" + " " * 3 + model for model in backend_list]
 
 
-@dataclass
-class TransformersModelProperties:
-    """Class to describe some model properties"""
-
-    num_sep_tokens: int  # Number of separation tokens (beginning+end)
-    begin_token: bool  # Whether there is a beginning of sentence token
-    end_token: bool  # Whether there is an end of sentence token
-
-
-@dataclass
-class TransformersInferenceConfig:
-    """
-    Class to describe the inference configuration.
-    - mask_bool: whether to compute a masked inference (masked_bool=True), or a forward
-    ingerence (mask_bool=False)
-
-    - mutation_dicts_list: list of dictionnary, which indicates, for each sequence, the
-    position of the amino-acids which were mutated. This allows to compute "local"
-     embeddings and probabilities only (on mutated amino-acids only).
-     eg [{1: ('A', 'C')}, {1: ('A', 'W'), '4': ('W', 'C')}] means that in the first
-     sequence, the position 1 in the original amino-acid was an 'A', now replaced by a
-     'C', and in the second sequence two mutations happened, at the positions 1 and 4.
-     See the extract_mutations_dict method of TransformersWrapper.
-
-    - all_masks_forward_local_bool: whether to mask all amino-acids when a local forward
-    approach is used.
-    """
-
-    mask_bool: bool
-    mutation_dicts_list: List[dict] = None
-    all_masks_forward_local_bool: bool = False
+def list_backend() -> None:
+    """Get all possible backend for the model"""
+    print(
+        "Use backend in this list :\n\n",
+        "\n".join(format_backend(BACKEND_LIST)),
+        sep="",
+    )

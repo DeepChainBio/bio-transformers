@@ -21,11 +21,11 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 
 project = "bio-transformers"
-copyright = "2021, instadeep"
-author = "instadeep"
+copyright = "2021, InstaDeep"
+author = "InstaDeep"
 
 # The full version, including alpha/beta/rc tags
-release = "0.0.10"
+release = "0.1.0"
 
 
 # -- General configuration ---------------------------------------------------
