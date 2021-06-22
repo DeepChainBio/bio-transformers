@@ -153,12 +153,16 @@ class RostlabWrapper(LanguageModel):
         else:
             batch_generator = _generate_chunks(model_inputs, batch_size)
 
+        logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
+        embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
         for batch_inputs in batch_generator:
             with torch.no_grad():
                 model_inputs = {key: value.to(self._device) for key, value in batch_inputs.items()}
                 model_outputs = self._model(**model_inputs, output_hidden_states=True)
-                logits = model_outputs.logits.detach().cpu()
-                embeddings = model_outputs.hidden_states[-1].detach().cpu()
+                batch_logits = model_outputs.logits.detach().cpu()
+                batch_embeddings = model_outputs.hidden_states[-1].detach().cpu()
+                embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
+                logits = torch.cat((logits, batch_logits), dim=0)
 
             # tqdm worker update
             if pba is not None:

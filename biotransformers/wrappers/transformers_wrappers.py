@@ -53,6 +53,8 @@ class TransformersWrapper:
     ):
         """Initialize Transformers wrapper
 
+        TODO : os.environ["CUDA_VISIBLE_DEVICES"]="0" or export CUDA_VISIBLE_DEVICES="0,1"
+
         Args:
             model_dir: name directory of the pretrained model
             num_gpus: number of gpus to use. If set to 0, it uses the cpu.
@@ -69,8 +71,6 @@ class TransformersWrapper:
         else:
             self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
             self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
-            # TODO precise the env variable of the GPUS
-            # os.environ["CUDA_GPUS"] = '0,1,6,8'
             self._workers = [
                 self._ray_cls.remote(model_dir=model_dir, device="cuda:0") for _ in range(num_gpus)
             ]
@@ -496,7 +496,9 @@ class TransformersWrapper:
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
+        # Get length of sequence
         labels = inputs["input_ids"]
+
         # Get the predicted labels
         predicted_labels = torch.argmax(logits, dim=-1)
         # Compute the accuracy
@@ -522,7 +524,7 @@ class TransformersWrapper:
             )
             pass
         else:
-            self._language_model._load_model(model_dir, map_location)  # type: ignore # type: ignore
+            self._language_model._load_model(model_dir, map_location)  # type: ignore
 
     def _save_model(self, exp_path: str, lightning_model: pl.LightningModule):
         """Save pytorch model in pytorch-lightning logs directory
@@ -673,12 +675,12 @@ class TransformersWrapper:
             rank = os.environ.get("LOCAL_RANK", None)
             rank = int(rank) if rank is not None else None  # type: ignore
             if rank == 0:
-                self._save_model(save_path, lightning_model)
+                save_name = self._save_model(save_path, lightning_model)
         else:
-            self._save_model(save_path, lightning_model)
+            save_name = self._save_model(save_path, lightning_model)
 
         # Load new model
-        self._language_model._load_model(save_path)
+        self._language_model._load_model(save_name)
 
         if self._multi_gpus:
             # Create ray workers as they have been deleted at the beginning
@@ -687,6 +689,6 @@ class TransformersWrapper:
                 for _ in range(self._num_gpus)
             ]
             # Load new model one ach worker
-            ray.get([worker.load_model.remote(save_path) for worker in self._workers])
+            ray.get([worker._load_model.remote(save_name) for worker in self._workers])
 
         log.info("Training completed.")

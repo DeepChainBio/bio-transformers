@@ -152,14 +152,18 @@ class ESMWrapper(LanguageModel):
         else:
             batch_generator = _generate_chunks(model_inputs, batch_size)
 
+        logits = torch.Tensor()  # [num_seqs, max_len_seqs+1, vocab_size]
+        embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
         for batch_inputs in batch_generator:
             with torch.no_grad():
                 model_outputs = self._model(
                     batch_inputs["input_ids"].to(self._device),
                     repr_layers=[self.repr_layers],
                 )
-                logits = model_outputs["logits"].detach().cpu()
-                embeddings = model_outputs["representations"][self.repr_layers].detach().cpu()
+                batch_logits = model_outputs["logits"].detach().cpu()
+                batch_embeddings = model_outputs["representations"][self.repr_layers].detach().cpu()
+                embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
+                logits = torch.cat((logits, batch_logits), dim=0)
 
             # tqdm worker update
             if pba is not None:
