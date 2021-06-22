@@ -23,6 +23,10 @@ bio_trans = BioTransformers("esm1b_t33_650M_UR50S",num_gpus=4)
 embeddings = bio_trans.compute_embeddings(sequences, pool_mode=("cls","mean"), batch_size=8)
 ```
 
+```{note}
+You don't have to use ``ray.init()`` when num_gpus=1
+```
+
 ## Configure GPU environment variable
 
 Sometimes it can be useful to specify which GPU you want to use. It can be done in the terminal or at the beginning of the script. You just have to export the GPU index you want to use.
