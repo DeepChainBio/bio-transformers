@@ -1,24 +1,52 @@
 # Change log
 
+# [0.1.0] - 2021-06-22
+
+Note on the release
+
+Breaking change:
+
+- Remove `multi_gpu` and `device` arguments. Replace by n_gpus.
+
+Features:
+
+- Add Ray parallelization to shorten inference time
+- Add Dockerfile
+
+Docs:
+
+ - Improve documentation
+
+Fixed:
+
+- fix `tokens_list` argument: all sequences' token must be in tokens_list.
+
 # [0.0.10] - 2021-06-14
+
 Note on the release
 
 Features:
- - Add BIO_LOG_LEVEL environnement variable to control logging message (logger)
- - Check if every unique amino acids in sequences are in tokens_list (compute_probabilities)
+
+- Add BIO_LOG_LEVEL environnement variable to control logging message (logger)
+- Check if every unique amino acids in sequences are in tokens_list (compute_probabilities)
 
 Fixed:
- - Add shuffling in batch_sampler (lightning_utils)
- - Fix tokens argument for dataloader (lightning_utils)
+
+- Add shuffling in batch_sampler (lightning_utils)
+- Fix tokens argument for dataloader (lightning_utils)
 
 Changed:
- - Modified the signature of some functions to improve clarity (tansformers_wrappers)
- - Update `train_masked` method to `finetune` (tansformers_wrappers)
- - `compute_embeddings` with option `full` return a list of embeddingsn, no matter the size (tansformers_wrappers)
+
+- Modified the signature of some functions to improve clarity (tansformers_wrappers)
+- Update `train_masked` method to `finetune` (tansformers_wrappers)
+- `compute_embeddings` with option `full` return a list of embeddingsn, no matter the size (tansformers_wrappers)
 
 Removed:
- - Remove the tokens_list argument when not necessary and tried to make its usage clearer (tansformers_wrappers)
- - Remove functions (tansformers_wrappers):
+
+- Remove the tokens_list argument when not necessary and tried to make its usage clearer (tansformers_wrappers)
+
+- Remove functions (tansformers_wrappers):
+
     - _filter_and_pool_embeddings
     - _split_logits
     -  _slabels_remaping
