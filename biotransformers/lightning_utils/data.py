@@ -8,7 +8,6 @@ import torch
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from esm.data import Alphabet, BatchConverter
 from sklearn.model_selection import train_test_split
-from torch._six import int_classes as _int_classes
 from torch.utils.data import DataLoader, Dataset, Sampler
 
 
@@ -56,11 +55,7 @@ class CustomBatchSampler(Sampler):
     """
 
     def __init__(self, sampler, batch_size, drop_last):
-        if (
-            not isinstance(batch_size, _int_classes)
-            or isinstance(batch_size, bool)
-            or batch_size <= 0
-        ):
+        if not (type(batch_size) == int) or isinstance(batch_size, bool) or batch_size <= 0:
             raise ValueError(
                 "batch_size should be a positive integer value, "
                 "but got batch_size={}".format(batch_size)
