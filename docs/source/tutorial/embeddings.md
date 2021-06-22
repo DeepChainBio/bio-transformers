@@ -2,8 +2,6 @@
 
 The library allow to easily compute embeddings with a specific model in the backend.
 
-pool_mode: Tuple[str, ...] = ("cls", "mean", "full"),
-
 .. code-block:: python
 
     from biotransformers import BioTransformers
@@ -14,16 +12,16 @@ pool_mode: Tuple[str, ...] = ("cls", "mean", "full"),
 
 By default, the ``pool_mode`` argument contains 3 mode:
 
-    - `cls` : return the `<CLS>` token embedding in the sequence.
-    - `mean` : if sequence has shape (num_token, embedding_size), the num_token dimension is averaging and the embedding has shape (num_token,)
-    - 'full' : no pooling function applied, all the embeddings for each sequence are return.
+    - ``cls`` : return the `<CLS>` token embedding in the sequence.
+    - ``mean`` : if sequence has shape (num_token, embedding_size), the num_token dimension is averaging and the embedding has shape (num_token,)
+    - ``full`` : no pooling function applied, all the embeddings for each sequence are return.
 
 
 ## Multi-gpu inference
 
 If you want to make the inference on several GPUs, you have to intialize ray as below to use instantiate multiple workers.
 
-:::{hint}
+:::{tip}
 ``batch_size`` corresponds to the number of sequence that you want to distribute on each GPU.
 
 .. code-block:: python
