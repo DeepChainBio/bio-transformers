@@ -11,7 +11,7 @@ This package provide other functionalities that you can use to build apps thanks
 Features
 --------
 
-.. Note:: Bio-transformers now use ` Ray <https://docs.ray.io/en/master/?badge=master>`_ to manage multi-gpu inference.
+.. Note:: Bio-transformers now use `Ray <https://docs.ray.io/en/master/?badge=master#>`_ to manage multi-gpu inference.
 
 Bio-transformers extends and simplifies workflows for manipulating amino acids sequences with Pytorch, and can be
 used to test severals pre-trained transformers models without taking into account the synthax of different models.
