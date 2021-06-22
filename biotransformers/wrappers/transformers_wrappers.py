@@ -69,6 +69,8 @@ class TransformersWrapper:
         else:
             self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
             self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
+            # TODO precise the env variable of the GPUS
+            # os.environ["CUDA_GPUS"] = '0,1,6,8'
             self._workers = [
                 self._ray_cls.remote(model_dir=model_dir, device="cuda:0") for _ in range(num_gpus)
             ]
