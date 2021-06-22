@@ -64,7 +64,7 @@ extensions = [
 html_theme_options = {
     "theme_dev_mode": True,
     "path_to_docs": "docs",
-    "repository_url": "https://github.com/DeepChainBio/deep-chain-apps",
+    "repository_url": "https://github.com/DeepChainBio/bio-transformers",
     # "repository_branch": "gh-pages",  # For testing
     "use_edit_page_button": True,
     # "use_issues_button": True,
