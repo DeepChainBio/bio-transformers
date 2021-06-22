@@ -17,7 +17,7 @@ BioTransformers.list_backend()
 
 ## Compute embeddings on gpu
 
-Please refer to the `multi-gpus section <https://bio-transformers.readthedocs.io/en/develop/documentation/multi_gpus.html>` to have a full understanding of the functionnality.
+Please refer to the [multi-gpus section](https://bio-transformers.readthedocs.io/en/develop/documentation/multi_gpus.html) to have a full understanding of the functionnality.
 
 ```python
 import ray
