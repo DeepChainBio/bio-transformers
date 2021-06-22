@@ -135,3 +135,7 @@ dmypy.json
 
 #model checkpoint
 *.pt
+
+#personal test script
+multigpus_embeddings.py
+multigpus_training.py
