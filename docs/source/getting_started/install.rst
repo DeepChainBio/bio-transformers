@@ -1,3 +1,4 @@
+============
 Installation
 ============
 
@@ -12,7 +13,8 @@ There are multiple different methods to install Bio-transformers:
 
 Install torch/cuda
 ------------------
-``Bio-transformers`` doesn't manage the installation of cuda toolkit and torch gpu version.
+
+.. WARNING:: ``Bio-transformers`` doesn't manage the installation of cuda toolkit and torch gpu version.
 
 If you want to find a specific version or torch based on your CUDA setup, please refer to this `page <https://pytorch.org/get-started/previous-versions/>`_.
 
