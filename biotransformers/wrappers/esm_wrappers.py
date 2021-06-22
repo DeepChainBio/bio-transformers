@@ -95,7 +95,7 @@ class ESMWrapper(LanguageModel):
         """Returns size of the embeddings"""
         return self.hidden_size
 
-    def process_sequences_and_tokens(self, sequences_list: List[str]) -> Dict[str, torch.tensor]:
+    def process_sequences_and_tokens(self, sequences_list: List[str]) -> Dict[str, torch.Tensor]:
         """Function to transform tokens string to IDs; it depends on the model used"""
         _, _, all_tokens = self.batch_converter([("", sequence) for sequence in sequences_list])
         all_tokens = all_tokens.to("cpu")
@@ -120,7 +120,7 @@ class ESMWrapper(LanguageModel):
 
     def model_pass(
         self,
-        model_inputs: Dict[str, torch.tensor],
+        model_inputs: Dict[str, torch.Tensor],
         batch_size: int,
         silent: bool = False,
         pba: ActorHandle = None,
