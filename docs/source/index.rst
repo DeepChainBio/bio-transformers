@@ -48,6 +48,8 @@ developers and researchers at Instadeep.
    :caption: Documentation
 
    documentation/course
+   documentation/logging
+   documentation/multi_gpus
 
 .. toctree::
    :hidden:

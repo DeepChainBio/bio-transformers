@@ -1,4 +1,4 @@
-# Muti-gpus
+# Multi-gpus
 
 ```{note}
 This changes have been introduced in ``bio-transformers`` v0.0.11.
