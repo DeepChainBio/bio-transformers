@@ -8,7 +8,7 @@ from biotransformers.wrappers.rostlab_wrapper import RostlabWrapper
 from biotransformers.wrappers.transformers_wrappers import TransformersWrapper
 
 
-class BioTransformers:
+class BioTransformers(TransformersWrapper):
     """
     General class to choose an ESM or ProtBert backend
     Abstract method are implemented in transformers

@@ -20,7 +20,6 @@ from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
 from biotransformers.utils.utils import (
-    _check_batch_size,
     _check_memory_embeddings,
     _check_memory_logits,
     _check_sequence,
@@ -273,7 +272,6 @@ class TransformersWrapper:
 
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
-        _check_batch_size(batch_size, self._num_gpus)
         _check_sequence(sequences, self._model_dir, 1024)
         _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
 
@@ -331,7 +329,6 @@ class TransformersWrapper:
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
-        _check_batch_size(batch_size, self._num_gpus)
         _check_sequence(sequences, self._model_dir, 1024)
         _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
         _check_tokens_list(sequences, tokens_list)
@@ -444,7 +441,6 @@ class TransformersWrapper:
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
         _check_sequence(sequences, self._model_dir, 1024)
-        _check_batch_size(batch_size, self._num_gpus)
         _check_memory_embeddings(sequences, self._language_model.embeddings_size, pool_mode)
 
         # Get the sequences lengths
@@ -490,7 +486,6 @@ class TransformersWrapper:
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
         _check_sequence(sequences, self._model_dir, 1024)
-        _check_batch_size(batch_size, self._num_gpus)
         _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
 
         # Perform inference in model to compute the logits

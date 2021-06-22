@@ -139,3 +139,4 @@ dmypy.json
 #personal test script
 multigpus_embeddings.py
 multigpus_training.py
+multigpus_accuracy.py
