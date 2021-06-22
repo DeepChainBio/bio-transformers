@@ -19,8 +19,18 @@ class BioTransformers(TransformersWrapper):
         backend: str = "esm1_t6_43M_UR50S",
         num_gpus: int = 0,
     ):
+        """General class to compute method for a list of provided backend
+
+        If you want to restrict the use of GPUS, do make gpu1 and gpu3 available:
+        os.environ["CUDA_VISIBLE_DEVICES"]="0,3" or export CUDA_VISIBLE_DEVICES="0,3"
+
+        Args:
+            backend (str, optional): name of the backend displayed with `list_backend()` . Defaults to "esm1_t6_43M_UR50S".
+            num_gpus (int, optional): number of gpu to use. Defaults to 0.
+        """
         pass
 
+    @deprecated_alias(device="num_gpus")
     @deprecated_alias(multi_gpu="num_gpus")
     def __new__(
         cls,
