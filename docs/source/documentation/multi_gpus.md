@@ -1,15 +1,15 @@
 # Multi-gpus
 
 ```{note}
-This changes have been introduced in ``bio-transformers`` v0.0.11.
+These changes have been introduced in ``bio-transformers`` v0.0.11.
 ```
 
-The use ``torch.nn.DataParallel`` is strongly [discourage](https://pytorch.org/docs/stable/notes/cuda.html#cuda-nn-ddp-instead), as a consequence, ``bio-transformers`` relies on [ray](https://docs.ray.io/en/master/?badge=master#) to distribute the compute on multiple gpus. This parallelization scale far better, with performance increasing with the number of GPUs.
+The use ``torch.nn.DataParallel`` is strongly [discourage](https://pytorch.org/docs/stable/notes/cuda.html#cuda-nn-ddp-instead), as a consequence, ``bio-transformers`` relies on [ray](https://docs.ray.io/en/master/?badge=master#) to distribute the compute on multiple GPUs. This parallelization scale far better, with performance increasing with the number of GPUs.
 
 Ray is used only when the ``num_gpus>1``. See the difference below:
 
 ```{important}
-Note that ray parallelization is only used for inference function. `finetune` function use pytorch-lightning with is own built-in function.
+Note that ray parallelization is only used for inference function. `finetune` function use pytorch-lightning with its own built-in function.
 ```
 
 ```python
