@@ -9,7 +9,7 @@ The use ``torch.nn.DataParallel`` is strongly [discourage](https://pytorch.org/d
 Ray is used only when the ``num_gpus>1``. See the difference below:
 
 ```{important}
-Note that ray parallelization is only used for inference function. `finetune` function use pytorch-lightning with its own built-in function.
+Note that ray parallelization is only used for inference function. `finetune` method uses pytorch-lightning with its built-in function to train a model.
 ```
 
 ```python
