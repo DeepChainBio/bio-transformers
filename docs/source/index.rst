@@ -2,19 +2,19 @@
 Bio-transformers : Documentation and Tutorial
 =============================================
 
-.. Caution:: Bio-transformers introduces breaking changes replacing ``device`` and ``multi_gpu`` arguments by ``num_gpus``. Multi-gpu inference is now managed with ``ray``, which leverage the full computational capacity of each GPU in contrast to ``torch.DataParallel``
+.. Caution:: Bio-transformers introduces breaking changes replacing ``device`` and ``multi_gpu`` arguments by ``num_gpus``. Multi-GPU inference is now managed with ``ray``, which leverage the full computational capacity of each GPU in contrast to ``torch.DataParallel``
 
 bio-transformers is a python wrapper on top of the ESM/Protbert model,
 which are Transformers protein language model, trained on millions on proteins and used to predict embeddings.
-This package provide other functionalities that you can use to build apps thanks to `deepchain-apps <https://deepchain-apps.readthedocs.io/en/latest/index.html>`_
+This package provides other functionalities that you can use to build apps thanks to `deepchain-apps <https://deepchain-apps.readthedocs.io/en/latest/index.html>`_
 
 Features
 --------
 
-.. Note:: Bio-transformers now use `Ray <https://docs.ray.io/en/master/?badge=master#>`_ to manage multi-gpu inference.
+.. Note:: Bio-transformers now use `Ray <https://docs.ray.io/en/master/?badge=master#>`_ to manage multi-GPU inference.
 
 Bio-transformers extends and simplifies workflows for manipulating amino acids sequences with Pytorch, and can be
-used to test severals pre-trained transformers models without taking into account the synthax of different models.
+used to test several pre-trained transformers models without taking into account the syntax specificity of different models.
 
 The main features are:
    - ``compute_loglikelihood``
