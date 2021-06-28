@@ -1,6 +1,6 @@
 """Test module for testing embeddings function"""
-import pytest
 import numpy as np
+import pytest
 
 test_sequences = ["AAAA", "AKKF", "AHHFK", "KKKKKKKLLL"]
 

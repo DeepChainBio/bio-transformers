@@ -1,4 +1,5 @@
 import itertools
+import os
 import string
 from glob import glob
 from pathlib import Path
@@ -48,9 +49,11 @@ def get_msa_list(path_msa: Optional[str]) -> List[str]:
     """
     if path_msa is None:
         raise ValueError("The path of the msa folder could not be None with msa model.")
+    if not os.path.isdir(path_msa):
+        raise FileExistsError(f"{path_msa} is not a valid directory")
+
     list_msa = glob(path_msa + "/*.a3m")
     all_a3m_file = all([msa.endswith("a3m") for msa in list_msa])
-
     if len(list_msa) == 0:
         raise FileNotFoundError("Can't find any msa files in this folder.")
     if not all_a3m_file:
@@ -118,4 +121,5 @@ def msa_to_remove(path_msa: str, n_seq) -> List[str]:
     for i, length in enumerate(lengths):
         if len(length) != n_seq:
             msa_to_remove.append(list_msa_filepath[i])
+    print(f"{len(msa_to_remove)}/{len(list_msa)} have insufficient number of sequences in MSA.")
     return msa_to_remove

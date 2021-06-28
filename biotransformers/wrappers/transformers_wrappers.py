@@ -415,7 +415,6 @@ class TransformersWrapper:
         pool_mode: Tuple[str, ...] = ("cls", "mean", "full"),
         silent: bool = False,
         n_seqs_msa: int = 6,
-        path_msa: Optional[str] = None,
     ) -> Dict[str, Union[List[np.ndarray], np.ndarray]]:
         """Function that computes embeddings of sequences.
 
@@ -433,12 +432,12 @@ class TransformersWrapper:
         embeddings, one per sequence in sequences.
 
         Args:
-            sequences: List of sequences or path of fasta file
+            sequences: List of sequences, path of fasta file or path to a folder
+                       with msa to a3m format.
             batch_size: Batch size
             pool_mode: Mode of pooling ('cls', 'mean', 'full')
             silent : whereas to display or not progress bar
             n_seqs_msa: number of sequence to consider in an msa file.
-            path_msa: path of the msa file with a3m files.
         Returns:
              Dict[str, List[np.ndarray]]: dict matching pool-mode and list of embeddings
         """
@@ -449,8 +448,9 @@ class TransformersWrapper:
             _check_memory_embeddings(sequences, self._language_model.embeddings_size, pool_mode)
             lengths = [len(sequence) for sequence in sequences]
         else:
-            if path_msa is not None:
-                path_msa = str(Path(path_msa).resolve())
+            if not isinstance(sequences, str):
+                raise ValueError("The path to MSA folder must be a string.")
+            path_msa = str(Path(sequences).resolve())
             list_msa_filepath = get_msa_list(path_msa)
             sequences = [read_msa(file, n_seqs_msa) for file in list_msa_filepath]  # type: ignore
             lengths = get_msa_lengths(sequences, n_seqs_msa)  # type: ignore
@@ -476,15 +476,12 @@ class TransformersWrapper:
         if "cls" in pool_mode:
             embeddings_dict["cls"] = np.stack(cls_embeddings)
         if "mean" in pool_mode:
-            # For msa embbedings, we average over tokens and msa sequence.
-            if self._language_model.is_msa:
-                embeddings_dict["mean"] = np.stack(
-                    [np.mean(e, axis=0).mean(0) for e in filtered_embeddings]
-                )
-            else:
-                embeddings_dict["mean"] = np.stack(
-                    [np.mean(e, axis=0) for e in filtered_embeddings]
-                )
+            # For msa embbedings, we average over tokens of each msa, we don't average over sequence.
+            # We use transpose and average over axis 1 to not take in account msa dimension
+            # esm model: [tokens , embedding] msa: [n_msa, tokens, embedding]
+            embeddings_dict["mean"] = np.stack(
+                [e.transpose().mean(1).transpose() for e in filtered_embeddings]
+            )
         return embeddings_dict
 
     def compute_accuracy(
