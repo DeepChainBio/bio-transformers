@@ -18,6 +18,7 @@ import torch
 import torch.tensor
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
+from biotransformers.utils.msa_utils import get_msa_lengths, get_msa_list, read_msa
 from biotransformers.utils.tqdm_utils import ProgressBar
 from biotransformers.utils.utils import (
     _check_memory_embeddings,
@@ -36,6 +37,7 @@ from ..lightning_utils.data import BioDataModule
 from ..lightning_utils.models import LightningModule
 
 log = logger("transformers_wrapper")
+path_msa_folder = str
 
 
 class TransformersWrapper:
@@ -269,7 +271,6 @@ class TransformersWrapper:
         Returns:
             List[np.ndarray]: logits in np.ndarray format
         """
-
         if isinstance(sequences, str):
             sequences = load_fasta(sequences)
         _check_sequence(sequences, self._model_dir, 1024)
@@ -413,6 +414,8 @@ class TransformersWrapper:
         batch_size: int = 1,
         pool_mode: Tuple[str, ...] = ("cls", "mean", "full"),
         silent: bool = False,
+        n_seqs_msa: int = 6,
+        path_msa: Optional[str] = None,
     ) -> Dict[str, Union[List[np.ndarray], np.ndarray]]:
         """Function that computes embeddings of sequences.
 
@@ -434,27 +437,38 @@ class TransformersWrapper:
             batch_size: Batch size
             pool_mode: Mode of pooling ('cls', 'mean', 'full')
             silent : whereas to display or not progress bar
-
+            n_seqs_msa: number of sequence to consider in an msa file.
+            path_msa: path of the msa file with a3m files.
         Returns:
              Dict[str, List[np.ndarray]]: dict matching pool-mode and list of embeddings
         """
-        if isinstance(sequences, str):
-            sequences = load_fasta(sequences)
-        _check_sequence(sequences, self._model_dir, 1024)
-        _check_memory_embeddings(sequences, self._language_model.embeddings_size, pool_mode)
+        if not self._language_model.is_msa:
+            if isinstance(sequences, str):
+                sequences = load_fasta(sequences)
+            _check_sequence(sequences, self._model_dir, 1024)
+            _check_memory_embeddings(sequences, self._language_model.embeddings_size, pool_mode)
+            lengths = [len(sequence) for sequence in sequences]
+        else:
+            if path_msa is not None:
+                path_msa = str(Path(path_msa).resolve())
+            list_msa_filepath = get_msa_list(path_msa)
+            sequences = [read_msa(file, n_seqs_msa) for file in list_msa_filepath]  # type: ignore
+            lengths = get_msa_lengths(sequences, n_seqs_msa)  # type: ignore
 
-        # Get the sequences lengths
-        lengths = [len(sequence) for sequence in sequences]
         # Compute a forward pass to get the embeddings
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         _, embeddings = self._model_evaluation(inputs, batch_size=batch_size, silent=silent)
         embeddings = [emb.cpu().numpy() for emb in embeddings]
         # Remove class token and padding
+        # Use tranpose to filter on the two last dimensions. Doing this, we don't have to manage
+        # the first dimension of the tensor. It works for [dim1, dim2, token_size, emb_size] and
+        # for [dim1, token_size, emb_size]
         filtered_embeddings = [
-            emb[1 : (length + 1), :] for emb, length in zip(list(embeddings), lengths)
+            emb.transpose()[:, 1 : (length + 1)].transpose()
+            for emb, length in zip(list(embeddings), lengths)
         ]
         # Keep class token only
-        cls_embeddings = [emb[0, :] for emb in list(embeddings)]
+        cls_embeddings = [emb.transpose()[:, 0].transpose() for emb in list(embeddings)]
         embeddings_dict = {}
         # Keep only what's necessary
         if "full" in pool_mode:
@@ -462,7 +476,15 @@ class TransformersWrapper:
         if "cls" in pool_mode:
             embeddings_dict["cls"] = np.stack(cls_embeddings)
         if "mean" in pool_mode:
-            embeddings_dict["mean"] = np.stack([np.mean(e, axis=0) for e in filtered_embeddings])
+            # For msa embbedings, we average over tokens and msa sequence.
+            if self._language_model.is_msa:
+                embeddings_dict["mean"] = np.stack(
+                    [np.mean(e, axis=0).mean(0) for e in filtered_embeddings]
+                )
+            else:
+                embeddings_dict["mean"] = np.stack(
+                    [np.mean(e, axis=0) for e in filtered_embeddings]
+                )
         return embeddings_dict
 
     def compute_accuracy(
