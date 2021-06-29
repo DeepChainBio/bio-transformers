@@ -18,14 +18,10 @@ import torch
 import torch.tensor
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
-from biotransformers.utils.msa_utils import get_msa_lengths, get_msa_list, read_msa
 from biotransformers.utils.tqdm_utils import ProgressBar
 from biotransformers.utils.utils import (
-    _check_memory_embeddings,
-    _check_memory_logits,
-    _check_sequence,
-    _check_tokens_list,
     get_logs_version,
+    init_model_sequences,
     load_fasta,
 )
 from biotransformers.wrappers.language_model import LanguageModel
@@ -274,19 +270,15 @@ class TransformersWrapper:
         Returns:
             List[np.ndarray]: logits in np.ndarray format
         """
-        if self._language_model.is_msa:
-            if isinstance(sequences, str):
-                sequences = load_fasta(sequences)
-            _check_sequence(sequences, self._model_dir, 1024)
-            _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
-            lengths = [len(sequence) for sequence in sequences]
-        else:
-            if not isinstance(sequences, str):
-                raise ValueError("The path to MSA folder must be a string.")
-            path_msa = str(Path(sequences).resolve())
-            list_msa_filepath = get_msa_list(path_msa)
-            sequences = [read_msa(file, n_seqs_msa) for file in list_msa_filepath]  # type: ignore
-            lengths = get_msa_lengths(sequences, n_seqs_msa)  # type: ignore
+        sequences, lengths = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=n_seqs_msa,
+            vocab_size=self._language_model.vocab_size,
+            pass_mode=pass_mode,
+            tokens_list=None,
+        )
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
@@ -348,20 +340,15 @@ class TransformersWrapper:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
-        if not self._language_model.is_msa:
-            if isinstance(sequences, str):
-                sequences = load_fasta(sequences)
-            _check_sequence(sequences, self._model_dir, 1024)
-            _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
-            _check_tokens_list(sequences, tokens_list)
-            lengths = [len(sequence) for sequence in sequences]
-        else:
-            if not isinstance(sequences, str):
-                raise ValueError("The path to MSA folder must be a string.")
-            path_msa = str(Path(sequences).resolve())
-            list_msa_filepath = get_msa_list(path_msa)
-            sequences = [read_msa(file, n_seqs_msa) for file in list_msa_filepath]  # type: ignore
-            lengths = get_msa_lengths(sequences, n_seqs_msa)  # type: ignore
+        sequences, lengths = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=n_seqs_msa,
+            vocab_size=self._language_model.vocab_size,
+            pass_mode=pass_mode,
+            tokens_list=tokens_list,
+        )
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
@@ -450,6 +437,11 @@ class TransformersWrapper:
         Returns:
             List[float]: list of log-likelihoods, one per sequence
         """
+        if self._language_model.is_msa:
+            raise NotImplementedError(
+                "compute_loglikelihood for MSA transformers is not implemented."
+            )
+
         probabilities = self.compute_probabilities(
             sequences, batch_size, tokens_list, pass_mode, silent
         )
@@ -494,20 +486,14 @@ class TransformersWrapper:
         Returns:
              Dict[str, List[np.ndarray]]: dict matching pool-mode and list of embeddings
         """
-        if not self._language_model.is_msa:
-            if isinstance(sequences, str):
-                sequences = load_fasta(sequences)
-            _check_sequence(sequences, self._model_dir, 1024)
-            _check_memory_embeddings(sequences, self._language_model.embeddings_size, pool_mode)
-            lengths = [len(sequence) for sequence in sequences]
-        else:
-            if not isinstance(sequences, str):
-                raise ValueError("The path to MSA folder must be a string.")
-            path_msa = str(Path(sequences).resolve())
-            list_msa_filepath = get_msa_list(path_msa)
-            sequences = [read_msa(file, n_seqs_msa) for file in list_msa_filepath]  # type: ignore
-            lengths = get_msa_lengths(sequences, n_seqs_msa)  # type: ignore
-
+        sequences, lengths = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=n_seqs_msa,
+            vocab_size=self._language_model.vocab_size,
+            pool_mode=pool_mode,
+        )
         # Compute a forward pass to get the embeddings
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         _, embeddings = self._model_evaluation(inputs, batch_size=batch_size, silent=silent)
@@ -543,6 +529,7 @@ class TransformersWrapper:
         batch_size: int = 1,
         pass_mode: str = "forward",
         silent: bool = False,
+        n_seqs_msa: int = 6,
     ) -> float:
         """Compute model accuracy from the input sequences
 
@@ -551,15 +538,18 @@ class TransformersWrapper:
             batch_size ([type], optional): [description]. Defaults to 1.
             pass_mode ([type], optional): [description]. Defaults to "forward".
             silent : whereas to display or not progress bar
-
+            n_seqs_msa: number of sequence to consider in an msa file.
         Returns:
             float: model's accuracy over the given sequences
         """
-        if isinstance(sequences, str):
-            sequences = load_fasta(sequences)
-        _check_sequence(sequences, self._model_dir, 1024)
-        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
-
+        sequences, _ = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=n_seqs_msa,
+            vocab_size=self._language_model.vocab_size,
+            pass_mode=pass_mode,
+        )
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
@@ -570,6 +560,7 @@ class TransformersWrapper:
         predicted_labels = torch.argmax(logits, dim=-1)
         # Compute the accuracy
         accuracy = float(torch.mean(torch.eq(predicted_labels, labels).float()))
+
         return accuracy
 
     def load_model(self, model_dir: str, map_location=None):

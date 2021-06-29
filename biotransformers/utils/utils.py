@@ -1,14 +1,69 @@
 import math
 import os
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from Bio import SeqIO
 from biotransformers.utils.constant import BACKEND_LIST
 from biotransformers.utils.logger import logger
+from biotransformers.utils.msa_utils import get_msa_lengths, get_msa_list, read_msa
 
 log = logger("utils")
+
+
+def init_model_sequences(
+    sequences: Union[List[str], str],
+    model_dir: str,
+    model_is_msa: bool,
+    n_seqs_msa: int,
+    vocab_size: Optional[int] = 0,
+    embeddings_size: Optional[int] = 0,
+    pass_mode: Optional[str] = None,
+    pool_mode: Optional[Tuple[str, ...]] = None,
+    tokens_list: Optional[List[str]] = None,
+) -> Tuple[List, List]:
+    """Function use at the beginning of each compute_function that load
+    sequences depending on the type of model.
+
+    Args:
+        sequences (Union[List[str], str]): [description]
+        model_dir (str): [description]
+        model_is_msa (bool): [description]
+        n_seqs_msa (int): [description]
+        vocab_size (Optional[int], optional): [description]. Defaults to 0.
+        embeddings_size (Optional[int], optional): [description]. Defaults to 0.
+        pass_mode (Optional[str], optional): [description]. Defaults to None.
+        pool_mode (Optional[Tuple[str, ...]], optional): [description]. Defaults to None.
+        tokens_list (Optional[List[str]], optional): [description]. Defaults to None.
+
+    Raises:
+        ValueError: [description]
+
+    Returns:
+        Tuple[List,List]: return a list of sequence string/MSA and list of lenghts for each sequence.
+    """
+    if not model_is_msa:
+        if isinstance(sequences, str):
+            sequences = load_fasta(sequences)
+        _check_sequence(sequences, model_dir, 1024)
+        if pass_mode is not None:
+            _check_memory_logits(sequences, vocab_size, pass_mode)
+        if pool_mode is not None:
+            _check_memory_embeddings(sequences, embeddings_size, pool_mode)
+
+        if tokens_list is not None:
+            _check_tokens_list(sequences, tokens_list)
+        lengths = [len(sequence) for sequence in sequences]
+    else:
+        if not isinstance(sequences, str):
+            raise ValueError("The path to MSA folder must be a string.")
+        path_msa = str(Path(sequences).resolve())
+        list_msa_filepath = get_msa_list(path_msa)
+        sequences = [read_msa(file, n_seqs_msa) for file in list_msa_filepath]  # type: ignore
+        lengths = get_msa_lengths(sequences, n_seqs_msa)  # type: ignore
+
+    return sequences, lengths
 
 
 def convert_bytes_size(size_bytes: int) -> Tuple[str, bool]:
