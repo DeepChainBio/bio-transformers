@@ -38,6 +38,8 @@ from ..lightning_utils.models import LightningModule
 
 log = logger("transformers_wrapper")
 path_msa_folder = str
+token_probs_dict = Dict[int, Dict[str, float]]
+sequence_probs_list = List[token_probs_dict]
 
 
 class TransformersWrapper:
@@ -257,6 +259,7 @@ class TransformersWrapper:
         batch_size: int = 1,
         pass_mode: str = "forward",
         silent: bool = False,
+        n_seqs_msa: int = 6,
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
@@ -267,23 +270,39 @@ class TransformersWrapper:
             batch_size: number of sequences to consider for the forward pass
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent: whether to print progress bar in console
-
+            n_seqs_msa: number of sequence to consider in an msa file.
         Returns:
             List[np.ndarray]: logits in np.ndarray format
         """
-        if isinstance(sequences, str):
-            sequences = load_fasta(sequences)
-        _check_sequence(sequences, self._model_dir, 1024)
-        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
+        if self._language_model.is_msa:
+            if isinstance(sequences, str):
+                sequences = load_fasta(sequences)
+            _check_sequence(sequences, self._model_dir, 1024)
+            _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
+            lengths = [len(sequence) for sequence in sequences]
+        else:
+            if not isinstance(sequences, str):
+                raise ValueError("The path to MSA folder must be a string.")
+            path_msa = str(Path(sequences).resolve())
+            list_msa_filepath = get_msa_list(path_msa)
+            sequences = [read_msa(file, n_seqs_msa) for file in list_msa_filepath]  # type: ignore
+            lengths = get_msa_lengths(sequences, n_seqs_msa)  # type: ignore
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
+
         # Remove padded logits
-        lengths = [len(sequence) for sequence in sequences]
-        logits = [logit[:length, :] for logit, length in zip(list(logits), lengths)]
-        labels = [label[:length, :] for label, length in zip(list(labels), lengths)]
+        logits = [
+            torch.from_numpy(logit.numpy().transpose()[:, :length].transpose())
+            for logit, length in zip(list(logits), lengths)
+        ]
+        labels = [
+            torch.from_numpy(label.numpy().transpose()[:, :length].transpose())
+            for label, length in zip(list(labels), lengths)
+        ]
+
         # Keep only corresponding to amino acids that are in the sequence
         logits = [
             torch.gather(logit, dim=-1, index=label).numpy() for logit, label in zip(logits, labels)
@@ -298,7 +317,8 @@ class TransformersWrapper:
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
         silent: bool = False,
-    ) -> List[Dict[int, Dict[str, float]]]:
+        n_seqs_msa: int = 6,
+    ) -> Union[sequence_probs_list, List[sequence_probs_list]]:
         """Function that computes the probabilities over amino-acids from sequences.
 
         It takes as inputs a list of sequences and returns a list of dictionaries.
@@ -323,35 +343,52 @@ class TransformersWrapper:
             tokens_list: List of tokens to consider
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
-
+            n_seqs_msa: number of sequence to consider in an msa file.
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
-        if isinstance(sequences, str):
-            sequences = load_fasta(sequences)
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
-        _check_sequence(sequences, self._model_dir, 1024)
-        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
-        _check_tokens_list(sequences, tokens_list)
+        if not self._language_model.is_msa:
+            if isinstance(sequences, str):
+                sequences = load_fasta(sequences)
+            _check_sequence(sequences, self._model_dir, 1024)
+            _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
+            _check_tokens_list(sequences, tokens_list)
+            lengths = [len(sequence) for sequence in sequences]
+        else:
+            if not isinstance(sequences, str):
+                raise ValueError("The path to MSA folder must be a string.")
+            path_msa = str(Path(sequences).resolve())
+            list_msa_filepath = get_msa_list(path_msa)
+            sequences = [read_msa(file, n_seqs_msa) for file in list_msa_filepath]  # type: ignore
+            lengths = get_msa_lengths(sequences, n_seqs_msa)  # type: ignore
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         # Remove padded logits
-        lengths = [len(sequence) for sequence in sequences]
-        logits = [logit[:length, :] for logit, length in zip(list(logits), lengths)]
+        # Use transpose so that function works for MSA and sequence
+        logits = [
+            torch.from_numpy(logit.numpy().transpose()[:, :length].transpose())
+            for logit, length in zip(list(logits), lengths)
+        ]
         # Set to -inf logits that correspond to tokens that are not in tokens list
         vocabulary_mask = torch.from_numpy(self.get_vocabulary_mask(tokens_list))
         # Avoid printing warnings
         np.seterr(divide="ignore")
 
+        # Put -inf on character not in token list. Shape of this mask depends on
+
+        if self._language_model.is_msa:
+            repeat_dim = (logits[0].shape[0], logits[0].shape[1], 1)  # type: ignore
+        else:
+            repeat_dim = (logits[0].shape[0], 1)  # type: ignore
+
         masked_logits = []
         for logit in logits:
-            masked_logit = logit + torch.from_numpy(
-                np.tile(np.log(vocabulary_mask), (logit.shape[0], 1))
-            )
+            masked_logit = logit + torch.from_numpy(np.tile(np.log(vocabulary_mask), repeat_dim))
             masked_logits.append(masked_logit)
-        # Use softmax to compute probabilities frm logits
+        # Use softmax to compute probabilities from logits
         # Due to the -inf, probs of tokens that are not in token list will be zero
         softmax = torch.nn.Softmax(dim=-1)
         probabilities = [softmax(logits) for logits in masked_logits]
@@ -363,11 +400,27 @@ class TransformersWrapper:
                 if token in tokens_list
             }
 
-        probabilities_dict = [
-            {key: _get_probabilities_dict(value) for key, value in dict(enumerate(probs)).items()}
-            for probs in probabilities
-        ]
-        return probabilities_dict
+        probabilities_dict_type = Union[sequence_probs_list, List[sequence_probs_list]]
+        if self._language_model.is_msa:
+            probabilities_dict: probabilities_dict_type = [
+                [
+                    {
+                        key: _get_probabilities_dict(value)
+                        for key, value in dict(enumerate(probs)).items()
+                    }
+                    for probs in msa
+                ]
+                for msa in probabilities
+            ]
+        else:
+            probabilities_dict = [
+                {
+                    key: _get_probabilities_dict(value)
+                    for key, value in dict(enumerate(probs)).items()
+                }
+                for probs in probabilities
+            ]
+        return probabilities_dict  # type: ignore
 
     def compute_loglikelihood(
         self,
@@ -403,7 +456,7 @@ class TransformersWrapper:
         log_likelihoods = []
         for sequence, probabilities_dict in zip(sequences, probabilities):
             log_likelihood = np.sum(
-                [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]
+                [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]  # type: ignore
             )
             log_likelihoods.append(float(log_likelihood))
         return log_likelihoods
@@ -625,6 +678,8 @@ class TransformersWrapper:
         if isinstance(train_sequences, str):
             train_sequences = load_fasta(train_sequences)
 
+        if self._language_model.is_msa:
+            raise ValueError("MSA finetunening not implemented.")
         # Free resources used by ray before finetuning with Lightning
         del self._workers
 

@@ -55,7 +55,7 @@ def get_msa_list(path_msa: Optional[str]) -> List[str]:
     list_msa = glob(path_msa + "/*.a3m")
     all_a3m_file = all([msa.endswith("a3m") for msa in list_msa])
     if len(list_msa) == 0:
-        raise FileNotFoundError("Can't find any msa files in this folder.")
+        raise FileNotFoundError("Can't find any msa files with .a3m format in this folder.")
     if not all_a3m_file:
         raise ValueError("All files in msa folder should have a3m format.")
 
@@ -80,6 +80,8 @@ def get_msa_lengths(list_msa: List[List[Tuple[str, str]]], nseq: int) -> List[in
         Example: >> input = ['AAAB','AAAA','AAA-']
                  >> _msa_length(input)
                  >> [4,4,4]
+        Raises:
+            ValueError if number of seq in the MSA is less than nseq
         Args:
             msa (List[Tuple[str, str]]): List of sequence
 
@@ -93,7 +95,8 @@ def get_msa_lengths(list_msa: List[List[Tuple[str, str]]], nseq: int) -> List[in
     if n_different_seq > 0:
         msg = (
             f"Find {n_different_seq} files with less than {nseq} in the msa."
-            f"All msa file must have at least {nseq} sequences."
+            f"All msa file must have at least {nseq} sequences. Use `msa_to_remove` to get "
+            f"the file to remove."
         )
         raise ValueError(msg)
     unique_length = [max(length) for length in lengths]
