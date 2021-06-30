@@ -242,6 +242,8 @@ class TransformersWrapper:
             logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
         """
         if pass_mode == "masked":
+            if self._language_model.is_msa:
+                raise NotImplementedError("Masked with msa-transformers is not implemented.")
             model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
             logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size, **kwargs)
             logits = self._gather_masked_outputs(logits, masked_ids_list)
@@ -262,7 +264,7 @@ class TransformersWrapper:
         It returns a list of logits arrays for each sequence.
 
         Args:
-            sequences_list: List of sequences
+            sequences : List of sequences, path of fasta file or path to a folder with msa to a3m format.
             batch_size: number of sequences to consider for the forward pass
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent: whether to print progress bar in console
@@ -330,7 +332,7 @@ class TransformersWrapper:
         the user to choose the tokens to consider when computing probabilities.
 
         Args:
-            sequences: List of sequences
+            sequences : List of sequences, path of fasta file or path to a folder with msa to a3m format.
             batch_size: number of sequences to consider for the forward pass
             tokens_list: List of tokens to consider
             pass_mode: Mode of model evaluation ('forward' or 'masked')
@@ -366,13 +368,13 @@ class TransformersWrapper:
 
         # Put -inf on character not in token list. Shape of this mask depends on
 
-        if self._language_model.is_msa:
-            repeat_dim = (logits[0].shape[0], logits[0].shape[1], 1)  # type: ignore
-        else:
-            repeat_dim = (logits[0].shape[0], 1)  # type: ignore
-
         masked_logits = []
         for logit in logits:
+            # repeat MSA dimension
+            if self._language_model.is_msa:
+                repeat_dim = (logit.shape[0], logit.shape[1], 1)  # type: ignore
+            else:
+                repeat_dim = (logit.shape[0], 1)  # type: ignore
             masked_logit = logit + torch.from_numpy(np.tile(np.log(vocabulary_mask), repeat_dim))
             masked_logits.append(masked_logit)
         # Use softmax to compute probabilities from logits
@@ -477,8 +479,7 @@ class TransformersWrapper:
         embeddings, one per sequence in sequences.
 
         Args:
-            sequences: List of sequences, path of fasta file or path to a folder
-                       with msa to a3m format.
+            sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
             batch_size: Batch size
             pool_mode: Mode of pooling ('cls', 'mean', 'full')
             silent : whereas to display or not progress bar
@@ -534,7 +535,7 @@ class TransformersWrapper:
         """Compute model accuracy from the input sequences
 
         Args:
-            sequences (Union[List[str],str]): list of sequence or fasta file
+            sequences (Union[List[str],str]): List of sequences, path of fasta file or path to a folder with msa to a3m format.
             batch_size ([type], optional): [description]. Defaults to 1.
             pass_mode ([type], optional): [description]. Defaults to "forward".
             silent : whereas to display or not progress bar
