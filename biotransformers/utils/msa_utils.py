@@ -94,8 +94,8 @@ def get_msa_lengths(list_msa: List[List[Tuple[str, str]]], nseq: int) -> List[in
     n_different_seq = sum([len(length) != nseq for length in lengths])
     if n_different_seq > 0:
         msg = (
-            f"Find {n_different_seq} files with less than {nseq} seqeunces in the msa."
-            f"All msa file must have at least {nseq} sequences."
+            f"Find {n_different_seq} files with less than {nseq} sequences in the msa. "
+            f"All msa files must have at least {nseq} sequences. "
             f"Use `from biotransformers.utils.msa_utils.msa_to_remove` to get the file to remove."
         )
         raise ValueError(msg)
