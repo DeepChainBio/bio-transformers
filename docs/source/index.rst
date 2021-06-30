@@ -50,6 +50,7 @@ developers and researchers at Instadeep.
    documentation/course
    documentation/logging
    documentation/multi_gpus
+   documentation/msa
 
 .. toctree::
    :hidden:
