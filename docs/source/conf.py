@@ -53,13 +53,15 @@ html_title = f"bio-transformers v{release}"
 html_logo = "_static/deepchain-small.png"
 
 extensions = [
-    "sphinx.ext.autodoc",  # autodoc for API
+    # "sphinx.ext.autodoc",  # autodoc for API
     "sphinx_tabs.tabs",  # for tabs in rst
     # "m2r2",  # for supporting md files
     "notfound.extension",  # for 404 pages
     "sphinx.ext.napoleon",  # extensions for google style docstring
     "myst_parser",
+    "autoapi.extension",
 ]
+autoapi_dirs = ["../biotransformers"]
 
 html_theme_options = {
     "theme_dev_mode": True,
