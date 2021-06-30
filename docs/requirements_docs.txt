@@ -1,6 +1,6 @@
 biopython==1.78
 fair-esm==0.3.1
-myst-nb>=0.12.3
+myst-nb
 myst-parser>=0.15.1
 pandas>=1.2.3
 pre-commit==2.2.0
