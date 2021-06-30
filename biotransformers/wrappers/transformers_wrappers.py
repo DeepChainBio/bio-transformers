@@ -261,7 +261,8 @@ class TransformersWrapper:
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
-        It returns a list of logits arrays for each sequence.
+        It returns a list of logits arrays for each sequence. If working with MSA, return a list of logits for
+        each sequence of the MSA.
 
         Args:
             sequences : List of sequences, path of fasta file or path to a folder with msa to a3m format.
@@ -321,6 +322,7 @@ class TransformersWrapper:
         starting with 0) and the values are dictionaries of probabilities over
         the natural amino-acids for this position.
 
+        When working with MSA, it returns a list of dictionnary for each sequence in the MSA.
         In these dictionaries, the keys are the amino-acids and the value
         the corresponding probabilities.
 
@@ -478,9 +480,10 @@ class TransformersWrapper:
         per pool-mode that has been specified. The corresponding value is a list of
         embeddings, one per sequence in sequences.
 
+        When working with MSA, an extra dimension is added to the final tensor.
         Args:
             sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
-            batch_size: Batch size
+            batch_size: batch size
             pool_mode: Mode of pooling ('cls', 'mean', 'full')
             silent : whereas to display or not progress bar
             n_seqs_msa: number of sequence to consider in an msa file.
@@ -534,6 +537,7 @@ class TransformersWrapper:
     ) -> float:
         """Compute model accuracy from the input sequences
 
+        When working with MSA, the accuracy is computed over all the tokens of the msa' sequences.
         Args:
             sequences (Union[List[str],str]): List of sequences, path of fasta file or path to a folder with msa to a3m format.
             batch_size ([type], optional): [description]. Defaults to 1.
@@ -671,7 +675,7 @@ class TransformersWrapper:
             train_sequences = load_fasta(train_sequences)
 
         if self._language_model.is_msa:
-            raise ValueError("MSA finetunening not implemented.")
+            raise NotImplementedError("MSA finetunening not implemented.")
         # Free resources used by ray before finetuning with Lightning
         del self._workers
 

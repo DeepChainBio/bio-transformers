@@ -17,31 +17,32 @@ def init_model_sequences(
     model_dir: str,
     model_is_msa: bool,
     n_seqs_msa: int,
-    vocab_size: Optional[int] = 0,
-    embeddings_size: Optional[int] = 0,
+    vocab_size: int = 0,
+    embeddings_size: int = 0,
     pass_mode: Optional[str] = None,
     pool_mode: Optional[Tuple[str, ...]] = None,
     tokens_list: Optional[List[str]] = None,
 ) -> Tuple[List, List]:
     """Function use at the beginning of each compute_function that load
     sequences depending on the type of model.
+    When using MSA-model, return a list of MSA, which is simply a list of sequences with special tokens.
 
     Args:
-        sequences (Union[List[str], str]): [description]
-        model_dir (str): [description]
-        model_is_msa (bool): [description]
-        n_seqs_msa (int): [description]
-        vocab_size (Optional[int], optional): [description]. Defaults to 0.
-        embeddings_size (Optional[int], optional): [description]. Defaults to 0.
-        pass_mode (Optional[str], optional): [description]. Defaults to None.
-        pool_mode (Optional[Tuple[str, ...]], optional): [description]. Defaults to None.
-        tokens_list (Optional[List[str]], optional): [description]. Defaults to None.
+        sequences (Union[List[str], str]): List of sequences, path of fasta file or path to a folder with msa to a3m format.
+        model_dir (str): name of the model
+        model_is_msa (bool): is MSA model
+        n_seqs_msa (int): number of seqs to consider in an MSA
+        vocab_size (Optional[int], optional): Defaults to 0.
+        embeddings_size (Optional[int], optional): Defaults to 0.
+        pass_mode (Optional[str], optional): "masked" or "forward". Defaults to None.
+        pool_mode (Optional[Tuple[str, ...]], optional): full, mean or cls. Defaults to None.
+        tokens_list (Optional[List[str]], optional): list of valid tokens. Defaults to None.
 
     Raises:
         ValueError: [description]
 
     Returns:
-        Tuple[List,List]: return a list of sequence string/MSA and list of lenghts for each sequence.
+        Tuple[List,List]: return a list of sequence string/MSA and list of lenghts for each sequence/MSA.
     """
     if not model_is_msa:
         if isinstance(sequences, str):
