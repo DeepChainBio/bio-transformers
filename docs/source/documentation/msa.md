@@ -60,7 +60,7 @@ All files in the msa folder must have at least `n_seqs_msa` sequences in each MS
 ```
 
 ```python
-msa_to_remove("data_msa_sample/",n_seq=128)
+msa_to_remove("data_msa_sample/", n_seq=128)
 ```
 
 ```python
