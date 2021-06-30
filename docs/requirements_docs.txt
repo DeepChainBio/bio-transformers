@@ -12,5 +12,5 @@ sphinx-autoapi
 sphinx-autoapi
 sphinx-book-theme
 sphinx-notfound-page==0.6
-sphinx_tabs==2.1.0
+sphinx_tabs>=2.1.0
 tqdm>=4.60.0
