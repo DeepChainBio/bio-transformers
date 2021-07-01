@@ -3,7 +3,7 @@ from glob import glob
 import numpy as np
 from biotransformers import BioTransformers
 
-path_msa = "../../data/msa"
+path_msa = "data/msa"
 model = BioTransformers("esm_msa1_t12_100M_UR50S")
 
 
