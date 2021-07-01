@@ -1,0 +1,140 @@
+:mod:`biotransformers.wrappers.language_model`
+==============================================
+
+.. py:module:: biotransformers.wrappers.language_model
+
+.. autoapi-nested-parse::
+
+   This script defines a generic template class for any language model.
+   Both ESM and Rostlab language models should implement this class.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.wrappers.language_model.LanguageModel
+
+
+
+
+.. class:: LanguageModel(model_dir: str, device)
+
+
+   Bases: :py:obj:`abc.ABC`
+
+   Class that implements a language model.
+
+   .. method:: model_id(self) -> str
+      :property:
+
+      Model ID, as specified in the model directory
+
+
+   .. method:: clean_model_id(self) -> str
+      :property:
+
+      Clean model ID (in case the model directory is not)
+
+
+   .. method:: model_vocabulary(self) -> List[str]
+      :property:
+
+      Returns the whole vocabulary list
+
+
+   .. method:: vocab_size(self) -> int
+      :property:
+
+      Returns the whole vocabulary size
+
+
+   .. method:: mask_token(self) -> str
+      :property:
+
+      Representation of the mask token (as a string)
+
+
+   .. method:: pad_token(self) -> str
+      :property:
+
+      Representation of the pad token (as a string)
+
+
+   .. method:: begin_token(self) -> str
+      :property:
+
+      Representation of the beginning of sentence token (as a string)
+
+
+   .. method:: end_token(self) -> str
+      :property:
+
+      Representation of the end of sentence token (as a string).
+
+
+   .. method:: does_end_token_exist(self) -> bool
+      :property:
+
+      Returns true if a end of sequence token exists
+
+
+   .. method:: token_to_id(self)
+      :property:
+
+      Returns a function which maps tokens to IDs
+
+
+   .. method:: embeddings_size(self) -> int
+      :property:
+
+      Returns size of the embeddings
+
+
+   .. method:: process_sequences_and_tokens(self, sequences_list: List[str]) -> Dict[str, torch.Tensor]
+      :abstractmethod:
+
+      Function to transform tokens string to IDs; it depends on the model used
+
+
+   .. method:: model(self) -> torch.nn.Module
+      :property:
+
+      Return torch model.
+
+
+   .. method:: _load_model(self, path: str)
+      :abstractmethod:
+
+      Load model.
+
+
+   .. method:: model_pass(self, model_inputs: Dict[str, torch.tensor], batch_size: int, silent: bool = False, pba: ray.actor.ActorHandle = None) -> Tuple[torch.Tensor, torch.Tensor]
+      :abstractmethod:
+
+      Function which computes logits and embeddings based on a dict of sequences
+      tensors, a provided batch size and an inference configuration. The output is
+      obtained by computing a forward pass through the model ("forward inference")
+
+      :param model_inputs: [description]
+      :type model_inputs: Dict[str, torch.tensor]
+      :param batch_size: size of the batch
+      :type batch_size: int
+      :param silent: display or not progress bar
+      :param pba: tqdm progress bar for ray actor
+
+      :returns:         * logits [num_seqs, max_len_seqs, vocab_size]
+                        * embeddings [num_seqs, max_len_seqs+1, embedding_size]
+      :rtype: Tuple[torch.tensor, torch.tensor]
+
+
+   .. method:: get_alphabet_dataloader(self)
+      :abstractmethod:
+
+      Define an alphabet mapping for common method between
+      protbert and ESM

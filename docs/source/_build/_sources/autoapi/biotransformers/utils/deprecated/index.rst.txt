@@ -1,0 +1,24 @@
+:mod:`biotransformers.utils.deprecated`
+=======================================
+
+.. py:module:: biotransformers.utils.deprecated
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.utils.deprecated.deprecated_alias
+   biotransformers.utils.deprecated.rename_kwargs
+
+
+
+.. function:: deprecated_alias(**aliases)
+
+
+.. function:: rename_kwargs(func_name, kwargs, aliases)

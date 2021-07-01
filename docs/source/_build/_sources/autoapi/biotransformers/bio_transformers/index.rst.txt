@@ -1,0 +1,36 @@
+:mod:`biotransformers.bio_transformers`
+=======================================
+
+.. py:module:: biotransformers.bio_transformers
+
+.. autoapi-nested-parse::
+
+   Main module to build either ESM or protbert model
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.bio_transformers.BioTransformers
+
+
+
+
+.. class:: BioTransformers(backend: str = 'esm1_t6_43M_UR50S', num_gpus: int = 0)
+
+
+   Bases: :py:obj:`biotransformers.wrappers.transformers_wrappers.TransformersWrapper`
+
+   General class to choose an ESM or ProtBert backend
+   Abstract method are implemented in transformers
+
+   .. method:: list_backend() -> None
+      :staticmethod:
+
+      Get all possible backend for the model

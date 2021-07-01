@@ -1,0 +1,18 @@
+:mod:`biotransformers.tests`
+============================
+
+.. py:module:: biotransformers.tests
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   conftest/index.rst
+   test_accuracy/index.rst
+   test_embeddings/index.rst
+   test_logits/index.rst
+   test_loglikelihoods/index.rst
+   test_msa/index.rst

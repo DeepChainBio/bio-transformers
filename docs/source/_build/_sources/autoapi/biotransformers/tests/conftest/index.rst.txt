@@ -1,0 +1,33 @@
+:mod:`biotransformers.tests.conftest`
+=====================================
+
+.. py:module:: biotransformers.tests.conftest
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.conftest.init_model
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.conftest.test_models
+
+
+.. data:: test_models
+   :annotation: = ['esm1_t6_43M_UR50S', 'esm1b_t33_650M_UR50S', 'protbert']
+
+
+
+.. function:: init_model(request)

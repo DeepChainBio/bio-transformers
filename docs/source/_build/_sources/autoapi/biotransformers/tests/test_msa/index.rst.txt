@@ -1,0 +1,43 @@
+:mod:`biotransformers.tests.test_msa`
+=====================================
+
+.. py:module:: biotransformers.tests.test_msa
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.test_msa.test_msa_embeddings_type_and_shape
+   biotransformers.tests.test_msa.test_msa_logits_type
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.test_msa.path_msa
+   biotransformers.tests.test_msa.model
+
+
+.. data:: path_msa
+   :annotation: = biotransformers/data/msa
+
+
+
+.. data:: model
+
+
+
+
+.. function:: test_msa_embeddings_type_and_shape()
+
+
+.. function:: test_msa_logits_type()

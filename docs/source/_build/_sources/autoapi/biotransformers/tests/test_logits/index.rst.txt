@@ -1,0 +1,44 @@
+:mod:`biotransformers.tests.test_logits`
+========================================
+
+.. py:module:: biotransformers.tests.test_logits
+
+.. autoapi-nested-parse::
+
+   Test module for testing logits function
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.test_logits.test_logits_type
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.test_logits.test_sequences
+   biotransformers.tests.test_logits.test_params
+
+
+.. data:: test_sequences
+   :annotation: = ['AAAA', 'AKKF', 'AHHFK', 'KKKKKKKLLL']
+
+
+
+.. data:: test_params
+   :annotation: = [[1, 'forward'], [2, 'masked'], [10, 'forward']]
+
+
+
+.. function:: test_logits_type(init_model, batch_size, pass_mode)

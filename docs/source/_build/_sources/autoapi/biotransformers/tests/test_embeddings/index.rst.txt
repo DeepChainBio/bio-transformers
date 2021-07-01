@@ -1,0 +1,44 @@
+:mod:`biotransformers.tests.test_embeddings`
+============================================
+
+.. py:module:: biotransformers.tests.test_embeddings
+
+.. autoapi-nested-parse::
+
+   Test module for testing embeddings function
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.test_embeddings.test_embeddings_type_and_shape
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.test_embeddings.test_sequences
+   biotransformers.tests.test_embeddings.test_params
+
+
+.. data:: test_sequences
+   :annotation: = ['AAAA', 'AKKF', 'AHHFK', 'KKKKKKKLLL']
+
+
+
+.. data:: test_params
+   :annotation: = [[1, ['cls', 'mean']], [2, ['full', 'mean', 'cls']], [10, ['cls', 'full']]]
+
+
+
+.. function:: test_embeddings_type_and_shape(init_model, batch_size, pool_mode)

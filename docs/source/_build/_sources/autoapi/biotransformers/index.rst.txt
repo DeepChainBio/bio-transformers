@@ -1,0 +1,106 @@
+:mod:`biotransformers`
+======================
+
+.. py:module:: biotransformers
+
+
+Subpackages
+-----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 3
+
+   lightning_utils/index.rst
+   tests/index.rst
+   utils/index.rst
+   wrappers/index.rst
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   bio_transformers/index.rst
+   version/index.rst
+
+
+Package Contents
+----------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.BioTransformers
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.logger
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.VERSION
+   biotransformers.log
+   biotransformers.__version__
+
+
+.. class:: BioTransformers(backend: str = 'esm1_t6_43M_UR50S', num_gpus: int = 0)
+
+
+   Bases: :py:obj:`biotransformers.wrappers.transformers_wrappers.TransformersWrapper`
+
+   General class to choose an ESM or ProtBert backend
+   Abstract method are implemented in transformers
+
+   .. method:: list_backend() -> None
+      :staticmethod:
+
+      Get all possible backend for the model
+
+
+
+.. function:: logger(module_name: str) -> logging.Logger
+
+   Configure the logger with formatter and handlers.
+
+   The log level depends on the environment variable `BIO_LOG_LEVEL`.
+
+   - 0: NOTSET, will be set to DEBUG
+   - 1: DEBUG
+   - 2: INFO (default)
+   - 3: WARNING
+   - 4: ERROR
+   - 5: CRITICAL
+   https://docs.python.org/3/library/logging.html#levels
+
+   :param module_name: module name
+   :type module_name: str
+
+   :returns: instantiate logger object
+   :rtype: [Logger]
+
+
+.. data:: VERSION
+   :annotation: = 0.1.3
+
+
+
+.. data:: log
+
+
+
+
+.. data:: __version__

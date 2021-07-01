@@ -1,0 +1,77 @@
+:mod:`biotransformers.utils.msa_utils`
+======================================
+
+.. py:module:: biotransformers.utils.msa_utils
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.utils.msa_utils.get_translation
+   biotransformers.utils.msa_utils.read_sequence
+   biotransformers.utils.msa_utils.remove_insertions
+   biotransformers.utils.msa_utils.read_msa
+   biotransformers.utils.msa_utils.get_msa_list
+   biotransformers.utils.msa_utils.get_msa_lengths
+   biotransformers.utils.msa_utils.msa_to_remove
+
+
+
+.. function:: get_translation() -> Dict[int, Any]
+
+   get translation dict to convert unused character in MSA
+
+
+.. function:: read_sequence(filename: str) -> Tuple[str, str]
+
+   Reads the first (reference) sequences from a fasta or MSA file.
+
+
+.. function:: remove_insertions(sequence: str) -> str
+
+   Removes any insertions into the sequence.
+   Needed to load aligned sequences in an MSA.
+
+
+.. function:: read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]
+
+   Reads the first nseq sequences from an MSA file,
+   automatically removes insertions.
+
+
+.. function:: get_msa_list(path_msa: Optional[str]) -> List[str]
+
+   Get all files of the msa folder and check file format
+
+   :param path_msa: path of the folder with a3m file
+   :type path_msa: Optional[str]
+
+
+.. function:: get_msa_lengths(list_msa: List[List[Tuple[str, str]]], nseq: int) -> List[int]
+
+   Get length of an MSA list
+
+   All MSA must have at least nseq in msa
+
+   :param list_msa: list of MSA. MSA is a list of tuple
+   :type list_msa: List[List[Tuple[str,str]]]
+   :param nseq:
+
+   :returns: [description]
+   :rtype: List[int]
+
+
+.. function:: msa_to_remove(path_msa: str, n_seq) -> List[str]
+
+   Get list of msa with less than nseq sequence
+
+   :param path_msa: [description]
+   :type path_msa: str
+
+   :returns: List of msa filepath that don't have enough enough sequences.

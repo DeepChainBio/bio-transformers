@@ -1,0 +1,11 @@
+:mod:`biotransformers.version`
+==============================
+
+.. py:module:: biotransformers.version
+
+
+Module Contents
+---------------
+
+.. data:: VERSION
+   :annotation: = 0.1.3

@@ -1,0 +1,644 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MSA &#8212; bio-transformers v0.1.0</title>
+
+  <link href="../_static/css/theme.css" rel="stylesheet" />
+  <link href="../_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+
+  <link rel="stylesheet"
+    href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+
+
+
+
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/sphinx-book-theme.acff12b8f9c144ce68a297486a2fa670.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/tabs.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+
+  <link rel="preload" as="script" href="../_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Loglikelihood" href="../tutorial/loglikelihood.html" />
+    <link rel="prev" title="Multi-gpus" href="multi_gpus.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+
+    <div class="container-fluid" id="banner"></div>
+
+
+
+    <div class="container-xl">
+      <div class="row">
+
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../index.html">
+
+      <img src="../_static/deepchain-small.png" class="logo" alt="logo">
+
+
+      <h1 class="site-logo" id="site-title">bio-transformers v0.1.0</h1>
+
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+    <div class="bd-toc-item active">
+        <p class="caption">
+ <span class="caption-text">
+  Getting Started
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../getting_started/install.html">
+   Installation
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../getting_started/quick_start.html">
+   Quick Start
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Documentation
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="course.html">
+   Getting starting with transformers
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="logging.html">
+   Logging
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="multi_gpus.html">
+   Multi-gpus
+  </a>
+ </li>
+ <li class="toctree-l1 current active">
+  <a class="current reference internal" href="#">
+   MSA
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Tutorial
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../tutorial/loglikelihood.html">
+   Loglikelihood
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../tutorial/embeddings.html">
+   Embeddings
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../tutorial/finetuning.html">
+   Finetuning
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Api reference
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../api/biotransformers.html">
+   Bio-transformers method
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Contributing
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../contributing/CONTRIBUTING.html">
+   Contributing
+  </a>
+ </li>
+ <li class="toctree-l1 has-children">
+  <a class="reference internal" href="../autoapi/index.html">
+   API Reference
+  </a>
+  <input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/>
+  <label for="toctree-checkbox-1">
+   <i class="fas fa-chevron-down">
+   </i>
+  </label>
+  <ul>
+   <li class="toctree-l2 has-children">
+    <a class="reference internal" href="../autoapi/biotransformers/index.html">
+     <code class="xref py py-mod docutils literal notranslate">
+      <span class="pre">
+       biotransformers
+      </span>
+     </code>
+    </a>
+    <input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/>
+    <label for="toctree-checkbox-2">
+     <i class="fas fa-chevron-down">
+     </i>
+    </label>
+    <ul>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../autoapi/biotransformers/lightning_utils/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.lightning_utils
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/>
+      <label for="toctree-checkbox-3">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/lightning_utils/data/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.data
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/lightning_utils/models/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.models
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/lightning_utils/optimizer/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.optimizer
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../autoapi/biotransformers/tests/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.tests
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/>
+      <label for="toctree-checkbox-4">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/conftest/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.conftest
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_accuracy/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_accuracy
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_embeddings/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_embeddings
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_logits/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_logits
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_loglikelihoods/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_loglikelihoods
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_msa/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_msa
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../autoapi/biotransformers/utils/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.utils
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/>
+      <label for="toctree-checkbox-5">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/constant/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.constant
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/deprecated/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.deprecated
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/logger/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.logger
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/msa_utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.msa_utils
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/tqdm_utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.tqdm_utils
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.utils
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../autoapi/biotransformers/wrappers/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.wrappers
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/>
+      <label for="toctree-checkbox-6">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/wrappers/esm_wrappers/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.esm_wrappers
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/wrappers/language_model/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.language_model
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/wrappers/rostlab_wrapper/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.rostlab_wrapper
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/wrappers/transformers_wrappers/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.transformers_wrappers
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../autoapi/biotransformers/bio_transformers/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.bio_transformers
+        </span>
+       </code>
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../autoapi/biotransformers/version/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.version
+        </span>
+       </code>
+      </a>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+
+
+
+
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn" aria-label="Download this page"><i
+            class="fas fa-download"></i></button>
+
+    <div class="dropdown-buttons">
+        <!-- ipynb file if we had a myst markdown file -->
+
+        <!-- Download raw file -->
+        <a class="dropdown-buttons" href="../_sources/documentation/msa.md.txt"><button type="button"
+                class="btn btn-secondary topbarbtn" title="Download source file" data-toggle="tooltip"
+                data-placement="left">.md</button></a>
+        <!-- Download PDF via print -->
+        <button type="button" id="download-print" class="btn btn-secondary topbarbtn" title="Print to PDF"
+            onClick="window.print()" data-toggle="tooltip" data-placement="left">.pdf</button>
+    </div>
+</div>
+
+            <!-- Source interaction buttons -->
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn"
+        aria-label="Connect with source repository"><i class="fab fa-github"></i></button>
+    <div class="dropdown-buttons sourcebuttons">
+        <a class="repository-button"
+            href="https://github.com/DeepChainBio/bio-transformers"><button type="button" class="btn btn-secondary topbarbtn"
+                data-toggle="tooltip" data-placement="left" title="Source repository"><i
+                    class="fab fa-github"></i>repository</button></a>
+
+        <a class="edit-button" href="https://github.com/DeepChainBio/bio-transformers/edit/master/docs/documentation/msa.md"><button
+                type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip" data-placement="left"
+                title="Edit this page"><i class="fas fa-pencil-alt"></i>suggest edit</button></a>
+    </div>
+</div>
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+
+            <div class="tocsection onthispage pt-5 pb-3">
+                <i class="fas fa-list"></i> Contents
+            </div>
+            <nav id="bd-toc-nav">
+                <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#what-is-an-msa">
+   What is an MSA?
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#how-to-use-msa-transformers">
+   How to use msa-transformers?
+  </a>
+ </li>
+</ul>
+
+            </nav>
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+
+              <div>
+
+  <div class="tex2jax_ignore mathjax_ignore section" id="msa">
+<h1>MSA<a class="headerlink" href="#msa" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="what-is-an-msa">
+<h2>What is an MSA?<a class="headerlink" href="#what-is-an-msa" title="Permalink to this headline">¶</a></h2>
+<p>An MSA (multiple sequence alignment) is a file that contains a sequence of amino acids and a number of aligned variant sequences. The aim is to stored information about the evolution of the main sequence. Using this for training allows to reduce the number of model parameters, and use evolution information in the model as explained in the <a class="reference external" href="https://www.biorxiv.org/content/10.1101/2021.02.12.430858v1.full.pdf">MSA Transformers papers</a>.</p>
+<p>The MSA are generated using <a class="reference external" href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-019-3019-7">hh-suite</a> tools, searching similar sequences in the UniClust30 database.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The generated MSA must have the .a3m extension to be used in <code class="docutils literal notranslate"><span class="pre">bio-transformers</span></code></p>
+</div>
+<p>Below, you can see an example of an MSA file. The first line is the main sequence. The following sequences are the most probable variants sequences. The <code class="docutils literal notranslate"><span class="pre">-</span></code> character in the msa sequences corresponds to the alignment character.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt; head msa_example.a3m
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;sp<span class="p">|</span>O24396<span class="p">|</span>PURA_WHEAT Adenylosuccinate synthetase, chloroplastic <span class="o">(</span>Fragment<span class="o">)</span> <span class="nv">OS</span><span class="o">=</span>Triticum aestivum <span class="nv">OX</span><span class="o">=</span><span class="m">4565</span> <span class="nv">PE</span><span class="o">=</span><span class="m">1</span> <span class="nv">SV</span><span class="o">=</span><span class="m">1</span>
+AAAAAGRGRSFSPAAPAPSSVRLPGRQAPAPAAASALAVEADPAADRVSSLSQVSGVLGSQWGDEGKGKLVDVLAPRFDIVARCQGGANAGHTIYNSEGKKFALHLVPSGILHEGTLCVVGNGAVIHVPGFFGEIDGLQSNGVSCDGRILVSDRAHLLFDLHQTVDGLREAELANSFIGTTKRGIGPCYSSKVTRNGLRVCDLRHMDTFGDKLDVLFEDAAARFEGFKYSKGMLKEEVERYKRFAERLEPFIADTVHVLNESIRQKKKILVEGGQATMLDIDFGTYPFVTSSSPSAGGICTGLGIAPRVIGDLIGVVKAYTTRVGSGPFPTELLGEEGDVLRKAGMEFGTTTGRPRRCGWLDIVALKYCCDINGFSSLNLTKLDVLSGLPEIKLGVSYNQMDGEKLQSFPGDLDTLEQVQVNYEVLPGWDSDISSVRSYSELPQAARRYVERIEELAGVPVHYIGVGPGRDALIYK
+&gt;UniRef100_A0A0N4UWB0 Adenylosuccinate synthetase <span class="nv">n</span><span class="o">=</span><span class="m">1</span> <span class="nv">Tax</span><span class="o">=</span>Enterobius vermicularis <span class="nv">TaxID</span><span class="o">=</span><span class="m">51028</span> <span class="nv">RepID</span><span class="o">=</span>A0A0N4UWB0_ENTVE
+--------------------------------------------MNDQKRKAPVIVILGAQFGDEGKGKIVDFLIEKekIQLTARCQGGNNAGHTVV-VNGRKSDFHLLPTGIINEDCYNIIGNGVVVNLDALFKEIEHNEIDKLNgWEKRLMISELAHLVTSMHMQADGQQEKSLSSEKIGTTSKGIGPTYSTKCFRNGIRVGELlGDFEAFSAKFRSLAAFYLKQFPGIEVN---VEEELDNYKKHAVCLKRLgiVGDTITYLDEMRAQGKAILVEGANGAMLDIDFGsflytffchsgTYPFVTSSNATVGGAVTGLGIPPTAITEIIGVVKAYETRVGSGPFPTEQQGKIGEDLQSIGHEVGVTTGRKRRCGWLDLFLLKRSSVINGFTALALTKLDILDNFDEIKVATGYR-IDGKSLKAPPSCAADWSRIELEYKTFSGWKDDVSKIRSFNELPENCKTYVKFIEGFVGVPIKWIGVGEDREALIVM
+&gt;UniRef100_A0A139AVD1 Adenylosuccinate synthetase <span class="nv">n</span><span class="o">=</span><span class="m">1</span> <span class="nv">Tax</span><span class="o">=</span>Gonapodya prolifera <span class="o">(</span>strain JEL478<span class="o">)</span> <span class="nv">TaxID</span><span class="o">=</span><span class="m">1344416</span> <span class="nv">RepID</span><span class="o">=</span>A0A139AVD1_GONPJ
+-----------------------------------------ATG-------NKAVVVLGAQWGDEGKGKLVDILTQQADLVARCQGGNNAGHTIV-VDGVKFDFHMLPSGLLGaPSTVSLVGSGVVLHLPSFFEEVKKTESKGVSCANRLFVSDRCHLVFDLHQIVDGLKEGELAShkQEIGTTKKGIGPAYSSKASRGGVRVHHLiaPDFAEFESRFRQMAANKKRRYGDFPYD---VDAEVERYRQYRDLIRPYVVDSVTYVHKALQEGKRVLVEGANAVMLDIDFGTFPYVTSSNTTIGGVCTGLGLPPKSIGKVIGVVKAYTTRVGAGPFPTEQLNEVGEHLQTVGAEFGVTTGRKRRCGWLDAAVLRWSHMINGYDSINLTKLDILDGLPTLRIGIAYKHrATGQVYETFPADLHLLEECDVIYEELPGWKESIGGCKSWDALPENARKYVERIEQLVGVNVEYIGVGVSRDSMITK
+</pre></div>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p><code class="docutils literal notranslate"><span class="pre">finetune</span></code> method for MSA transormers and <code class="docutils literal notranslate"><span class="pre">pass_mode=masked</span></code> are not available.</p>
+</div>
+</div>
+<div class="section" id="how-to-use-msa-transformers">
+<h2>How to use msa-transformers?<a class="headerlink" href="#how-to-use-msa-transformers" title="Permalink to this headline">¶</a></h2>
+<p>The library supports <code class="docutils literal notranslate"><span class="pre">esm_msa1_t12_100M_UR50S</span></code> backend which is based on the <a class="reference external" href="https://www.biorxiv.org/content/10.1101/2021.02.12.430858v1.full.pdf">MSA Transformers papers</a>.</p>
+<p>Instead of passing a list of sequences of the path of a fasta file, you can pass the path to the folder where the .a3m files are stored.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">biotransformers</span> <span class="kn">import</span> <span class="n">BioTransformers</span>
+
+<span class="n">msa_folder</span> <span class="o">=</span> <span class="s2">&quot;msa_folder&quot;</span>
+<span class="n">bio_trans</span> <span class="o">=</span> <span class="n">BioTransformers</span><span class="p">(</span><span class="s2">&quot;esm_msa1_t12_100M_UR50S&quot;</span><span class="p">,</span><span class="n">num_gpus</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">msa_embeddings</span> <span class="o">=</span> <span class="n">bio_trans</span><span class="o">.</span><span class="n">compute_embeddings</span><span class="p">(</span><span class="n">sequences</span><span class="o">=</span><span class="n">msa_folder</span><span class="p">,</span> <span class="n">pool_mode</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;cls&quot;</span><span class="p">,</span><span class="s2">&quot;mean&quot;</span><span class="p">),</span> <span class="n">n_seqs_msa</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As an MSA is composed of multiple sequences, the results have an extra-dimension, which corresponds to all the aligned sequences.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">msa_embeddings</span><span class="p">[</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+<p>If 100 msa files are in the folder, we have the following dimension for the embeddings. We take le <code class="docutils literal notranslate"><span class="pre">&lt;CLS&gt;</span></code> token of each of the 128 sequences in the files.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">768</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>All files in the msa folder must have at least <code class="docutils literal notranslate"><span class="pre">n_seqs_msa</span></code> sequences in each MSA. If you want to remove files with less than <code class="docutils literal notranslate"><span class="pre">n_seqs_msa</span></code> arguments, you can use the <code class="docutils literal notranslate"><span class="pre">biotransformers.utils.msa_utils.msa_to_remove</span></code> function.</p>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">msa_to_remove</span><span class="p">(</span><span class="s2">&quot;data_msa_sample/&quot;</span><span class="p">,</span> <span class="n">n_seq</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span>
+
+<span class="mi">3</span><span class="o">/</span><span class="mi">8</span> <span class="n">have</span> <span class="n">insufficient</span> <span class="n">number</span> <span class="n">of</span> <span class="n">sequences</span> <span class="ow">in</span> <span class="n">MSA</span><span class="o">.</span>
+<span class="p">[</span><span class="s1">&#39;data/data_msa_sample/seq130_swissprot.a3m&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;data/data_msa_sample/seq109_swissprot.a3m&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;data/data_msa_sample/seq124_swissprot.a3m&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+              </div>
+
+
+        <div class='prev-next-bottom'>
+
+    <a class='left-prev' id="prev-link" href="multi_gpus.html" title="previous page">Multi-gpus</a>
+    <a class='right-next' id="next-link" href="../tutorial/loglikelihood.html" title="next page">Loglikelihood</a>
+
+        </div>
+
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+
+          By InstaDeep<br/>
+
+            &copy; Copyright 2021, InstaDeep.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+
+  <script src="../_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+
+  </body>
+</html>

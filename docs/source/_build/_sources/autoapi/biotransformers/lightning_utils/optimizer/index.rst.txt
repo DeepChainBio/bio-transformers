@@ -1,0 +1,32 @@
+:mod:`biotransformers.lightning_utils.optimizer`
+================================================
+
+.. py:module:: biotransformers.lightning_utils.optimizer
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.lightning_utils.optimizer.lr_update
+
+
+
+.. function:: lr_update(num_updates: int, warmup_updates: int, warmup_init_lr: float, lr_step: float, decay_factor: float) -> float
+
+   InverseSquareRootSchedule.
+
+   https://github.com/pytorch/fairseq/blob/master/fairseq/optim/lr_scheduler/inverse_square_root_schedule.py#L32
+
+   :param num_updates: number of batches already used.
+   :param warmup_updates: number of batch steps for warm up.
+   :param warmup_init_lr: initial learning rate.
+   :param lr_step: step for increasing learning rate during warm up.
+   :param decay_factor: factor for decreasing learning rate after warm up.
+
+   :returns: learning rate multiplicate factor

@@ -61,7 +61,7 @@ extensions = [
     "myst_parser",
     "autoapi.extension",
 ]
-autoapi_dirs = ["../biotransformers"]
+autoapi_dirs = ["../../biotransformers"]
 
 html_theme_options = {
     "theme_dev_mode": True,

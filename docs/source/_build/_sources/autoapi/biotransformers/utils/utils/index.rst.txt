@@ -1,0 +1,168 @@
+:mod:`biotransformers.utils.utils`
+==================================
+
+.. py:module:: biotransformers.utils.utils
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.utils.utils.init_model_sequences
+   biotransformers.utils.utils.convert_bytes_size
+   biotransformers.utils.utils._check_memory_embeddings
+   biotransformers.utils.utils._check_memory_logits
+   biotransformers.utils.utils._check_sequence
+   biotransformers.utils.utils._check_tokens_list
+   biotransformers.utils.utils._check_batch_size
+   biotransformers.utils.utils._get_num_batch_iter
+   biotransformers.utils.utils._generate_chunks
+   biotransformers.utils.utils.load_fasta
+   biotransformers.utils.utils.get_logs_version
+   biotransformers.utils.utils.format_backend
+   biotransformers.utils.utils.list_backend
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.utils.utils.log
+
+
+.. data:: log
+
+
+
+
+.. function:: init_model_sequences(sequences: Union[List[str], str], model_dir: str, model_is_msa: bool, n_seqs_msa: int, vocab_size: int = 0, embeddings_size: int = 0, pass_mode: Optional[str] = None, pool_mode: Optional[Tuple[str, Ellipsis]] = None, tokens_list: Optional[List[str]] = None) -> Tuple[List, List]
+
+   Function use at the beginning of each compute_function that load
+   sequences depending on the type of model.
+   When using MSA-model, return a list of MSA, which is simply a list of sequences with special tokens.
+
+   :param sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
+   :type sequences: Union[List[str], str]
+   :param model_dir: name of the model
+   :type model_dir: str
+   :param model_is_msa: is MSA model
+   :type model_is_msa: bool
+   :param n_seqs_msa: number of seqs to consider in an MSA
+   :type n_seqs_msa: int
+   :param vocab_size: Defaults to 0.
+   :type vocab_size: Optional[int], optional
+   :param embeddings_size: Defaults to 0.
+   :type embeddings_size: Optional[int], optional
+   :param pass_mode: "masked" or "forward". Defaults to None.
+   :type pass_mode: Optional[str], optional
+   :param pool_mode: full, mean or cls. Defaults to None.
+   :type pool_mode: Optional[Tuple[str, ...]], optional
+   :param tokens_list: list of valid tokens. Defaults to None.
+   :type tokens_list: Optional[List[str]], optional
+
+   :raises ValueError: [description]
+
+   :returns: return a list of sequence string/MSA and list of lenghts for each sequence/MSA.
+   :rtype: Tuple[List,List]
+
+
+.. function:: convert_bytes_size(size_bytes: int) -> Tuple[str, bool]
+
+   [summary]
+
+   :param size_bytes: size in bytes
+
+   :returns: return the size with correct units and a condition
+             to display the warning message.
+   :rtype: Tuple[str,bool]
+
+
+.. function:: _check_memory_embeddings(sequences_list: List[str], embeddings_size: int, pool_mode: Tuple[str, Ellipsis])
+
+   Function to compute the memory taken by the embeddings with float64 number.
+
+   :param sequences_list: sequences of proteins
+   :param embeddings_size: size of the embeddings vector, depends on the model
+   :param pool_mode: aggregation function
+
+
+.. function:: _check_memory_logits(sequences_list: List[str], vocab_size: int, pass_mode: str)
+
+   Function to compute the memory taken by the logits with float64 number.
+
+   :param sequences_list: sequences of proteins
+   :type sequences_list: str
+   :param vocab_size: Size of the vocabulary
+   :type vocab_size: int]
+   :param pass_mode: 'forward' or 'masked'
+   :type pass_mode: str
+
+
+.. function:: _check_sequence(sequences_list: List[str], model: str, length: int)
+
+   Function that control sequence length
+
+   :param model: name of the model
+   :param length: length limit to consider
+
+   :raises ValueError is model esm1b_t33_650M_UR50S and sequence_length >1024:
+
+
+.. function:: _check_tokens_list(sequences_list: List[str], tokens_list: List[str])
+
+   Function that check if the list of tokens contains at least the tokens
+   that are in the sequences.
+
+   :param sequences_list: list of sequences
+   :param tokens_list: list of tokens to consider
+
+   :raises ValueError if some tokens in the sequences are not in the tokens_list:
+
+
+.. function:: _check_batch_size(batch_size: int, num_gpus: int)
+
+
+.. function:: _get_num_batch_iter(model_inputs: Dict[str, Any], batch_size: int) -> int
+
+   Get the number of batches when spliting model_inputs into chunks
+   of size batch_size.
+
+
+.. function:: _generate_chunks(model_inputs: Dict[str, Any], batch_size: int) -> Generator[Dict[str, Iterable], None, None]
+
+   Yield a dictionnary of tensor
+
+
+.. function:: load_fasta(path_fasta: Union[str, pathlib.Path]) -> List[str]
+
+   Read and parse records from a fasta file
+
+   :param path_fasta: path of the fasta file
+
+   :returns: List of sequences
+   :rtype: List
+
+
+.. function:: get_logs_version(path_logs)
+
+   Get last version of logs folder to save model inside
+
+   :param path_logs: path of the logs/experiments folder
+   :type path_logs: str
+
+
+.. function:: format_backend(backend_list: List[str]) -> List[str]
+
+   format of list to display
+
+
+.. function:: list_backend() -> None
+
+   Get all possible backend for the model
