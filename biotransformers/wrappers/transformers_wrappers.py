@@ -60,6 +60,7 @@ class TransformersWrapper:
         """
         self._model_dir = model_dir
         self._num_gpus = num_gpus
+        self.language_model_cls = language_model_cls
         if num_gpus >= 1:
             assert torch.cuda.is_available(), "Cuda is not available."
             assert torch.cuda.device_count() >= num_gpus, "Not enough available GPUs."
@@ -69,11 +70,23 @@ class TransformersWrapper:
             self._multi_gpus = False
         else:
             self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
-            self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
-            self._workers = [
-                self._ray_cls.remote(model_dir=model_dir, device="cuda:0") for _ in range(num_gpus)
-            ]
+            self._ray_cls = None
+            self._workers = None
             self._multi_gpus = True
+
+    def init_ray_workers(self):
+        if self._multi_gpus:
+            if self._ray_cls is None:
+                self._ray_cls = ray.remote(num_cpus=2, num_gpus=1)(self.language_model_cls)
+            if self._workers is None:
+                self._workers = [
+                    self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
+                    for _ in range(self._num_gpus)
+                ]
+
+    def delete_ray_workers(self):
+        self._ray_cls = None
+        self._workers = None
 
     def get_vocabulary_mask(self, tokens_list: List[str]) -> np.ndarray:
         """Returns a mask ove the model tokens."""
@@ -214,7 +227,7 @@ class TransformersWrapper:
                 # Split large batch into smaller batches, when per GPU worker
                 # Send tqdm progress bar
                 jobs.append(
-                    self._workers[i].model_pass.remote(batch_inputs, batch_size, silent, actor)
+                    self._workers[i].model_pass.remote(batch_inputs, batch_size, silent, actor)  # type: ignore
                 )
             pb.print_until_done()
             # Launch parallel execution in background
@@ -283,6 +296,8 @@ class TransformersWrapper:
             tokens_list=None,
         )
 
+        self.init_ray_workers()
+
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
@@ -303,6 +318,8 @@ class TransformersWrapper:
             torch.gather(logit, dim=-1, index=label).numpy() for logit, label in zip(logits, labels)
         ]
         # List of arrays of shape (seq_length, 1)
+        self.delete_ray_workers()
+
         return logits
 
     def compute_probabilities(
@@ -353,6 +370,7 @@ class TransformersWrapper:
             pass_mode=pass_mode,
             tokens_list=tokens_list,
         )
+        self.init_ray_workers()
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
@@ -411,6 +429,7 @@ class TransformersWrapper:
                 }
                 for probs in probabilities
             ]
+        self.delete_ray_workers()
         return probabilities_dict  # type: ignore
 
     def compute_loglikelihood(
@@ -441,6 +460,8 @@ class TransformersWrapper:
         Returns:
             List[float]: list of log-likelihoods, one per sequence
         """
+        self.init_ray_workers()
+
         if self._language_model.is_msa:
             raise NotImplementedError(
                 "compute_loglikelihood for MSA transformers is not implemented."
@@ -455,6 +476,8 @@ class TransformersWrapper:
                 [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]  # type: ignore
             )
             log_likelihoods.append(float(log_likelihood))
+
+        self.delete_ray_workers()
         return log_likelihoods
 
     def compute_embeddings(
@@ -498,6 +521,7 @@ class TransformersWrapper:
             vocab_size=self._language_model.vocab_size,
             pool_mode=pool_mode,
         )
+        self.init_ray_workers()
         # Compute a forward pass to get the embeddings
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         _, embeddings = self._model_evaluation(inputs, batch_size=batch_size, silent=silent)
@@ -525,6 +549,7 @@ class TransformersWrapper:
             embeddings_dict["mean"] = np.stack(
                 [e.transpose().mean(1).transpose() for e in filtered_embeddings]
             )
+        self.delete_ray_workers()
         return embeddings_dict
 
     def compute_accuracy(
@@ -555,6 +580,8 @@ class TransformersWrapper:
             vocab_size=self._language_model.vocab_size,
             pass_mode=pass_mode,
         )
+        self.init_ray_workers()
+
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
@@ -565,7 +592,7 @@ class TransformersWrapper:
         predicted_labels = torch.argmax(logits, dim=-1)
         # Compute the accuracy
         accuracy = float(torch.mean(torch.eq(predicted_labels, labels).float()))
-
+        self.delete_ray_workers()
         return accuracy
 
     def load_model(self, model_dir: str, map_location=None):
@@ -582,8 +609,9 @@ class TransformersWrapper:
             raise FileNotFoundError
 
         if self._multi_gpus:
+            self.init_ray_workers()
             ray.get(
-                [worker._load_model.remote(model_dir, map_location) for worker in self._workers]
+                [worker._load_model.remote(model_dir, map_location) for worker in self._workers]  # type: ignore
             )
             pass
         else:
@@ -676,8 +704,6 @@ class TransformersWrapper:
 
         if self._language_model.is_msa:
             raise NotImplementedError("MSA finetunening not implemented.")
-        # Free resources used by ray before finetuning with Lightning
-        del self._workers
 
         fit_model = self._language_model.model  # type: ignore
         alphabet = self._language_model.get_alphabet_dataloader()
@@ -746,14 +772,5 @@ class TransformersWrapper:
 
         # Load new model
         self._language_model._load_model(save_name)
-
-        if self._multi_gpus:
-            # Create ray workers as they have been deleted at the beginning
-            self._workers = [
-                self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
-                for _ in range(self._num_gpus)
-            ]
-            # Load new model one ach worker
-            ray.get([worker._load_model.remote(save_name) for worker in self._workers])
 
         log.info("Training completed.")
