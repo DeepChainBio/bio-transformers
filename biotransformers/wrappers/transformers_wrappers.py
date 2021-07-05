@@ -69,10 +69,10 @@ class TransformersWrapper:
             self._multi_gpus = False
         else:
             self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
-            self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
-            self._workers = [
-                self._ray_cls.remote(model_dir=model_dir, device="cuda:0") for _ in range(num_gpus)
-            ]
+            #self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
+            #self._workers = [
+            #    self._ray_cls.remote(model_dir=model_dir, device="cuda:0") for _ in range(num_gpus)
+            #]
             self._multi_gpus = True
 
     def get_vocabulary_mask(self, tokens_list: List[str]) -> np.ndarray:
@@ -607,7 +607,7 @@ class TransformersWrapper:
             train_sequences = load_fasta(train_sequences)
 
         # Free resources used by ray before finetuning with Lightning
-        del self._workers
+        # del self._workers
 
         fit_model = self._language_model.model  # type: ignore
         alphabet = self._language_model.get_alphabet_dataloader()
@@ -631,6 +631,7 @@ class TransformersWrapper:
             random_token_prob,
             toks_per_batch,
             extra_toks_per_seq,
+            validation=False
         )
 
         if self._num_gpus == 0:
@@ -675,15 +676,16 @@ class TransformersWrapper:
             save_name = self._save_model(save_path, lightning_model)
 
         # Load new model
-        self._language_model._load_model(save_name)
+        #self._language_model._load_model(save_name)
 
         if self._multi_gpus:
+            pass
             # Create ray workers as they have been deleted at the beginning
-            self._workers = [
-                self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
-                for _ in range(self._num_gpus)
-            ]
+            #self._workers = [
+            #    self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
+            #    for _ in range(self._num_gpus)
+            #]
             # Load new model one ach worker
-            ray.get([worker._load_model.remote(save_name) for worker in self._workers])
+            #ray.get([worker._load_model.remote(save_name) for worker in self._workers])
 
         log.info("Training completed.")

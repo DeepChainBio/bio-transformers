@@ -390,7 +390,10 @@ class BioDataModule(pl.LightningDataModule):
 
         # Assign train/val datasets for use in dataloaders
         if stage == "fit" or stage is None:
-            self.seq_train, self.seq_val = train_test_split(self.train_sequences, test_size=0.2)
+            if self.validation:
+                self.seq_train, self.seq_val = train_test_split(self.train_sequences, test_size=0.2)
+            else:
+                self.seq_train = self.train_sequences
 
             # Optionally...
             # self.dims = tuple(self.mnist_train[0][0].shape)
@@ -413,17 +416,20 @@ class BioDataModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
-        return create_dataloader(
-            sequences=self.seq_val,
-            alphabet=self.alphabet,
-            filter_len=self.filter_len,
-            num_workers=self.num_workers,
-            masking_ratio=self.masking_ratio,
-            masking_prob=self.masking_prob,
-            random_token_prob=self.random_token_prob,
-            toks_per_batch=self.toks_per_batch,
-            extra_toks_per_seq=self.extra_toks_per_seq,
-        )
+        if self.validation:
+            return create_dataloader(
+                sequences=self.seq_val,
+                alphabet=self.alphabet,
+                filter_len=self.filter_len,
+                num_workers=self.num_workers,
+                masking_ratio=self.masking_ratio,
+                masking_prob=self.masking_prob,
+                random_token_prob=self.random_token_prob,
+                toks_per_batch=self.toks_per_batch,
+                extra_toks_per_seq=self.extra_toks_per_seq,
+            )
+        else:
+            pass
 
     def test_dataloader(self):
         pass
