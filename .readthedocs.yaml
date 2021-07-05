@@ -17,7 +17,5 @@ formats:
 python:
    version: 3.7
 
-# Install dev env
-# Sphinx package in it
 conda:
-  environment: environment_dev.yaml
+  environment: docs/environment_docs.yaml

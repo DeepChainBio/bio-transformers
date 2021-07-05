@@ -1,0 +1,40 @@
+:mod:`biotransformers.utils.constant`
+=====================================
+
+.. py:module:: biotransformers.utils.constant
+
+
+Module Contents
+---------------
+
+.. data:: ESM_LIST
+   :annotation: = ['esm1_t34_670M_UR100', 'esm1_t12_85M_UR50S', 'esm1_t6_43M_UR50S', 'esm1b_t33_650M_UR50S',...
+
+
+
+.. data:: ROSTLAB_LIST
+   :annotation: = ['Rostlab/prot_bert', 'Rostlab/prot_bert_bfd']
+
+
+
+.. data:: MAPPING_PROTBERT
+
+
+
+
+.. data:: DEFAULT_ESM_MODEL
+   :annotation: = esm1_t34_670M_UR100
+
+
+
+.. data:: DEFAULT_ROSTLAB_MODEL
+   :annotation: = Rostlab/prot_bert
+
+
+
+.. data:: BACKEND_LIST
+
+
+
+
+.. data:: NATURAL_AAS_LIST

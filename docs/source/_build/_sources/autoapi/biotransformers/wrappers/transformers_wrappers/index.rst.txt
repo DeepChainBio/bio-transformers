@@ -1,0 +1,315 @@
+:mod:`biotransformers.wrappers.transformers_wrappers`
+=====================================================
+
+.. py:module:: biotransformers.wrappers.transformers_wrappers
+
+.. autoapi-nested-parse::
+
+   This script defines a parent class for transformers, for which child classes which are
+   specific to a given transformers implementation can inherit.
+   It allows to derive probabilities, embeddings and log-likelihoods based on inputs
+   sequences, and displays some properties of the transformer model.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.wrappers.transformers_wrappers.TransformersWrapper
+
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.wrappers.transformers_wrappers.log
+   biotransformers.wrappers.transformers_wrappers.path_msa_folder
+   biotransformers.wrappers.transformers_wrappers.token_probs_dict
+   biotransformers.wrappers.transformers_wrappers.sequence_probs_list
+
+
+.. data:: log
+
+
+
+
+.. data:: path_msa_folder
+
+
+
+
+.. data:: token_probs_dict
+
+
+
+
+.. data:: sequence_probs_list
+
+
+
+
+.. class:: TransformersWrapper(model_dir: str, language_model_cls: Type[biotransformers.wrappers.language_model.LanguageModel], num_gpus: int = 0)
+
+
+   Abstract class that uses pretrained transformers model to evaluate
+   a protein likelihood so as other insights.
+
+   .. method:: get_vocabulary_mask(self, tokens_list: List[str]) -> numpy.ndarray
+
+      Returns a mask ove the model tokens.
+
+
+   .. method:: _get_num_batch_iter(self, model_inputs: Dict[str, Any], batch_size: int) -> int
+
+      Get the number of batches when spliting model_inputs into chunks of size batch_size.
+
+
+   .. method:: _generate_chunks(self, model_inputs: Dict[str, Any], batch_size: int) -> Generator[Dict[str, Iterable], None, None]
+
+      Yield a dictionnary of tensor
+
+
+   .. method:: _repeat_and_mask_inputs(self, model_inputs: Dict[str, torch.Tensor]) -> Tuple[Dict[str, torch.Tensor], List[List]]
+
+      Create new tensor by masking each token and repeating sequence
+
+      :param model_inputs: shape -> (num_seqs, max_seq_len)
+
+      :returns: shape -> (sum_tokens, max_seq_len)
+                masked_ids_list: len -> (num_seqs)
+      :rtype: model_inputs
+
+
+   .. method:: _gather_masked_outputs(self, model_outputs: torch.Tensor, masked_ids_list: List[List]) -> torch.Tensor
+
+      Gather all the masked outputs to get original tensor shape
+
+      :param model_outputs: shape -> (sum_tokens, max_seq_len, vocab_size)
+      :type model_outputs: torch.Tensor
+      :param masked_ids_list: len -> (num_seqs)
+      :type masked_ids_list: List[List]
+
+      :returns: shape -> (num_seqs, max_seq_len, vocab_size)
+      :rtype: model_outputs (torch.Tensor)
+
+
+   .. method:: _model_evaluation(self, model_inputs: Dict[str, torch.tensor], batch_size: int = 1, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]
+
+      Compute logits and embeddings
+
+      Function which computes logits and embeddings based on a list of sequences,
+      a provided batch size and an inference configuration. The output is obtained
+      by computing a forward pass through the model ("forward inference")
+
+      :param model_inputs: [description]
+      :type model_inputs: Dict[str, torch.tensor]
+      :param batch_size: [description]
+      :type batch_size: int
+
+      :returns:         * logits [num_seqs, max_len_seqs, vocab_size]
+                        * embeddings [num_seqs, max_len_seqs+1, embedding_size]
+      :rtype: Tuple[torch.tensor, torch.tensor]
+
+
+   .. method:: _compute_logits(self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str, **kwargs) -> torch.Tensor
+
+      Intermediate function to compute logits
+
+      :param model_inputs[str]: shape -> (num_seqs, max_seq_len)
+      :type model_inputs[str]: torch.Tensor
+      :param batch_size:
+      :type batch_size: int
+      :param pass_mode:
+      :type pass_mode: str
+
+      :returns: shape -> (num_seqs, max_seq_len, vocab_size)
+      :rtype: logits (torch.Tensor)
+
+
+   .. method:: compute_logits(self, sequences: Union[List[str], str], batch_size: int = 1, pass_mode: str = 'forward', silent: bool = False, n_seqs_msa: int = 6) -> List[numpy.ndarray]
+
+      Function that computes the logits from sequences.
+
+      It returns a list of logits arrays for each sequence. If working with MSA, return a list of logits for
+      each sequence of the MSA.
+
+      :param sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
+      :param batch_size: number of sequences to consider for the forward pass
+      :param pass_mode: Mode of model evaluation ('forward' or 'masked')
+      :param silent: whether to print progress bar in console
+      :param n_seqs_msa: number of sequence to consider in an msa file.
+
+      :returns: logits in np.ndarray format
+      :rtype: List[np.ndarray]
+
+
+   .. method:: compute_probabilities(self, sequences: Union[List[str], str], batch_size: int = 1, tokens_list: List[str] = None, pass_mode: str = 'forward', silent: bool = False, n_seqs_msa: int = 6) -> Union[sequence_probs_list, List[sequence_probs_list]]
+
+      Function that computes the probabilities over amino-acids from sequences.
+
+      It takes as inputs a list of sequences and returns a list of dictionaries.
+      Each dictionary contains the probabilities over the natural amino-acids for each
+      position in the sequence. The keys represent the positions (indexed
+      starting with 0) and the values are dictionaries of probabilities over
+      the natural amino-acids for this position.
+
+      When working with MSA, it returns a list of dictionnary for each sequence in the MSA.
+      In these dictionaries, the keys are the amino-acids and the value
+      the corresponding probabilities.
+
+      Both ProtBert and ESM models have more tokens than the 20 natural amino-acids
+      (for instance MASK or PAD tokens). It might not be of interest to take these
+      tokens into account when computing probabilities or log-likelihood. By default
+      we remove them and compute probabilities only over the 20 natural amino-acids.
+      This behavior can be overridden through the tokens_list argument that enable
+      the user to choose the tokens to consider when computing probabilities.
+
+      :param sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
+      :param batch_size: number of sequences to consider for the forward pass
+      :param tokens_list: List of tokens to consider
+      :param pass_mode: Mode of model evaluation ('forward' or 'masked')
+      :param silent: display or not progress bar
+      :param n_seqs_msa: number of sequence to consider in an msa file.
+
+      :returns: dictionaries of probabilities per seq
+      :rtype: List[Dict[int, Dict[str, float]]]
+
+
+   .. method:: compute_loglikelihood(self, sequences: Union[List[str], str], batch_size: int = 1, tokens_list: List[str] = None, pass_mode: str = 'forward', silent: bool = False) -> List[float]
+
+      Function that computes loglikelihoods of sequences.
+      It returns a list of float values.
+
+      Both ProtBert and ESM models have more tokens than the 20 natural amino-acids
+      (for instance MASK or PAD tokens). It might not be of interest to take these
+      tokens into account when computing probabilities or log-likelihood. By default
+      we remove them and compute probabilities only over the 20 natural amino-acids.
+      This behavior can be overridden through the tokens_list argument that enable
+      the user to choose the tokens to consider when computing probabilities.
+
+      :param sequences: List of sequences
+      :param batch_size: Batch size
+      :param tokens_list: List of tokens to consider
+      :param pass_mode: Mode of model evaluation ('forward' or 'masked')
+      :param silent: display or not progress bar
+
+      :returns: list of log-likelihoods, one per sequence
+      :rtype: List[float]
+
+
+   .. method:: compute_embeddings(self, sequences: Union[List[str], str], batch_size: int = 1, pool_mode: Tuple[str, Ellipsis] = ('cls', 'mean', 'full'), silent: bool = False, n_seqs_msa: int = 6) -> Dict[str, Union[List[numpy.ndarray], numpy.ndarray]]
+
+      Function that computes embeddings of sequences.
+
+      The embedding of one sequence has a shape (sequence_length, embedding_size)
+      where embedding_size equals 768 or 1024., thus we may want to use an aggregation
+      function specified in pool_mode to aggregate the tensor on the num_tokens dimension.
+      It might for instance avoid blowing the machine RAM when computing embeddings
+      for a large number of sequences.
+
+      'mean' signifies that we take the mean over the num_tokens dimension. 'cls'
+      means that only the class token embedding is used.
+
+      This function returns a dictionary of lists. The dictionary will have one key
+      per pool-mode that has been specified. The corresponding value is a list of
+      embeddings, one per sequence in sequences.
+
+      When working with MSA, an extra dimension is added to the final tensor.
+      :param sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
+      :param batch_size: batch size
+      :param pool_mode: Mode of pooling ('cls', 'mean', 'full')
+      :param silent: whereas to display or not progress bar
+      :param n_seqs_msa: number of sequence to consider in an msa file.
+
+      :returns: dict matching pool-mode and list of embeddings
+      :rtype: Dict[str, List[np.ndarray]]
+
+
+   .. method:: compute_accuracy(self, sequences: Union[List[str], str], batch_size: int = 1, pass_mode: str = 'forward', silent: bool = False, n_seqs_msa: int = 6) -> float
+
+      Compute model accuracy from the input sequences
+
+      When working with MSA, the accuracy is computed over all the tokens of the msa' sequences.
+      :param sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
+      :type sequences: Union[List[str],str]
+      :param batch_size: [description]. Defaults to 1.
+      :type batch_size: [type], optional
+      :param pass_mode: [description]. Defaults to "forward".
+      :type pass_mode: [type], optional
+      :param silent: whereas to display or not progress bar
+      :param n_seqs_msa: number of sequence to consider in an msa file.
+
+      :returns: model's accuracy over the given sequences
+      :rtype: float
+
+
+   .. method:: load_model(self, model_dir: str, map_location=None)
+
+      Load state_dict a finetune pytorch model ro a checkpoint directory
+
+      More informations about how to load a model with map_location:
+          https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-model-for-inference
+
+      :param model_dir: path file of the pt model or checkpoint.
+                        the checkpoint should be a pytorch model checkpoint
+
+
+   .. method:: _save_model(self, exp_path: str, lightning_model: pytorch_lightning.LightningModule)
+
+      Save pytorch model in pytorch-lightning logs directory
+      :param exp_path: path of the experiments directory in the logs
+      :type exp_path: str
+
+
+   .. method:: finetune(self, train_sequences: Union[List[str], str], lr: float = 1e-05, warmup_updates: int = 1024, warmup_init_lr: float = 1e-07, epochs: int = 10, batch_size: int = 2, acc_batch_size: int = 256, masking_ratio: float = 0.025, masking_prob: float = 0.8, random_token_prob: float = 0.15, toks_per_batch: int = 2048, filter_len: Optional[int] = None, accelerator: str = 'ddp', amp_level: str = 'O2', precision: int = 16, logs_save_dir: str = 'logs', logs_name_exp: str = 'finetune_masked', checkpoint: Optional[str] = None, save_last_checkpoint: bool = True)
+
+      Function to finetune a model on a specific dataset
+
+      This function will finetune the choosen model on a dataset of
+      sequences with pytorch ligthening. You can modify the masking ratio of AA
+      in the arguments for better convergence.
+      Be careful with the accelerator that you use. DDP accelerator will
+      launch multiple python process and do not be use in a notebook.
+
+      More informations on GPU/accelerator compatibility here :
+          https://pytorch-lightning.readthedocs.io/en/stable/advanced/multi_gpu.html
+      The wisest choice would be to use DDP for multi-gpu training.
+
+      :param train_sequences: Could be a list of sequences or the path of a
+                              fasta file with multiple seqRecords
+      :param lr: learning rate for training phase. Defaults to 1.0e-5.
+      :param warmup_updates: Number of warming updates, number of step while increasing
+      :param the leraning rate. Defaults to 1024.:
+      :param warmup_init_lr: Initial lr for warming_update. Defaults to 1e-7.
+      :param epochs: number of epoch for training. Defaults to 10.
+      :param batch_size: mean number of sequence to consider in a batch. Defaults to 2.
+      :param acc_batch_size: accumulated batch size Defaults to 2048.
+      :param masking_ratio: ratio of tokens to be masked. Defaults to 0.025.
+      :param masking_prob: probability that the chose token is replaced with a mask token.
+                           Defaults to 0.8.
+      :param random_token_prob: probability that the chose token is replaced with a random token.
+                                Defaults to 0.1.
+      :param toks_per_batch: Maximum number of token to consider in a batch.Defaults to 2048.
+                             This argument will set the number of sequences in a batch, which
+                             is dynamically computed. Batch size use accumulate_grad_batches
+                             to compute accumulate_grad_batches parameter.
+      :param extra_toks_per_seq: Defaults to 2,
+      :param filter_len: Size of sequence to filter. Defaults to None. (NOT USED)
+      :param accelerator: type of accelerator for mutli-gpu processing (DPP recommanded)
+      :param amp_level: allow mixed precision. Defaults to '02'
+      :param precision: reducing precision allows to decrease the GPU memory needed.
+                        Defaults to 16 (float16)
+      :param logs_save_dir: Defaults directory to logs.
+      :param logs_name_exp: Name of the experience in the logs.
+      :param checkpoint: Path to a checkpoint file to restore training session.
+      :param save_last_checkpoint: Save last checkpoint and 2 best trainings models
+                                   to restore training session. Take a large amout of time
+                                   and memory.

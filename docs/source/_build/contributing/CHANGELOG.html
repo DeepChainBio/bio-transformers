@@ -1,0 +1,723 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Change log &#8212; bio-transformers v0.1.0</title>
+
+  <link href="../_static/css/theme.css" rel="stylesheet" />
+  <link href="../_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+
+  <link rel="stylesheet"
+    href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+
+
+
+
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/sphinx-book-theme.acff12b8f9c144ce68a297486a2fa670.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/tabs.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+
+  <link rel="preload" as="script" href="../_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+
+    <div class="container-fluid" id="banner"></div>
+
+
+
+    <div class="container-xl">
+      <div class="row">
+
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../index.html">
+
+      <img src="../_static/deepchain-small.png" class="logo" alt="logo">
+
+
+      <h1 class="site-logo" id="site-title">bio-transformers v0.1.0</h1>
+
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+    <div class="bd-toc-item active">
+        <p class="caption">
+ <span class="caption-text">
+  Getting Started
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../getting_started/install.html">
+   Installation
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../getting_started/quick_start.html">
+   Quick Start
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Documentation
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../documentation/course.html">
+   Getting starting with transformers
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../documentation/logging.html">
+   Logging
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../documentation/multi_gpus.html">
+   Multi-gpus
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../documentation/msa.html">
+   MSA
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Tutorial
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../tutorial/loglikelihood.html">
+   Loglikelihood
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../tutorial/embeddings.html">
+   Embeddings
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../tutorial/finetuning.html">
+   Finetuning
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Api reference
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../api/biotransformers.html">
+   Bio-transformers method
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Contributing
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="CONTRIBUTING.html">
+   Contributing
+  </a>
+ </li>
+ <li class="toctree-l1 has-children">
+  <a class="reference internal" href="../autoapi/index.html">
+   API Reference
+  </a>
+  <input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/>
+  <label for="toctree-checkbox-1">
+   <i class="fas fa-chevron-down">
+   </i>
+  </label>
+  <ul>
+   <li class="toctree-l2 has-children">
+    <a class="reference internal" href="../autoapi/biotransformers/index.html">
+     <code class="xref py py-mod docutils literal notranslate">
+      <span class="pre">
+       biotransformers
+      </span>
+     </code>
+    </a>
+    <input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/>
+    <label for="toctree-checkbox-2">
+     <i class="fas fa-chevron-down">
+     </i>
+    </label>
+    <ul>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../autoapi/biotransformers/lightning_utils/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.lightning_utils
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/>
+      <label for="toctree-checkbox-3">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/lightning_utils/data/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.data
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/lightning_utils/models/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.models
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/lightning_utils/optimizer/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.optimizer
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../autoapi/biotransformers/tests/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.tests
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/>
+      <label for="toctree-checkbox-4">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/conftest/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.conftest
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_accuracy/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_accuracy
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_embeddings/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_embeddings
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_logits/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_logits
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_loglikelihoods/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_loglikelihoods
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/tests/test_msa/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_msa
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../autoapi/biotransformers/utils/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.utils
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/>
+      <label for="toctree-checkbox-5">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/constant/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.constant
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/deprecated/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.deprecated
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/logger/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.logger
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/msa_utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.msa_utils
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/tqdm_utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.tqdm_utils
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/utils/utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.utils
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../autoapi/biotransformers/wrappers/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.wrappers
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/>
+      <label for="toctree-checkbox-6">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/wrappers/esm_wrappers/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.esm_wrappers
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/wrappers/language_model/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.language_model
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/wrappers/rostlab_wrapper/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.rostlab_wrapper
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../autoapi/biotransformers/wrappers/transformers_wrappers/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.transformers_wrappers
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../autoapi/biotransformers/bio_transformers/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.bio_transformers
+        </span>
+       </code>
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../autoapi/biotransformers/version/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.version
+        </span>
+       </code>
+      </a>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+
+
+
+
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn" aria-label="Download this page"><i
+            class="fas fa-download"></i></button>
+
+    <div class="dropdown-buttons">
+        <!-- ipynb file if we had a myst markdown file -->
+
+        <!-- Download raw file -->
+        <a class="dropdown-buttons" href="../_sources/contributing/CHANGELOG.md.txt"><button type="button"
+                class="btn btn-secondary topbarbtn" title="Download source file" data-toggle="tooltip"
+                data-placement="left">.md</button></a>
+        <!-- Download PDF via print -->
+        <button type="button" id="download-print" class="btn btn-secondary topbarbtn" title="Print to PDF"
+            onClick="window.print()" data-toggle="tooltip" data-placement="left">.pdf</button>
+    </div>
+</div>
+
+            <!-- Source interaction buttons -->
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn"
+        aria-label="Connect with source repository"><i class="fab fa-github"></i></button>
+    <div class="dropdown-buttons sourcebuttons">
+        <a class="repository-button"
+            href="https://github.com/DeepChainBio/bio-transformers"><button type="button" class="btn btn-secondary topbarbtn"
+                data-toggle="tooltip" data-placement="left" title="Source repository"><i
+                    class="fab fa-github"></i>repository</button></a>
+
+        <a class="edit-button" href="https://github.com/DeepChainBio/bio-transformers/edit/master/docs/contributing/CHANGELOG.md"><button
+                type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip" data-placement="left"
+                title="Edit this page"><i class="fas fa-pencil-alt"></i>suggest edit</button></a>
+    </div>
+</div>
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+
+            <div class="tocsection onthispage pt-5 pb-3">
+                <i class="fas fa-list"></i> Contents
+            </div>
+            <nav id="bd-toc-nav">
+                <ul class="visible nav section-nav flex-column">
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#">
+   Change log
+  </a>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id1">
+   [0.1.0] - 2021-06-22
+  </a>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id2">
+   [0.0.10] - 2021-06-14
+  </a>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id3">
+   [0.0.9] - 2021-06-04
+  </a>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id4">
+   [0.0.8] - 2021-06-03
+  </a>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id5">
+   [0.0.7] - 2021-05-12
+  </a>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id6">
+   [0.0.6] - 2021-05-24
+  </a>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id7">
+   [0.0.5] - 2021-05-12
+  </a>
+ </li>
+</ul>
+
+            </nav>
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+
+              <div>
+
+  <div class="tex2jax_ignore mathjax_ignore section" id="change-log">
+<h1>Change log<a class="headerlink" href="#change-log" title="Permalink to this headline">¶</a></h1>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="id1">
+<h1>[0.1.0] - 2021-06-22<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<p>Note on the release</p>
+<p>Breaking change:</p>
+<ul class="simple">
+<li><p>Remove <code class="docutils literal notranslate"><span class="pre">multi_gpu</span></code> and <code class="docutils literal notranslate"><span class="pre">device</span></code> arguments. Replace by n_gpus.</p></li>
+</ul>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Add Ray parallelization to shorten inference time</p></li>
+<li><p>Add Dockerfile</p></li>
+</ul>
+<p>Docs:</p>
+<ul class="simple">
+<li><p>Improve documentation</p></li>
+</ul>
+<p>Fixed:</p>
+<ul class="simple">
+<li><p>fix <code class="docutils literal notranslate"><span class="pre">tokens_list</span></code> argument: all sequences’ token must be in tokens_list.</p></li>
+</ul>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="id2">
+<h1>[0.0.10] - 2021-06-14<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h1>
+<p>Note on the release</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Add BIO_LOG_LEVEL environnement variable to control logging message (logger)</p></li>
+<li><p>Check if every unique amino acids in sequences are in tokens_list (compute_probabilities)</p></li>
+</ul>
+<p>Fixed:</p>
+<ul class="simple">
+<li><p>Add shuffling in batch_sampler (lightning_utils)</p></li>
+<li><p>Fix tokens argument for dataloader (lightning_utils)</p></li>
+</ul>
+<p>Changed:</p>
+<ul class="simple">
+<li><p>Modified the signature of some functions to improve clarity (tansformers_wrappers)</p></li>
+<li><p>Update <code class="docutils literal notranslate"><span class="pre">train_masked</span></code> method to <code class="docutils literal notranslate"><span class="pre">finetune</span></code> (tansformers_wrappers)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">compute_embeddings</span></code> with option <code class="docutils literal notranslate"><span class="pre">full</span></code> return a list of embeddingsn, no matter the size (tansformers_wrappers)</p></li>
+</ul>
+<p>Removed:</p>
+<ul class="simple">
+<li><p>Remove the tokens_list argument when not necessary and tried to make its usage clearer (tansformers_wrappers)</p></li>
+<li><p>Remove functions (tansformers_wrappers):</p>
+<ul>
+<li><p>_filter_and_pool_embeddings</p></li>
+<li><p>_split_logits</p></li>
+<li><p>_slabels_remaping</p></li>
+<li><p>_filter_logits</p></li>
+<li><p>_filter_loglikelihood</p></li>
+<li><p>_compute_accuracy</p></li>
+<li><p>_compute_calibration</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="id3">
+<h1>[0.0.9] - 2021-06-04<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h1>
+<p>Fixed:</p>
+<ul class="simple">
+<li><p>Batch_sampler issue</p></li>
+</ul>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="id4">
+<h1>[0.0.8] - 2021-06-03<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h1>
+<p>Note on the release</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Merge ESM/protbert for finetuning model with pytorch-lightning</p></li>
+<li><p>Possibility to restore a training session.</p></li>
+</ul>
+<p>Fixed:</p>
+<ul class="simple">
+<li><p>Fix conflicts when saving model with DDP</p></li>
+<li><p>Fix loading checkpoint created by pytorch-lightning</p></li>
+</ul>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="id5">
+<h1>[0.0.7] - 2021-05-12<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h1>
+<p>Note on the release</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Add fasta files support for each compute function.</p></li>
+<li><p>Add train_masked function to finetune model on custom dataset. (Only ESM for the moment, protbert is coming.)</p></li>
+</ul>
+<p>Docs:</p>
+<ul class="simple">
+<li><p>Update documentation to add tutorial on training.</p></li>
+</ul>
+<p>Changed:</p>
+<ul class="simple">
+<li><p>GPU is used by default if found, even if not specified.</p></li>
+</ul>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="id6">
+<h1>[0.0.6] - 2021-05-24<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h1>
+<p>Note on the release</p>
+<p>Fixed:</p>
+<ul class="simple">
+<li><p>Update torch dependencies to be less restrictive. Create conflict with other packages.</p></li>
+</ul>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="id7">
+<h1>[0.0.5] - 2021-05-12<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h1>
+<p>Note on the release</p>
+<p>Added</p>
+<ul class="simple">
+<li><p>added multi-gpu support for inference</p></li>
+<li><p>added function to finetuned a model on a specific dataset on multi-gpu</p></li>
+</ul>
+<p>Changed</p>
+<p>Fixed</p>
+</div>
+
+
+              </div>
+
+
+        <div class='prev-next-bottom'>
+
+
+        </div>
+
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+
+          By InstaDeep<br/>
+
+            &copy; Copyright 2021, InstaDeep.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+
+  <script src="../_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+
+  </body>
+</html>

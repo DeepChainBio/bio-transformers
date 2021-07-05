@@ -1,0 +1,44 @@
+:mod:`biotransformers.tests.test_accuracy`
+==========================================
+
+.. py:module:: biotransformers.tests.test_accuracy
+
+.. autoapi-nested-parse::
+
+   Test module for testing accuracy function
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.test_accuracy.test_accuracy_type_and_range
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.tests.test_accuracy.test_sequences
+   biotransformers.tests.test_accuracy.test_params
+
+
+.. data:: test_sequences
+   :annotation: = ['AAAA', 'AKKF', 'AHHFK', 'KKKKKKKLLL']
+
+
+
+.. data:: test_params
+   :annotation: = [[1, 'forward'], [2, 'masked'], [10, 'forward']]
+
+
+
+.. function:: test_accuracy_type_and_range(init_model, batch_size, pass_mode)

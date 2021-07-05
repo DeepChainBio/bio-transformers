@@ -1,0 +1,26 @@
+name: bio-transformers-dev
+channels:
+  #- conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - pip=20.0.2
+  - pip:
+    - sphinx==4.0.2
+    - sphinx-notfound-page==0.6
+    #- sphinx_rtd_theme==0.5.2
+    - sphinx-book-theme
+    - sphinx_tabs==2.1.0
+    - pre-commit==2.2.0
+    - biopython==1.78
+    #- ray==1.4.0
+    - fair-esm==0.3.1
+    - numpy>=1.16
+    - pandas>=1.2.3
+    - pytest==6.2.4
+    - pytest-cov==2.12.0
+    - tqdm>=4.60.0
+    #- transformers>=4.6.1,<4.7
+    - myst-parser==0.15.1
+    #- myst-nb==0.12.3
+    - sphinx-autoapi==1.8.1

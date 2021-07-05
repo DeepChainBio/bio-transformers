@@ -1,0 +1,1088 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>biotransformers.wrappers.transformers_wrappers &#8212; bio-transformers v0.1.0</title>
+
+  <link href="../../../../_static/css/theme.css" rel="stylesheet" />
+  <link href="../../../../_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+
+  <link rel="stylesheet"
+    href="../../../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+
+
+
+
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/sphinx-book-theme.acff12b8f9c144ce68a297486a2fa670.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/tabs.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+
+  <link rel="preload" as="script" href="../../../../_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+
+    <div class="container-fluid" id="banner"></div>
+
+
+
+    <div class="container-xl">
+      <div class="row">
+
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../../../../index.html">
+
+      <img src="../../../../_static/deepchain-small.png" class="logo" alt="logo">
+
+
+      <h1 class="site-logo" id="site-title">bio-transformers v0.1.0</h1>
+
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../../../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+    <div class="bd-toc-item active">
+        <p class="caption">
+ <span class="caption-text">
+  Getting Started
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../getting_started/install.html">
+   Installation
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../getting_started/quick_start.html">
+   Quick Start
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Documentation
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../documentation/course.html">
+   Getting starting with transformers
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../documentation/logging.html">
+   Logging
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../documentation/multi_gpus.html">
+   Multi-gpus
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../documentation/msa.html">
+   MSA
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Tutorial
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../tutorial/loglikelihood.html">
+   Loglikelihood
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../tutorial/embeddings.html">
+   Embeddings
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../tutorial/finetuning.html">
+   Finetuning
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Api reference
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../api/biotransformers.html">
+   Bio-transformers method
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Contributing
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../contributing/CONTRIBUTING.html">
+   Contributing
+  </a>
+ </li>
+ <li class="toctree-l1 current active has-children">
+  <a class="reference internal" href="../../../index.html">
+   API Reference
+  </a>
+  <input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/>
+  <label for="toctree-checkbox-1">
+   <i class="fas fa-chevron-down">
+   </i>
+  </label>
+  <ul class="current">
+   <li class="toctree-l2 current active has-children">
+    <a class="reference internal" href="../../index.html">
+     <code class="xref py py-mod docutils literal notranslate">
+      <span class="pre">
+       biotransformers
+      </span>
+     </code>
+    </a>
+    <input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/>
+    <label for="toctree-checkbox-2">
+     <i class="fas fa-chevron-down">
+     </i>
+    </label>
+    <ul class="current">
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../../lightning_utils/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.lightning_utils
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/>
+      <label for="toctree-checkbox-3">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../lightning_utils/data/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.data
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../lightning_utils/models/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.models
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../lightning_utils/optimizer/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.optimizer
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../../tests/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.tests
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/>
+      <label for="toctree-checkbox-4">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/conftest/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.conftest
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_accuracy/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_accuracy
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_embeddings/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_embeddings
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_logits/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_logits
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_loglikelihoods/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_loglikelihoods
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_msa/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_msa
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../../utils/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.utils
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/>
+      <label for="toctree-checkbox-5">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/constant/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.constant
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/deprecated/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.deprecated
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/logger/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.logger
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/msa_utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.msa_utils
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/tqdm_utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.tqdm_utils
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.utils
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 current active has-children">
+      <a class="reference internal" href="../index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.wrappers
+        </span>
+       </code>
+      </a>
+      <input checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/>
+      <label for="toctree-checkbox-6">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul class="current">
+       <li class="toctree-l4">
+        <a class="reference internal" href="../esm_wrappers/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.esm_wrappers
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../language_model/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.language_model
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../rostlab_wrapper/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.rostlab_wrapper
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4 current active">
+        <a class="current reference internal" href="#">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.transformers_wrappers
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../../bio_transformers/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.bio_transformers
+        </span>
+       </code>
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../../version/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.version
+        </span>
+       </code>
+      </a>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+
+
+
+
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn" aria-label="Download this page"><i
+            class="fas fa-download"></i></button>
+
+    <div class="dropdown-buttons">
+        <!-- ipynb file if we had a myst markdown file -->
+
+        <!-- Download raw file -->
+        <a class="dropdown-buttons" href="../../../../_sources/autoapi/biotransformers/wrappers/transformers_wrappers/index.rst.txt"><button type="button"
+                class="btn btn-secondary topbarbtn" title="Download source file" data-toggle="tooltip"
+                data-placement="left">.rst</button></a>
+        <!-- Download PDF via print -->
+        <button type="button" id="download-print" class="btn btn-secondary topbarbtn" title="Print to PDF"
+            onClick="window.print()" data-toggle="tooltip" data-placement="left">.pdf</button>
+    </div>
+</div>
+
+            <!-- Source interaction buttons -->
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn"
+        aria-label="Connect with source repository"><i class="fab fa-github"></i></button>
+    <div class="dropdown-buttons sourcebuttons">
+        <a class="repository-button"
+            href="https://github.com/DeepChainBio/bio-transformers"><button type="button" class="btn btn-secondary topbarbtn"
+                data-toggle="tooltip" data-placement="left" title="Source repository"><i
+                    class="fab fa-github"></i>repository</button></a>
+
+        <a class="edit-button" href="https://github.com/DeepChainBio/bio-transformers/edit/master/docs/autoapi/biotransformers/wrappers/transformers_wrappers/index.rst"><button
+                type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip" data-placement="left"
+                title="Edit this page"><i class="fas fa-pencil-alt"></i>suggest edit</button></a>
+    </div>
+</div>
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+
+            <div class="tocsection onthispage pt-5 pb-3">
+                <i class="fas fa-list"></i> Contents
+            </div>
+            <nav id="bd-toc-nav">
+                <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-contents">
+   Module Contents
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#classes">
+     Classes
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#attributes">
+     Attributes
+    </a>
+    <ul class="nav section-nav flex-column">
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.log">
+       log
+      </a>
+     </li>
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.path_msa_folder">
+       path_msa_folder
+      </a>
+     </li>
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.token_probs_dict">
+       token_probs_dict
+      </a>
+     </li>
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.sequence_probs_list">
+       sequence_probs_list
+      </a>
+     </li>
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper">
+       TransformersWrapper
+      </a>
+      <ul class="nav section-nav flex-column">
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.get_vocabulary_mask">
+         get_vocabulary_mask
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._get_num_batch_iter">
+         _get_num_batch_iter
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._generate_chunks">
+         _generate_chunks
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._repeat_and_mask_inputs">
+         _repeat_and_mask_inputs
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._gather_masked_outputs">
+         _gather_masked_outputs
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._model_evaluation">
+         _model_evaluation
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._compute_logits">
+         _compute_logits
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_logits">
+         compute_logits
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_probabilities">
+         compute_probabilities
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_loglikelihood">
+         compute_loglikelihood
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_embeddings">
+         compute_embeddings
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_accuracy">
+         compute_accuracy
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.load_model">
+         load_model
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._save_model">
+         _save_model
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.finetune">
+         finetune
+        </a>
+       </li>
+      </ul>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+            </nav>
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+
+              <div>
+
+  <div class="section" id="module-biotransformers.wrappers.transformers_wrappers">
+<span id="biotransformers-wrappers-transformers-wrappers"></span><h1><a class="reference internal" href="#module-biotransformers.wrappers.transformers_wrappers" title="biotransformers.wrappers.transformers_wrappers"><code class="xref py py-mod docutils literal notranslate"><span class="pre">biotransformers.wrappers.transformers_wrappers</span></code></a><a class="headerlink" href="#module-biotransformers.wrappers.transformers_wrappers" title="Permalink to this headline">¶</a></h1>
+<p>This script defines a parent class for transformers, for which child classes which are
+specific to a given transformers implementation can inherit.
+It allows to derive probabilities, embeddings and log-likelihoods based on inputs
+sequences, and displays some properties of the transformer model.</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper" title="biotransformers.wrappers.transformers_wrappers.TransformersWrapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformersWrapper</span></code></a></p></td>
+<td><p>Abstract class that uses pretrained transformers model to evaluate</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#biotransformers.wrappers.transformers_wrappers.log" title="biotransformers.wrappers.transformers_wrappers.log"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#biotransformers.wrappers.transformers_wrappers.path_msa_folder" title="biotransformers.wrappers.transformers_wrappers.path_msa_folder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">path_msa_folder</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#biotransformers.wrappers.transformers_wrappers.token_probs_dict" title="biotransformers.wrappers.transformers_wrappers.token_probs_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">token_probs_dict</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#biotransformers.wrappers.transformers_wrappers.sequence_probs_list" title="biotransformers.wrappers.transformers_wrappers.sequence_probs_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sequence_probs_list</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py data">
+<dt id="biotransformers.wrappers.transformers_wrappers.log">
+<code class="sig-prename descclassname"><span class="pre">biotransformers.wrappers.transformers_wrappers.</span></code><code class="sig-name descname"><span class="pre">log</span></code><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt id="biotransformers.wrappers.transformers_wrappers.path_msa_folder">
+<code class="sig-prename descclassname"><span class="pre">biotransformers.wrappers.transformers_wrappers.</span></code><code class="sig-name descname"><span class="pre">path_msa_folder</span></code><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.path_msa_folder" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt id="biotransformers.wrappers.transformers_wrappers.token_probs_dict">
+<code class="sig-prename descclassname"><span class="pre">biotransformers.wrappers.transformers_wrappers.</span></code><code class="sig-name descname"><span class="pre">token_probs_dict</span></code><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.token_probs_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt id="biotransformers.wrappers.transformers_wrappers.sequence_probs_list">
+<code class="sig-prename descclassname"><span class="pre">biotransformers.wrappers.transformers_wrappers.</span></code><code class="sig-name descname"><span class="pre">sequence_probs_list</span></code><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.sequence_probs_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">biotransformers.wrappers.transformers_wrappers.</span></code><code class="sig-name descname"><span class="pre">TransformersWrapper</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">language_model_cls</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../language_model/index.html#biotransformers.wrappers.language_model.LanguageModel" title="biotransformers.wrappers.language_model.LanguageModel"><span class="pre">biotransformers.wrappers.language_model.LanguageModel</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_gpus</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract class that uses pretrained transformers model to evaluate
+a protein likelihood so as other insights.</p>
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper.get_vocabulary_mask">
+<code class="sig-name descname"><span class="pre">get_vocabulary_mask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokens_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">numpy.ndarray</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.get_vocabulary_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a mask ove the model tokens.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper._get_num_batch_iter">
+<code class="sig-name descname"><span class="pre">_get_num_batch_iter</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">int</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._get_num_batch_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the number of batches when spliting model_inputs into chunks of size batch_size.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper._generate_chunks">
+<code class="sig-name descname"><span class="pre">_generate_chunks</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Iterable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._generate_chunks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yield a dictionnary of tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper._repeat_and_mask_inputs">
+<code class="sig-name descname"><span class="pre">_repeat_and_mask_inputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._repeat_and_mask_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create new tensor by masking each token and repeating sequence</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_inputs</strong> – shape -&gt; (num_seqs, max_seq_len)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>shape -&gt; (sum_tokens, max_seq_len)
+masked_ids_list: len -&gt; (num_seqs)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>model_inputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper._gather_masked_outputs">
+<code class="sig-name descname"><span class="pre">_gather_masked_outputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_outputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masked_ids_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">torch.Tensor</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._gather_masked_outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather all the masked outputs to get original tensor shape</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_outputs</strong> (<em>torch.Tensor</em>) – shape -&gt; (sum_tokens, max_seq_len, vocab_size)</p></li>
+<li><p><strong>masked_ids_list</strong> (<em>List</em><em>[</em><em>List</em><em>]</em>) – len -&gt; (num_seqs)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>shape -&gt; (num_seqs, max_seq_len, vocab_size)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>model_outputs (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper._model_evaluation">
+<code class="sig-name descname"><span class="pre">_model_evaluation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._model_evaluation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute logits and embeddings</p>
+<p>Function which computes logits and embeddings based on a list of sequences,
+a provided batch size and an inference configuration. The output is obtained
+by computing a forward pass through the model (“forward inference”)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_inputs</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>torch.tensor</em><em>]</em>) – [description]</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – [description]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>logits [num_seqs, max_len_seqs, vocab_size]</p></li>
+<li><p>embeddings [num_seqs, max_len_seqs+1, embedding_size]</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tuple[torch.tensor, torch.tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper._compute_logits">
+<code class="sig-name descname"><span class="pre">_compute_logits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pass_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">torch.Tensor</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._compute_logits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Intermediate function to compute logits</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_inputs</strong><strong>[</strong><strong>str</strong><strong>]</strong> (<em>torch.Tensor</em>) – shape -&gt; (num_seqs, max_seq_len)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – </p></li>
+<li><p><strong>pass_mode</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>shape -&gt; (num_seqs, max_seq_len, vocab_size)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>logits (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_logits">
+<code class="sig-name descname"><span class="pre">compute_logits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequences</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pass_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'forward'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_seqs_msa</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_logits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that computes the logits from sequences.</p>
+<p>It returns a list of logits arrays for each sequence. If working with MSA, return a list of logits for
+each sequence of the MSA.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequences</strong> – List of sequences, path of fasta file or path to a folder with msa to a3m format.</p></li>
+<li><p><strong>batch_size</strong> – number of sequences to consider for the forward pass</p></li>
+<li><p><strong>pass_mode</strong> – Mode of model evaluation (‘forward’ or ‘masked’)</p></li>
+<li><p><strong>silent</strong> – whether to print progress bar in console</p></li>
+<li><p><strong>n_seqs_msa</strong> – number of sequence to consider in an msa file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>logits in np.ndarray format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List[np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_probabilities">
+<code class="sig-name descname"><span class="pre">compute_probabilities</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequences</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokens_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pass_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'forward'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_seqs_msa</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#biotransformers.wrappers.transformers_wrappers.sequence_probs_list" title="biotransformers.wrappers.transformers_wrappers.sequence_probs_list"><span class="pre">sequence_probs_list</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#biotransformers.wrappers.transformers_wrappers.sequence_probs_list" title="biotransformers.wrappers.transformers_wrappers.sequence_probs_list"><span class="pre">sequence_probs_list</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_probabilities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that computes the probabilities over amino-acids from sequences.</p>
+<p>It takes as inputs a list of sequences and returns a list of dictionaries.
+Each dictionary contains the probabilities over the natural amino-acids for each
+position in the sequence. The keys represent the positions (indexed
+starting with 0) and the values are dictionaries of probabilities over
+the natural amino-acids for this position.</p>
+<p>When working with MSA, it returns a list of dictionnary for each sequence in the MSA.
+In these dictionaries, the keys are the amino-acids and the value
+the corresponding probabilities.</p>
+<p>Both ProtBert and ESM models have more tokens than the 20 natural amino-acids
+(for instance MASK or PAD tokens). It might not be of interest to take these
+tokens into account when computing probabilities or log-likelihood. By default
+we remove them and compute probabilities only over the 20 natural amino-acids.
+This behavior can be overridden through the tokens_list argument that enable
+the user to choose the tokens to consider when computing probabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequences</strong> – List of sequences, path of fasta file or path to a folder with msa to a3m format.</p></li>
+<li><p><strong>batch_size</strong> – number of sequences to consider for the forward pass</p></li>
+<li><p><strong>tokens_list</strong> – List of tokens to consider</p></li>
+<li><p><strong>pass_mode</strong> – Mode of model evaluation (‘forward’ or ‘masked’)</p></li>
+<li><p><strong>silent</strong> – display or not progress bar</p></li>
+<li><p><strong>n_seqs_msa</strong> – number of sequence to consider in an msa file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dictionaries of probabilities per seq</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List[Dict[int, Dict[str, float]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_loglikelihood">
+<code class="sig-name descname"><span class="pre">compute_loglikelihood</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequences</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokens_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pass_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'forward'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_loglikelihood" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that computes loglikelihoods of sequences.
+It returns a list of float values.</p>
+<p>Both ProtBert and ESM models have more tokens than the 20 natural amino-acids
+(for instance MASK or PAD tokens). It might not be of interest to take these
+tokens into account when computing probabilities or log-likelihood. By default
+we remove them and compute probabilities only over the 20 natural amino-acids.
+This behavior can be overridden through the tokens_list argument that enable
+the user to choose the tokens to consider when computing probabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequences</strong> – List of sequences</p></li>
+<li><p><strong>batch_size</strong> – Batch size</p></li>
+<li><p><strong>tokens_list</strong> – List of tokens to consider</p></li>
+<li><p><strong>pass_mode</strong> – Mode of model evaluation (‘forward’ or ‘masked’)</p></li>
+<li><p><strong>silent</strong> – display or not progress bar</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of log-likelihoods, one per sequence</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List[float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_embeddings">
+<code class="sig-name descname"><span class="pre">compute_embeddings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequences</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pool_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Ellipsis</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">('cls',</span> <span class="pre">'mean',</span> <span class="pre">'full')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_seqs_msa</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_embeddings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that computes embeddings of sequences.</p>
+<p>The embedding of one sequence has a shape (sequence_length, embedding_size)
+where embedding_size equals 768 or 1024., thus we may want to use an aggregation
+function specified in pool_mode to aggregate the tensor on the num_tokens dimension.
+It might for instance avoid blowing the machine RAM when computing embeddings
+for a large number of sequences.</p>
+<p>‘mean’ signifies that we take the mean over the num_tokens dimension. ‘cls’
+means that only the class token embedding is used.</p>
+<p>This function returns a dictionary of lists. The dictionary will have one key
+per pool-mode that has been specified. The corresponding value is a list of
+embeddings, one per sequence in sequences.</p>
+<p>When working with MSA, an extra dimension is added to the final tensor.
+:param sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
+:param batch_size: batch size
+:param pool_mode: Mode of pooling (‘cls’, ‘mean’, ‘full’)
+:param silent: whereas to display or not progress bar
+:param n_seqs_msa: number of sequence to consider in an msa file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>dict matching pool-mode and list of embeddings</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Dict[str, List[np.ndarray]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_accuracy">
+<code class="sig-name descname"><span class="pre">compute_accuracy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequences</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pass_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'forward'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_seqs_msa</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">float</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.compute_accuracy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute model accuracy from the input sequences</p>
+<p>When working with MSA, the accuracy is computed over all the tokens of the msa’ sequences.
+:param sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
+:type sequences: Union[List[str],str]
+:param batch_size: [description]. Defaults to 1.
+:type batch_size: [type], optional
+:param pass_mode: [description]. Defaults to “forward”.
+:type pass_mode: [type], optional
+:param silent: whereas to display or not progress bar
+:param n_seqs_msa: number of sequence to consider in an msa file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>model’s accuracy over the given sequences</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper.load_model">
+<code class="sig-name descname"><span class="pre">load_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_location</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load state_dict a finetune pytorch model ro a checkpoint directory</p>
+<dl class="simple">
+<dt>More informations about how to load a model with map_location:</dt><dd><p><a class="reference external" href="https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-model-for-inference">https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-model-for-inference</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_dir</strong> – path file of the pt model or checkpoint.
+the checkpoint should be a pytorch model checkpoint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper._save_model">
+<code class="sig-name descname"><span class="pre">_save_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exp_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lightning_model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pytorch_lightning.LightningModule</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper._save_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save pytorch model in pytorch-lightning logs directory
+:param exp_path: path of the experiments directory in the logs
+:type exp_path: str</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.transformers_wrappers.TransformersWrapper.finetune">
+<code class="sig-name descname"><span class="pre">finetune</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_sequences</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmup_updates</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmup_init_lr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1e-07</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acc_batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masking_ratio</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.025</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masking_prob</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_token_prob</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">toks_per_batch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">2048</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_len</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accelerator</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'ddp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amp_level</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'O2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logs_save_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'logs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logs_name_exp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'finetune_masked'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_last_checkpoint</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biotransformers.wrappers.transformers_wrappers.TransformersWrapper.finetune" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to finetune a model on a specific dataset</p>
+<p>This function will finetune the choosen model on a dataset of
+sequences with pytorch ligthening. You can modify the masking ratio of AA
+in the arguments for better convergence.
+Be careful with the accelerator that you use. DDP accelerator will
+launch multiple python process and do not be use in a notebook.</p>
+<dl class="simple">
+<dt>More informations on GPU/accelerator compatibility here :</dt><dd><p><a class="reference external" href="https://pytorch-lightning.readthedocs.io/en/stable/advanced/multi_gpu.html">https://pytorch-lightning.readthedocs.io/en/stable/advanced/multi_gpu.html</a></p>
+</dd>
+</dl>
+<p>The wisest choice would be to use DDP for multi-gpu training.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_sequences</strong> – Could be a list of sequences or the path of a
+fasta file with multiple seqRecords</p></li>
+<li><p><strong>lr</strong> – learning rate for training phase. Defaults to 1.0e-5.</p></li>
+<li><p><strong>warmup_updates</strong> – Number of warming updates, number of step while increasing</p></li>
+<li><p><strong>leraning rate. Defaults to 1024.</strong> (<em>the</em>) – </p></li>
+<li><p><strong>warmup_init_lr</strong> – Initial lr for warming_update. Defaults to 1e-7.</p></li>
+<li><p><strong>epochs</strong> – number of epoch for training. Defaults to 10.</p></li>
+<li><p><strong>batch_size</strong> – mean number of sequence to consider in a batch. Defaults to 2.</p></li>
+<li><p><strong>acc_batch_size</strong> – accumulated batch size Defaults to 2048.</p></li>
+<li><p><strong>masking_ratio</strong> – ratio of tokens to be masked. Defaults to 0.025.</p></li>
+<li><p><strong>masking_prob</strong> – probability that the chose token is replaced with a mask token.
+Defaults to 0.8.</p></li>
+<li><p><strong>random_token_prob</strong> – probability that the chose token is replaced with a random token.
+Defaults to 0.1.</p></li>
+<li><p><strong>toks_per_batch</strong> – Maximum number of token to consider in a batch.Defaults to 2048.
+This argument will set the number of sequences in a batch, which
+is dynamically computed. Batch size use accumulate_grad_batches
+to compute accumulate_grad_batches parameter.</p></li>
+<li><p><strong>extra_toks_per_seq</strong> – Defaults to 2,</p></li>
+<li><p><strong>filter_len</strong> – Size of sequence to filter. Defaults to None. (NOT USED)</p></li>
+<li><p><strong>accelerator</strong> – type of accelerator for mutli-gpu processing (DPP recommanded)</p></li>
+<li><p><strong>amp_level</strong> – allow mixed precision. Defaults to ‘02’</p></li>
+<li><p><strong>precision</strong> – reducing precision allows to decrease the GPU memory needed.
+Defaults to 16 (float16)</p></li>
+<li><p><strong>logs_save_dir</strong> – Defaults directory to logs.</p></li>
+<li><p><strong>logs_name_exp</strong> – Name of the experience in the logs.</p></li>
+<li><p><strong>checkpoint</strong> – Path to a checkpoint file to restore training session.</p></li>
+<li><p><strong>save_last_checkpoint</strong> – Save last checkpoint and 2 best trainings models
+to restore training session. Take a large amout of time
+and memory.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+              </div>
+
+
+        <div class='prev-next-bottom'>
+
+
+        </div>
+
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+
+          By InstaDeep<br/>
+
+            &copy; Copyright 2021, InstaDeep.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+
+  <script src="../../../../_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+
+  </body>
+</html>

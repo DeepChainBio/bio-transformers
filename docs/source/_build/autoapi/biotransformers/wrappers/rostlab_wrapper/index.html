@@ -1,0 +1,838 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>biotransformers.wrappers.rostlab_wrapper &#8212; bio-transformers v0.1.0</title>
+
+  <link href="../../../../_static/css/theme.css" rel="stylesheet" />
+  <link href="../../../../_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+
+  <link rel="stylesheet"
+    href="../../../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+
+
+
+
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/sphinx-book-theme.acff12b8f9c144ce68a297486a2fa670.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/tabs.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+
+  <link rel="preload" as="script" href="../../../../_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+
+    <div class="container-fluid" id="banner"></div>
+
+
+
+    <div class="container-xl">
+      <div class="row">
+
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../../../../index.html">
+
+      <img src="../../../../_static/deepchain-small.png" class="logo" alt="logo">
+
+
+      <h1 class="site-logo" id="site-title">bio-transformers v0.1.0</h1>
+
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../../../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+    <div class="bd-toc-item active">
+        <p class="caption">
+ <span class="caption-text">
+  Getting Started
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../getting_started/install.html">
+   Installation
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../getting_started/quick_start.html">
+   Quick Start
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Documentation
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../documentation/course.html">
+   Getting starting with transformers
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../documentation/logging.html">
+   Logging
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../documentation/multi_gpus.html">
+   Multi-gpus
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../documentation/msa.html">
+   MSA
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Tutorial
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../tutorial/loglikelihood.html">
+   Loglikelihood
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../tutorial/embeddings.html">
+   Embeddings
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../tutorial/finetuning.html">
+   Finetuning
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Api reference
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../api/biotransformers.html">
+   Bio-transformers method
+  </a>
+ </li>
+</ul>
+<p class="caption">
+ <span class="caption-text">
+  Contributing
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../../contributing/CONTRIBUTING.html">
+   Contributing
+  </a>
+ </li>
+ <li class="toctree-l1 current active has-children">
+  <a class="reference internal" href="../../../index.html">
+   API Reference
+  </a>
+  <input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/>
+  <label for="toctree-checkbox-1">
+   <i class="fas fa-chevron-down">
+   </i>
+  </label>
+  <ul class="current">
+   <li class="toctree-l2 current active has-children">
+    <a class="reference internal" href="../../index.html">
+     <code class="xref py py-mod docutils literal notranslate">
+      <span class="pre">
+       biotransformers
+      </span>
+     </code>
+    </a>
+    <input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/>
+    <label for="toctree-checkbox-2">
+     <i class="fas fa-chevron-down">
+     </i>
+    </label>
+    <ul class="current">
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../../lightning_utils/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.lightning_utils
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/>
+      <label for="toctree-checkbox-3">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../lightning_utils/data/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.data
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../lightning_utils/models/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.models
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../lightning_utils/optimizer/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.lightning_utils.optimizer
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../../tests/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.tests
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/>
+      <label for="toctree-checkbox-4">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/conftest/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.conftest
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_accuracy/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_accuracy
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_embeddings/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_embeddings
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_logits/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_logits
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_loglikelihoods/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_loglikelihoods
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../tests/test_msa/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.tests.test_msa
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 has-children">
+      <a class="reference internal" href="../../utils/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.utils
+        </span>
+       </code>
+      </a>
+      <input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/>
+      <label for="toctree-checkbox-5">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/constant/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.constant
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/deprecated/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.deprecated
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/logger/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.logger
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/msa_utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.msa_utils
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/tqdm_utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.tqdm_utils
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../../utils/utils/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.utils.utils
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3 current active has-children">
+      <a class="reference internal" href="../index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.wrappers
+        </span>
+       </code>
+      </a>
+      <input checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/>
+      <label for="toctree-checkbox-6">
+       <i class="fas fa-chevron-down">
+       </i>
+      </label>
+      <ul class="current">
+       <li class="toctree-l4">
+        <a class="reference internal" href="../esm_wrappers/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.esm_wrappers
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../language_model/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.language_model
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4 current active">
+        <a class="current reference internal" href="#">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.rostlab_wrapper
+          </span>
+         </code>
+        </a>
+       </li>
+       <li class="toctree-l4">
+        <a class="reference internal" href="../transformers_wrappers/index.html">
+         <code class="xref py py-mod docutils literal notranslate">
+          <span class="pre">
+           biotransformers.wrappers.transformers_wrappers
+          </span>
+         </code>
+        </a>
+       </li>
+      </ul>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../../bio_transformers/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.bio_transformers
+        </span>
+       </code>
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../../version/index.html">
+       <code class="xref py py-mod docutils literal notranslate">
+        <span class="pre">
+         biotransformers.version
+        </span>
+       </code>
+      </a>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+
+
+
+
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn" aria-label="Download this page"><i
+            class="fas fa-download"></i></button>
+
+    <div class="dropdown-buttons">
+        <!-- ipynb file if we had a myst markdown file -->
+
+        <!-- Download raw file -->
+        <a class="dropdown-buttons" href="../../../../_sources/autoapi/biotransformers/wrappers/rostlab_wrapper/index.rst.txt"><button type="button"
+                class="btn btn-secondary topbarbtn" title="Download source file" data-toggle="tooltip"
+                data-placement="left">.rst</button></a>
+        <!-- Download PDF via print -->
+        <button type="button" id="download-print" class="btn btn-secondary topbarbtn" title="Print to PDF"
+            onClick="window.print()" data-toggle="tooltip" data-placement="left">.pdf</button>
+    </div>
+</div>
+
+            <!-- Source interaction buttons -->
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn"
+        aria-label="Connect with source repository"><i class="fab fa-github"></i></button>
+    <div class="dropdown-buttons sourcebuttons">
+        <a class="repository-button"
+            href="https://github.com/DeepChainBio/bio-transformers"><button type="button" class="btn btn-secondary topbarbtn"
+                data-toggle="tooltip" data-placement="left" title="Source repository"><i
+                    class="fab fa-github"></i>repository</button></a>
+
+        <a class="edit-button" href="https://github.com/DeepChainBio/bio-transformers/edit/master/docs/autoapi/biotransformers/wrappers/rostlab_wrapper/index.rst"><button
+                type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip" data-placement="left"
+                title="Edit this page"><i class="fas fa-pencil-alt"></i>suggest edit</button></a>
+    </div>
+</div>
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+
+            <div class="tocsection onthispage pt-5 pb-3">
+                <i class="fas fa-list"></i> Contents
+            </div>
+            <nav id="bd-toc-nav">
+                <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-contents">
+   Module Contents
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#classes">
+     Classes
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#attributes">
+     Attributes
+    </a>
+    <ul class="nav section-nav flex-column">
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.log">
+       log
+      </a>
+     </li>
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper">
+       RostlabWrapper
+      </a>
+      <ul class="nav section-nav flex-column">
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model">
+         model
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.clean_model_id">
+         clean_model_id
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model_vocabulary">
+         model_vocabulary
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.vocab_size">
+         vocab_size
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.mask_token">
+         mask_token
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.pad_token">
+         pad_token
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.begin_token">
+         begin_token
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.end_token">
+         end_token
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.does_end_token_exist">
+         does_end_token_exist
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.token_to_id">
+         token_to_id
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.embeddings_size">
+         embeddings_size
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper._load_model">
+         _load_model
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.process_sequences_and_tokens">
+         process_sequences_and_tokens
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model_pass">
+         model_pass
+        </a>
+       </li>
+       <li class="toc-h5 nav-item toc-entry">
+        <a class="reference internal nav-link" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.get_alphabet_dataloader">
+         get_alphabet_dataloader
+        </a>
+       </li>
+      </ul>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+            </nav>
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+
+              <div>
+
+  <div class="section" id="module-biotransformers.wrappers.rostlab_wrapper">
+<span id="biotransformers-wrappers-rostlab-wrapper"></span><h1><a class="reference internal" href="#module-biotransformers.wrappers.rostlab_wrapper" title="biotransformers.wrappers.rostlab_wrapper"><code class="xref py py-mod docutils literal notranslate"><span class="pre">biotransformers.wrappers.rostlab_wrapper</span></code></a><a class="headerlink" href="#module-biotransformers.wrappers.rostlab_wrapper" title="Permalink to this headline">¶</a></h1>
+<p>This script defines a class which inherits from the LanguageModel class, and is
+specific to the Rostlab models (eg ProtBert and ProtBert-BFD) developed by
+hugging face
+- ProtBert: <a class="reference external" href="https://huggingface.co/Rostlab/prot_bert">https://huggingface.co/Rostlab/prot_bert</a>
+- ProtBert BFD: <a class="reference external" href="https://huggingface.co/Rostlab/prot_bert_bfd">https://huggingface.co/Rostlab/prot_bert_bfd</a></p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper" title="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RostlabWrapper</span></code></a></p></td>
+<td><p>Class that uses a rostlab type of pretrained transformers model to evaluate</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#biotransformers.wrappers.rostlab_wrapper.log" title="biotransformers.wrappers.rostlab_wrapper.log"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py data">
+<dt id="biotransformers.wrappers.rostlab_wrapper.log">
+<code class="sig-prename descclassname"><span class="pre">biotransformers.wrappers.rostlab_wrapper.</span></code><code class="sig-name descname"><span class="pre">log</span></code><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">biotransformers.wrappers.rostlab_wrapper.</span></code><code class="sig-name descname"><span class="pre">RostlabWrapper</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../language_model/index.html#biotransformers.wrappers.language_model.LanguageModel" title="biotransformers.wrappers.language_model.LanguageModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">biotransformers.wrappers.language_model.LanguageModel</span></code></a></p>
+<p>Class that uses a rostlab type of pretrained transformers model to evaluate
+a protein likelihood so as other insights.</p>
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">torch.nn.Module</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return torch model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.clean_model_id">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">clean_model_id</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">str</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.clean_model_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean model ID (in case the model directory is not)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model_vocabulary">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">model_vocabulary</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model_vocabulary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the whole vocabulary list</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.vocab_size">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">vocab_size</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">int</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.vocab_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the whole vocabulary size</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.mask_token">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">mask_token</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">str</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.mask_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Representation of the mask token (as a string)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.pad_token">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">pad_token</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">str</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.pad_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Representation of the pad token (as a string)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.begin_token">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">begin_token</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">str</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.begin_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Representation of the beginning of sentence token (as a string)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.end_token">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">end_token</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">str</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.end_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Representation of the end of sentence token (as a string).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.does_end_token_exist">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">does_end_token_exist</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.does_end_token_exist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if a end of sequence token exists</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.token_to_id">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">token_to_id</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.token_to_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a function which maps tokens to IDs</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.embeddings_size">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">embeddings_size</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">int</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.embeddings_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns size of the embeddings</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper._load_model">
+<code class="sig-name descname"><span class="pre">_load_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_location</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper._load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.process_sequences_and_tokens">
+<code class="sig-name descname"><span class="pre">process_sequences_and_tokens</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequences_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.tensor</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.process_sequences_and_tokens" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to transform tokens string to IDs; it depends on the model used</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model_pass">
+<code class="sig-name descname"><span class="pre">model_pass</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pba</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ray.actor.ActorHandle</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.model_pass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function which computes logits and embeddings based on a dict of sequences
+tensors, a provided batch size and an inference configuration. The output is
+obtained by computing a forward pass through the model (“forward inference”)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_inputs</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>torch.tensor</em><em>]</em>) – [description]</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – size of the batch</p></li>
+<li><p><strong>silent</strong> – display or not progress bar</p></li>
+<li><p><strong>pba</strong> – tqdm progress bar for ray actor</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>logits [num_seqs, max_len_seqs, vocab_size]</p></li>
+<li><p>embeddings [num_seqs, max_len_seqs+1, embedding_size]</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tuple[torch.tensor, torch.tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.get_alphabet_dataloader">
+<code class="sig-name descname"><span class="pre">get_alphabet_dataloader</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biotransformers.wrappers.rostlab_wrapper.RostlabWrapper.get_alphabet_dataloader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define an alphabet mapping for common method between
+protbert and ESM</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+              </div>
+
+
+        <div class='prev-next-bottom'>
+
+
+        </div>
+
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+
+          By InstaDeep<br/>
+
+            &copy; Copyright 2021, InstaDeep.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+
+  <script src="../../../../_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+
+  </body>
+</html>

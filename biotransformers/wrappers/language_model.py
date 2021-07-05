@@ -17,6 +17,7 @@ class LanguageModel(ABC):
     def __init__(self, model_dir: str, device):
         self._model_dir = model_dir
         self._device = device
+        self.is_msa = False
 
     @property
     def model_id(self) -> str:

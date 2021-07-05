@@ -20,11 +20,8 @@ from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
 from biotransformers.utils.utils import (
-    _check_memory_embeddings,
-    _check_memory_logits,
-    _check_sequence,
-    _check_tokens_list,
     get_logs_version,
+    init_model_sequences,
     load_fasta,
 )
 from biotransformers.wrappers.language_model import LanguageModel
@@ -36,6 +33,9 @@ from ..lightning_utils.data import BioDataModule
 from ..lightning_utils.models import LightningModule
 
 log = logger("transformers_wrapper")
+path_msa_folder = str
+token_probs_dict = Dict[int, Dict[str, float]]
+sequence_probs_list = List[token_probs_dict]
 
 
 class TransformersWrapper:
@@ -60,6 +60,7 @@ class TransformersWrapper:
         """
         self._model_dir = model_dir
         self._num_gpus = num_gpus
+        self.language_model_cls = language_model_cls
         if num_gpus >= 1:
             assert torch.cuda.is_available(), "Cuda is not available."
             assert torch.cuda.device_count() >= num_gpus, "Not enough available GPUs."
@@ -69,11 +70,32 @@ class TransformersWrapper:
             self._multi_gpus = False
         else:
             self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
+<<<<<<< HEAD
             #self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
             #self._workers = [
             #    self._ray_cls.remote(model_dir=model_dir, device="cuda:0") for _ in range(num_gpus)
             #]
+=======
+            self._ray_cls = None
+            self._workers = None
+>>>>>>> develop
             self._multi_gpus = True
+
+    def init_ray_workers(self):
+        if self._multi_gpus:
+            log.info("Init ray workers")
+            if self._ray_cls is None:
+                self._ray_cls = ray.remote(num_cpus=2, num_gpus=1)(self.language_model_cls)
+            if self._workers is None:
+                self._workers = [
+                    self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
+                    for _ in range(self._num_gpus)
+                ]
+
+    def delete_ray_workers(self):
+        _ = [ray.kill(worker) for worker in self._workers]
+        self._ray_cls = None
+        self._workers = None
 
     def get_vocabulary_mask(self, tokens_list: List[str]) -> np.ndarray:
         """Returns a mask ove the model tokens."""
@@ -214,7 +236,7 @@ class TransformersWrapper:
                 # Split large batch into smaller batches, when per GPU worker
                 # Send tqdm progress bar
                 jobs.append(
-                    self._workers[i].model_pass.remote(batch_inputs, batch_size, silent, actor)
+                    self._workers[i].model_pass.remote(batch_inputs, batch_size, silent, actor)  # type: ignore
                 )
             pb.print_until_done()
             # Launch parallel execution in background
@@ -242,6 +264,8 @@ class TransformersWrapper:
             logits (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
         """
         if pass_mode == "masked":
+            if self._language_model.is_msa:
+                raise NotImplementedError("Masked with msa-transformers is not implemented.")
             model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
             logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size, **kwargs)
             logits = self._gather_masked_outputs(logits, masked_ids_list)
@@ -255,39 +279,55 @@ class TransformersWrapper:
         batch_size: int = 1,
         pass_mode: str = "forward",
         silent: bool = False,
+        n_seqs_msa: int = 6,
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
-        It returns a list of logits arrays for each sequence.
+        It returns a list of logits arrays for each sequence. If working with MSA, return a list of logits for
+        each sequence of the MSA.
 
         Args:
-            sequences_list: List of sequences
+            sequences : List of sequences, path of fasta file or path to a folder with msa to a3m format.
             batch_size: number of sequences to consider for the forward pass
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent: whether to print progress bar in console
-
+            n_seqs_msa: number of sequence to consider in an msa file.
         Returns:
             List[np.ndarray]: logits in np.ndarray format
         """
+        sequences, lengths = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=n_seqs_msa,
+            vocab_size=self._language_model.vocab_size,
+            pass_mode=pass_mode,
+            tokens_list=None,
+        )
 
-        if isinstance(sequences, str):
-            sequences = load_fasta(sequences)
-        _check_sequence(sequences, self._model_dir, 1024)
-        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
+        self.init_ray_workers()
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
+
         # Remove padded logits
-        lengths = [len(sequence) for sequence in sequences]
-        logits = [logit[:length, :] for logit, length in zip(list(logits), lengths)]
-        labels = [label[:length, :] for label, length in zip(list(labels), lengths)]
+        logits = [
+            torch.from_numpy(logit.numpy().transpose()[:, :length].transpose())
+            for logit, length in zip(list(logits), lengths)
+        ]
+        labels = [
+            torch.from_numpy(label.numpy().transpose()[:, :length].transpose())
+            for label, length in zip(list(labels), lengths)
+        ]
+
         # Keep only corresponding to amino acids that are in the sequence
         logits = [
             torch.gather(logit, dim=-1, index=label).numpy() for logit, label in zip(logits, labels)
         ]
         # List of arrays of shape (seq_length, 1)
+        self.delete_ray_workers()
         return logits
 
     def compute_probabilities(
@@ -297,7 +337,8 @@ class TransformersWrapper:
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
         silent: bool = False,
-    ) -> List[Dict[int, Dict[str, float]]]:
+        n_seqs_msa: int = 6,
+    ) -> Union[sequence_probs_list, List[sequence_probs_list]]:
         """Function that computes the probabilities over amino-acids from sequences.
 
         It takes as inputs a list of sequences and returns a list of dictionaries.
@@ -306,6 +347,7 @@ class TransformersWrapper:
         starting with 0) and the values are dictionaries of probabilities over
         the natural amino-acids for this position.
 
+        When working with MSA, it returns a list of dictionnary for each sequence in the MSA.
         In these dictionaries, the keys are the amino-acids and the value
         the corresponding probabilities.
 
@@ -317,40 +359,52 @@ class TransformersWrapper:
         the user to choose the tokens to consider when computing probabilities.
 
         Args:
-            sequences: List of sequences
+            sequences : List of sequences, path of fasta file or path to a folder with msa to a3m format.
             batch_size: number of sequences to consider for the forward pass
             tokens_list: List of tokens to consider
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
-
+            n_seqs_msa: number of sequence to consider in an msa file.
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
-        if isinstance(sequences, str):
-            sequences = load_fasta(sequences)
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
-        _check_sequence(sequences, self._model_dir, 1024)
-        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
-        _check_tokens_list(sequences, tokens_list)
-
+        sequences, lengths = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=n_seqs_msa,
+            vocab_size=self._language_model.vocab_size,
+            pass_mode=pass_mode,
+            tokens_list=tokens_list,
+        )
+        self.init_ray_workers()
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         # Remove padded logits
-        lengths = [len(sequence) for sequence in sequences]
-        logits = [logit[:length, :] for logit, length in zip(list(logits), lengths)]
+        # Use transpose so that function works for MSA and sequence
+        logits = [
+            torch.from_numpy(logit.numpy().transpose()[:, :length].transpose())
+            for logit, length in zip(list(logits), lengths)
+        ]
         # Set to -inf logits that correspond to tokens that are not in tokens list
         vocabulary_mask = torch.from_numpy(self.get_vocabulary_mask(tokens_list))
         # Avoid printing warnings
         np.seterr(divide="ignore")
 
+        # Put -inf on character not in token list. Shape of this mask depends on
+
         masked_logits = []
         for logit in logits:
-            masked_logit = logit + torch.from_numpy(
-                np.tile(np.log(vocabulary_mask), (logit.shape[0], 1))
-            )
+            # repeat MSA dimension
+            if self._language_model.is_msa:
+                repeat_dim = (logit.shape[0], logit.shape[1], 1)  # type: ignore
+            else:
+                repeat_dim = (logit.shape[0], 1)  # type: ignore
+            masked_logit = logit + torch.from_numpy(np.tile(np.log(vocabulary_mask), repeat_dim))
             masked_logits.append(masked_logit)
-        # Use softmax to compute probabilities frm logits
+        # Use softmax to compute probabilities from logits
         # Due to the -inf, probs of tokens that are not in token list will be zero
         softmax = torch.nn.Softmax(dim=-1)
         probabilities = [softmax(logits) for logits in masked_logits]
@@ -362,11 +416,28 @@ class TransformersWrapper:
                 if token in tokens_list
             }
 
-        probabilities_dict = [
-            {key: _get_probabilities_dict(value) for key, value in dict(enumerate(probs)).items()}
-            for probs in probabilities
-        ]
-        return probabilities_dict
+        probabilities_dict_type = Union[sequence_probs_list, List[sequence_probs_list]]
+        if self._language_model.is_msa:
+            probabilities_dict: probabilities_dict_type = [
+                [
+                    {
+                        key: _get_probabilities_dict(value)
+                        for key, value in dict(enumerate(probs)).items()
+                    }
+                    for probs in msa
+                ]
+                for msa in probabilities
+            ]
+        else:
+            probabilities_dict = [
+                {
+                    key: _get_probabilities_dict(value)
+                    for key, value in dict(enumerate(probs)).items()
+                }
+                for probs in probabilities
+            ]
+        self.delete_ray_workers()
+        return probabilities_dict  # type: ignore
 
     def compute_loglikelihood(
         self,
@@ -396,15 +467,23 @@ class TransformersWrapper:
         Returns:
             List[float]: list of log-likelihoods, one per sequence
         """
+        self.init_ray_workers()
+        if self._language_model.is_msa:
+            raise NotImplementedError(
+                "compute_loglikelihood for MSA transformers is not implemented."
+            )
+
         probabilities = self.compute_probabilities(
             sequences, batch_size, tokens_list, pass_mode, silent
         )
         log_likelihoods = []
         for sequence, probabilities_dict in zip(sequences, probabilities):
             log_likelihood = np.sum(
-                [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]
+                [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]  # type: ignore
             )
             log_likelihoods.append(float(log_likelihood))
+
+        self.delete_ray_workers()
         return log_likelihoods
 
     def compute_embeddings(
@@ -413,6 +492,7 @@ class TransformersWrapper:
         batch_size: int = 1,
         pool_mode: Tuple[str, ...] = ("cls", "mean", "full"),
         silent: bool = False,
+        n_seqs_msa: int = 6,
     ) -> Dict[str, Union[List[np.ndarray], np.ndarray]]:
         """Function that computes embeddings of sequences.
 
@@ -429,32 +509,39 @@ class TransformersWrapper:
         per pool-mode that has been specified. The corresponding value is a list of
         embeddings, one per sequence in sequences.
 
+        When working with MSA, an extra dimension is added to the final tensor.
         Args:
-            sequences: List of sequences or path of fasta file
-            batch_size: Batch size
+            sequences: List of sequences, path of fasta file or path to a folder with msa to a3m format.
+            batch_size: batch size
             pool_mode: Mode of pooling ('cls', 'mean', 'full')
             silent : whereas to display or not progress bar
-
+            n_seqs_msa: number of sequence to consider in an msa file.
         Returns:
              Dict[str, List[np.ndarray]]: dict matching pool-mode and list of embeddings
         """
-        if isinstance(sequences, str):
-            sequences = load_fasta(sequences)
-        _check_sequence(sequences, self._model_dir, 1024)
-        _check_memory_embeddings(sequences, self._language_model.embeddings_size, pool_mode)
-
-        # Get the sequences lengths
-        lengths = [len(sequence) for sequence in sequences]
+        sequences, lengths = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=n_seqs_msa,
+            vocab_size=self._language_model.vocab_size,
+            pool_mode=pool_mode,
+        )
+        self.init_ray_workers()
         # Compute a forward pass to get the embeddings
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         _, embeddings = self._model_evaluation(inputs, batch_size=batch_size, silent=silent)
         embeddings = [emb.cpu().numpy() for emb in embeddings]
         # Remove class token and padding
+        # Use tranpose to filter on the two last dimensions. Doing this, we don't have to manage
+        # the first dimension of the tensor. It works for [dim1, dim2, token_size, emb_size] and
+        # for [dim1, token_size, emb_size]
         filtered_embeddings = [
-            emb[1 : (length + 1), :] for emb, length in zip(list(embeddings), lengths)
+            emb.transpose()[:, 1 : (length + 1)].transpose()
+            for emb, length in zip(list(embeddings), lengths)
         ]
         # Keep class token only
-        cls_embeddings = [emb[0, :] for emb in list(embeddings)]
+        cls_embeddings = [emb.transpose()[:, 0].transpose() for emb in list(embeddings)]
         embeddings_dict = {}
         # Keep only what's necessary
         if "full" in pool_mode:
@@ -462,7 +549,13 @@ class TransformersWrapper:
         if "cls" in pool_mode:
             embeddings_dict["cls"] = np.stack(cls_embeddings)
         if "mean" in pool_mode:
-            embeddings_dict["mean"] = np.stack([np.mean(e, axis=0) for e in filtered_embeddings])
+            # For msa embbedings, we average over tokens of each msa, we don't average over sequence.
+            # We use transpose and average over axis 1 to not take in account msa dimension
+            # esm model: [tokens , embedding] msa: [n_msa, tokens, embedding]
+            embeddings_dict["mean"] = np.stack(
+                [e.transpose().mean(1).transpose() for e in filtered_embeddings]
+            )
+        self.delete_ray_workers()
         return embeddings_dict
 
     def compute_accuracy(
@@ -471,22 +564,29 @@ class TransformersWrapper:
         batch_size: int = 1,
         pass_mode: str = "forward",
         silent: bool = False,
+        n_seqs_msa: int = 6,
     ) -> float:
         """Compute model accuracy from the input sequences
 
+        When working with MSA, the accuracy is computed over all the tokens of the msa' sequences.
         Args:
-            sequences (Union[List[str],str]): list of sequence or fasta file
+            sequences (Union[List[str],str]): List of sequences, path of fasta file or path to a folder with msa to a3m format.
             batch_size ([type], optional): [description]. Defaults to 1.
             pass_mode ([type], optional): [description]. Defaults to "forward".
             silent : whereas to display or not progress bar
-
+            n_seqs_msa: number of sequence to consider in an msa file.
         Returns:
             float: model's accuracy over the given sequences
         """
-        if isinstance(sequences, str):
-            sequences = load_fasta(sequences)
-        _check_sequence(sequences, self._model_dir, 1024)
-        _check_memory_logits(sequences, self._language_model.vocab_size, pass_mode)
+        sequences, _ = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=n_seqs_msa,
+            vocab_size=self._language_model.vocab_size,
+            pass_mode=pass_mode,
+        )
+        self.init_ray_workers()
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
@@ -498,6 +598,7 @@ class TransformersWrapper:
         predicted_labels = torch.argmax(logits, dim=-1)
         # Compute the accuracy
         accuracy = float(torch.mean(torch.eq(predicted_labels, labels).float()))
+        self.delete_ray_workers()
         return accuracy
 
     def load_model(self, model_dir: str, map_location=None):
@@ -514,8 +615,9 @@ class TransformersWrapper:
             raise FileNotFoundError
 
         if self._multi_gpus:
+            self.init_ray_workers()
             ray.get(
-                [worker._load_model.remote(model_dir, map_location) for worker in self._workers]
+                [worker._load_model.remote(model_dir, map_location) for worker in self._workers]  # type: ignore
             )
             pass
         else:
@@ -606,8 +708,13 @@ class TransformersWrapper:
         if isinstance(train_sequences, str):
             train_sequences = load_fasta(train_sequences)
 
+<<<<<<< HEAD
         # Free resources used by ray before finetuning with Lightning
         # del self._workers
+=======
+        if self._language_model.is_msa:
+            raise NotImplementedError("MSA finetunening not implemented.")
+>>>>>>> develop
 
         fit_model = self._language_model.model  # type: ignore
         alphabet = self._language_model.get_alphabet_dataloader()
@@ -678,6 +785,7 @@ class TransformersWrapper:
         # Load new model
         #self._language_model._load_model(save_name)
 
+<<<<<<< HEAD
         if self._multi_gpus:
             pass
             # Create ray workers as they have been deleted at the beginning
@@ -688,4 +796,6 @@ class TransformersWrapper:
             # Load new model one ach worker
             #ray.get([worker._load_model.remote(save_name) for worker in self._workers])
 
+=======
+>>>>>>> develop
         log.info("Training completed.")

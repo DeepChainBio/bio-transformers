@@ -19,6 +19,7 @@ from ray.actor import ActorHandle
 from tqdm import tqdm
 
 log = logger("esm_wrapper")
+path_msa_folder = str
 
 
 class ESMWrapper(LanguageModel):
@@ -27,7 +28,7 @@ class ESMWrapper(LanguageModel):
     a protein likelihood so as other insights.
     """
 
-    def __init__(self, model_dir: str, device):
+    def __init__(self, model_dir: str, device: str):
         if model_dir not in ESM_LIST:
             print(f"Model dir '{model_dir}' not recognized. Using '{DEFAULT_ESM_MODEL}' as default")
             model_dir = DEFAULT_ESM_MODEL
@@ -39,6 +40,7 @@ class ESMWrapper(LanguageModel):
         self.hidden_size = self._model.args.embed_dim
         self._model = self._model.to(self._device)
         self.batch_converter = self.alphabet.get_batch_converter()
+        self.is_msa = model_dir.__contains__("msa")
 
     @property
     def model(self) -> torch.nn.Module:
@@ -97,7 +99,11 @@ class ESMWrapper(LanguageModel):
 
     def process_sequences_and_tokens(self, sequences_list: List[str]) -> Dict[str, torch.Tensor]:
         """Function to transform tokens string to IDs; it depends on the model used"""
-        _, _, all_tokens = self.batch_converter([("", sequence) for sequence in sequences_list])
+        if self.is_msa:
+            _, _, all_tokens = self.batch_converter(sequences_list)
+        else:
+            _, _, all_tokens = self.batch_converter([("", sequence) for sequence in sequences_list])
+
         all_tokens = all_tokens.to("cpu")
         encoded_inputs = {
             "input_ids": all_tokens,

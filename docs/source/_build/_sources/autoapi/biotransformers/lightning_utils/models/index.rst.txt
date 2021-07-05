@@ -1,0 +1,131 @@
+:mod:`biotransformers.lightning_utils.models`
+=============================================
+
+.. py:module:: biotransformers.lightning_utils.models
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.lightning_utils.models.LightningModule
+
+
+
+
+.. class:: LightningModule(model, alphabet, lr: float, warmup_end_lr: float, warmup_updates: int = 10, warmup_init_lr: float = 1e-07)
+
+
+   Bases: :py:obj:`pytorch_lightning.LightningModule`
+
+   Create lightning model to use ddp
+
+   .. method:: forward(self, x)
+
+      Same as :meth:`torch.nn.Module.forward()`.
+
+      :param \*args: Whatever you decide to pass into the forward method.
+      :param \*\*kwargs: Keyword arguments are also possible.
+
+      :returns: Your model's output
+
+
+   .. method:: configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[Dict]]
+
+      Configure the optimizer and learning rate scheduler.
+
+      :returns:
+
+                - list of optimizers.
+                - list of lr schedulers.
+
+
+   .. method:: cross_entropy_loss(self, logits, targets)
+
+
+   .. method:: training_step(self, train_batch, batch_idx)
+
+      Here you compute and return the training loss and some additional metrics for e.g.
+      the progress bar or logger.
+
+      :param batch: The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+      :type batch: :class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]
+      :param batch_idx: Integer displaying index of this batch
+      :type batch_idx: int
+      :param optimizer_idx: When using multiple optimizers, this argument will also be present.
+      :type optimizer_idx: int
+      :param hiddens: Passed in if
+                      :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
+      :type hiddens: :class:`~torch.Tensor`
+
+      :returns: Any of.
+
+                - :class:`~torch.Tensor` - The loss tensor
+                - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
+                - ``None`` - Training will skip to the next batch
+
+      .. note:: Returning ``None`` is currently not supported for multi-GPU or TPU, or with 16-bit precision enabled.
+
+      In this step you'd normally do the forward pass and calculate the loss for a batch.
+      You can also do fancier things like multiple forward passes or something model specific.
+
+      Example::
+
+          def training_step(self, batch, batch_idx):
+              x, y, z = batch
+              out = self.encoder(x)
+              loss = self.loss(out, x)
+              return loss
+
+      If you define multiple optimizers, this step will be called with an additional
+      ``optimizer_idx`` parameter.
+
+      .. code-block:: python
+
+          # Multiple optimizers (e.g.: GANs)
+          def training_step(self, batch, batch_idx, optimizer_idx):
+              if optimizer_idx == 0:
+                  # do training_step with encoder
+              if optimizer_idx == 1:
+                  # do training_step with decoder
+
+
+      If you add truncated back propagation through time you will also get an additional
+      argument with the hidden states of the previous step.
+
+      .. code-block:: python
+
+          # Truncated back-propagation through time
+          def training_step(self, batch, batch_idx, hiddens):
+              # hiddens are the hidden states from the previous truncated backprop step
+              ...
+              out, hiddens = self.lstm(data, hiddens)
+              ...
+              return {'loss': loss, 'hiddens': hiddens}
+
+      .. note::
+
+         The loss value shown in the progress bar is smoothed (averaged) over the last values,
+         so it differs from the actual loss returned in train/validation step.
+
+
+   .. method:: validation_step(self, val_batch, batch_idx)
+
+      Log the loss and metrics for a batch.
+
+      :param batch: batch input.
+      :param batch_idx: index of the batch.
+
+
+   .. method:: get_tensor_accuracy(self, logits: torch.Tensor, targets: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]
+
+      Calculate accuracy for multi-masking, summed over batch.
+
+      :param logits: prediction from the model, shape = (batch, len_tokens, len_vocab)
+      :param targets: ground truth, shape = (batch, len_tokens)
+
+      :returns: accuracy value.

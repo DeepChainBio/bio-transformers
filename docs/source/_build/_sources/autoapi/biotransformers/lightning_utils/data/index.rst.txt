@@ -1,0 +1,512 @@
+:mod:`biotransformers.lightning_utils.data`
+===========================================
+
+.. py:module:: biotransformers.lightning_utils.data
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.lightning_utils.data.AlphabetDataLoader
+   biotransformers.lightning_utils.data.CustomBatchSampler
+   biotransformers.lightning_utils.data.BatchDataset
+   biotransformers.lightning_utils.data.BioDataModule
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.lightning_utils.data.convert_ckpt_to_statedict
+   biotransformers.lightning_utils.data.worker_init_fn
+   biotransformers.lightning_utils.data.mask_seq
+   biotransformers.lightning_utils.data.collate_fn
+   biotransformers.lightning_utils.data._filter_sequence
+   biotransformers.lightning_utils.data.get_batch_indices
+   biotransformers.lightning_utils.data.create_dataloader
+
+
+
+.. class:: AlphabetDataLoader(prepend_bos: bool, append_eos: bool, mask_idx: int, pad_idx: int, model_dir: str, lambda_toks_to_ids: Callable, lambda_tokenizer: Callable)
+
+
+   Class that carries tokenizer information
+
+   .. method:: tok_to_idx(self, x)
+
+
+   .. method:: tokenizer(self)
+
+      Return seq-token based on sequence
+
+
+
+.. class:: CustomBatchSampler(sampler, batch_size, drop_last)
+
+
+   Bases: :py:obj:`torch.utils.data.Sampler`
+
+   Wraps another sampler to yield a mini-batch of indices.
+
+   This custom BatchSampler is inspired from the torch class BatchSampler.
+   It takes a list of indexes and shuffle the indexes at each epochs.
+
+   :param sampler: List of indexes. indexes are a collections of List[int],
+   :type sampler: List
+   :param corresponding to the index of the protein sequence.:
+   :param batch_size: Size of mini-batch. 1 in our case, a batch are already of correct size.
+   :type batch_size: int
+   :param drop_last: If ``True``, the sampler will drop the last batch if
+                     its size would be less than ``batch_size``
+   :type drop_last: bool
+
+   .. method:: __iter__(self)
+
+
+   .. method:: __len__(self)
+
+
+
+.. class:: BatchDataset(sequences: List[str])
+
+
+   Bases: :py:obj:`torch.utils.data.Dataset`
+
+   An abstract class representing a :class:`Dataset`.
+
+   All datasets that represent a map from keys to data samples should subclass
+   it. All subclasses should overwrite :meth:`__getitem__`, supporting fetching a
+   data sample for a given key. Subclasses could also optionally overwrite
+   :meth:`__len__`, which is expected to return the size of the dataset by many
+   :class:`~torch.utils.data.Sampler` implementations and the default options
+   of :class:`~torch.utils.data.DataLoader`.
+
+   .. note::
+     :class:`~torch.utils.data.DataLoader` by default constructs a index
+     sampler that yields integral indices.  To make it work with a map-style
+     dataset with non-integral indices/keys, a custom sampler must be provided.
+
+   .. method:: __len__(self)
+
+
+   .. method:: __getitem__(self, index)
+
+
+
+.. function:: convert_ckpt_to_statedict(checkpoint_state_dict: collections.OrderedDict) -> collections.OrderedDict
+
+   This function convert a state_dict coming form pytorch lightning checkpoint to
+   a state_dict model that can be load directly in the bio-transformers model.
+
+   The keys are updated so that it  m.jionatches those in the bio-transformers
+
+   :param checkpoint_state_dict: a state_dict loaded from a checkpoint
+
+
+.. function:: worker_init_fn(worker_id: int)
+
+   Set numpy random seed for each worker.
+
+   https://github.com/pytorch/pytorch/issues/5059#issuecomment-404232359
+
+   :param worker_id: unique id for each worker
+
+
+.. function:: mask_seq(seq: str, tokens: torch.Tensor, prepend_bos: bool, mask_idx: int, pad_idx: int, masking_ratio: float, masking_prob: float, random_token_prob: float, random_token_indices: List[int]) -> Tuple[torch.Tensor, torch.Tensor]
+
+   Mask one sequence randomly.
+
+   :param seq: string of the sequence.
+   :param tokens: tokens corresponding to the sequence, length can be longer than the seq.
+   :param prepend_bos: if tokenizer adds <bos> token
+   :param mask_idx: index of the mask token
+   :param pad_idx: index of the padding token
+   :param masking_ratio: ratio of tokens to be masked.
+   :param masking_prob: probability that the chose token is replaced with a mask token.
+   :param random_token_prob: probability that the chose token is replaced with a random token.
+   :param random_token_indices: list of token indices that random replacement selects from.
+
+   :returns: masked tokens
+             targets: same length as tokens
+   :rtype: tokens
+
+
+.. function:: collate_fn(samples: Sequence[Tuple[str, str]], tokenizer: esm.data.BatchConverter, alphabet: esm.data.Alphabet, masking_ratio: float, masking_prob: float, random_token_prob: float) -> Tuple[torch.Tensor, torch.Tensor]
+
+   Collate function to mask tokens.
+
+   :param samples: a sequences of (label, seq).
+   :param tokenizer: facebook tokenizer, that accepts sequences of (label, seq_str)
+                     and outputs (labels, seq_strs, tokens).
+   :param alphabet: facebook alphabet.
+   :param masking_ratio: ratio of tokens to be masked.
+   :param masking_prob: probability that the chose token is replaced with a mask token.
+   :param random_token_prob: probability that the chose token is replaced with a random token.
+
+   :returns: model input
+             targets: model target
+             mask_indices: indices of masked tokens
+   :rtype: tokens
+
+
+.. function:: _filter_sequence(sequences_list: List[str], model: str, filter_len: int) -> List[str]
+
+   Function that filter the length of a sequence list
+
+   Filtering depends on the type of model. It is automatically enforce as ESM1b
+   does'nt manage sequence longer that 1024.
+
+   :param sequences_list: list of sequences
+   :param model: name of the model
+   :param length: length limit to consider
+
+   :raises ValueError is model filter_len < 0:
+
+
+.. function:: get_batch_indices(sequence_strs, toks_per_batch: int, extra_toks_per_seq: int = 0) -> List[List[int]]
+
+   Get the batch idx based on the number of tokens in sequences
+
+   It computes a list of list of int which are the list of the indexes to consider
+   to build a batch.
+   .. rubric:: Example
+
+   returning [[1,3,8],[4,7,10],[11],[12]] means that the first batch  will be
+   composed of sequence at index 1,3,8 for the first batch, sequence 11 for the
+   third batch. The idea is to consider a maximum number of tokens per batch.
+
+   :param sequence_strs: list of string
+   :param filter_len:
+   :param toks_per_batch: Maxi number of token per batch
+   :type toks_per_batch: int
+   :param extra_toks_per_seq: . Defaults to 0.
+   :type extra_toks_per_seq: int, optional
+
+   :returns: List of batches indexes
+   :rtype: List
+
+
+.. function:: create_dataloader(sequences: List[str], alphabet: AlphabetDataLoader, filter_len: int, masking_ratio: float, masking_prob: float, random_token_prob: float, num_workers: int = 0, toks_per_batch: int = 128, extra_toks_per_seq: int = 2) -> torch.utils.data.DataLoader
+
+   Create the PyTorch Dataset.
+
+   :param filenames: list of sequences
+   :param alphabet: facebook alphabet.
+   :param filter_len: whether filter data wrt len.batch_seq
+   :param num_workers: num of parallel data samplers
+   :param masking_ratio: ratio of tokens to be masked.
+   :param masking_prob: probability that the chose token is replaced with a mask token.
+   :param random_token_prob: probability that the chose token is replaced with a random token.
+
+   :returns: torch DataLoader
+
+
+.. class:: BioDataModule(train_sequences: List[str], alphabet: AlphabetDataLoader, filter_len: int, masking_ratio: float, masking_prob: float, random_token_prob: float, toks_per_batch: int = 128, extra_toks_per_seq: int = 2, num_workers: int = 0, validation: bool = True)
+
+
+   Bases: :py:obj:`pytorch_lightning.LightningDataModule`
+
+   A DataModule standardizes the training, val, test splits, data preparation and transforms.
+   The main advantage is consistent data splits, data preparation and transforms across models.
+
+   Example::
+
+       class MyDataModule(LightningDataModule):
+           def __init__(self):
+               super().__init__()
+           def prepare_data(self):
+               # download, split, etc...
+               # only called on 1 GPU/TPU in distributed
+           def setup(self):
+               # make assignments here (val/train/test split)
+               # called on every process in DDP
+           def train_dataloader(self):
+               train_split = Dataset(...)
+               return DataLoader(train_split)
+           def val_dataloader(self):
+               val_split = Dataset(...)
+               return DataLoader(val_split)
+           def test_dataloader(self):
+               test_split = Dataset(...)
+               return DataLoader(test_split)
+           def teardown(self):
+               # clean up after fit or test
+               # called on every process in DDP
+
+   A DataModule implements 6 key methods:
+
+   * **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode).
+   * **setup**  (things to do on every accelerator in distributed mode).
+   * **train_dataloader** the training dataloader.
+   * **val_dataloader** the val dataloader(s).
+   * **test_dataloader** the test dataloader(s).
+   * **teardown** (things to do on every accelerator in distributed mode when finished)
+
+
+   This allows you to share a full dataset without explaining how to download,
+   split transform and process the data
+
+   .. method:: prepare_data(self)
+
+      Use this to download and prepare data.
+
+      .. warning:: DO NOT set state to the model (use `setup` instead)
+          since this is NOT called on every GPU in DDP/TPU
+
+      Example::
+
+          def prepare_data(self):
+              # good
+              download_data()
+              tokenize()
+              etc()
+
+              # bad
+              self.split = data_split
+              self.some_state = some_other_state()
+
+      In DDP prepare_data can be called in two ways (using Trainer(prepare_data_per_node)):
+
+      1. Once per node. This is the default and is only called on LOCAL_RANK=0.
+      2. Once in total. Only called on GLOBAL_RANK=0.
+
+      Example::
+
+          # DEFAULT
+          # called once per node on LOCAL_RANK=0 of that node
+          Trainer(prepare_data_per_node=True)
+
+          # call on GLOBAL_RANK=0 (great for shared file systems)
+          Trainer(prepare_data_per_node=False)
+
+      This is called before requesting the dataloaders:
+
+      .. code-block:: python
+
+          model.prepare_data()
+              if ddp/tpu: init()
+          model.setup(stage)
+          model.train_dataloader()
+          model.val_dataloader()
+          model.test_dataloader()
+
+
+   .. method:: setup(self, stage: Optional[str] = None)
+
+      Called at the beginning of fit (train + validate), validate, test, and predict.
+      This is a good hook when you need to build models dynamically or adjust something about them.
+      This hook is called on every process when using DDP.
+
+      :param stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
+
+      Example::
+
+          class LitModel(...):
+              def __init__(self):
+                  self.l1 = None
+
+              def prepare_data(self):
+                  download_data()
+                  tokenize()
+
+                  # don't do this
+                  self.something = else
+
+              def setup(stage):
+                  data = Load_data(...)
+                  self.l1 = nn.Linear(28, data.num_classes)
+
+
+   .. method:: train_dataloader(self)
+
+      Implement one or more PyTorch DataLoaders for training.
+
+      :returns: Either a single PyTorch :class:`~torch.utils.data.DataLoader` or a collection of these
+                (list, dict, nested lists and dicts). In the case of multiple dataloaders, please see
+                this :ref:`page <multiple-training-dataloaders>`
+
+      The dataloader you return will not be called every epoch unless you set
+      :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+
+      For data processing use the following pattern:
+
+          - download in :meth:`prepare_data`
+          - process and split in :meth:`setup`
+
+      However, the above are only necessary for distributed processing.
+
+      .. warning:: do not assign state in prepare_data
+
+      - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+      - ...
+      - :meth:`prepare_data`
+      - :meth:`setup`
+      - :meth:`train_dataloader`
+
+      .. note::
+
+         Lightning adds the correct sampler for distributed and arbitrary hardware.
+         There is no need to set it yourself.
+
+      Example::
+
+          # single dataloader
+          def train_dataloader(self):
+              transform = transforms.Compose([transforms.ToTensor(),
+                                              transforms.Normalize((0.5,), (1.0,))])
+              dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform,
+                              download=True)
+              loader = torch.utils.data.DataLoader(
+                  dataset=dataset,
+                  batch_size=self.batch_size,
+                  shuffle=True
+              )
+              return loader
+
+          # multiple dataloaders, return as list
+          def train_dataloader(self):
+              mnist = MNIST(...)
+              cifar = CIFAR(...)
+              mnist_loader = torch.utils.data.DataLoader(
+                  dataset=mnist, batch_size=self.batch_size, shuffle=True
+              )
+              cifar_loader = torch.utils.data.DataLoader(
+                  dataset=cifar, batch_size=self.batch_size, shuffle=True
+              )
+              # each batch will be a list of tensors: [batch_mnist, batch_cifar]
+              return [mnist_loader, cifar_loader]
+
+          # multiple dataloader, return as dict
+          def train_dataloader(self):
+              mnist = MNIST(...)
+              cifar = CIFAR(...)
+              mnist_loader = torch.utils.data.DataLoader(
+                  dataset=mnist, batch_size=self.batch_size, shuffle=True
+              )
+              cifar_loader = torch.utils.data.DataLoader(
+                  dataset=cifar, batch_size=self.batch_size, shuffle=True
+              )
+              # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
+              return {'mnist': mnist_loader, 'cifar': cifar_loader}
+
+
+   .. method:: val_dataloader(self)
+
+      Implement one or multiple PyTorch DataLoaders for validation.
+
+      The dataloader you return will not be called every epoch unless you set
+      :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+
+      It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+
+      - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+      - ...
+      - :meth:`prepare_data`
+      - :meth:`train_dataloader`
+      - :meth:`val_dataloader`
+      - :meth:`test_dataloader`
+
+      .. note::
+
+         Lightning adds the correct sampler for distributed and arbitrary hardware
+         There is no need to set it yourself.
+
+      :returns: Single or multiple PyTorch DataLoaders.
+
+      Examples::
+
+          def val_dataloader(self):
+              transform = transforms.Compose([transforms.ToTensor(),
+                                              transforms.Normalize((0.5,), (1.0,))])
+              dataset = MNIST(root='/path/to/mnist/', train=False,
+                              transform=transform, download=True)
+              loader = torch.utils.data.DataLoader(
+                  dataset=dataset,
+                  batch_size=self.batch_size,
+                  shuffle=False
+              )
+
+              return loader
+
+          # can also return multiple dataloaders
+          def val_dataloader(self):
+              return [loader_a, loader_b, ..., loader_n]
+
+      .. note::
+
+         If you don't need a validation dataset and a :meth:`validation_step`, you don't need to
+         implement this method.
+
+      .. note::
+
+         In the case where you return multiple validation dataloaders, the :meth:`validation_step`
+         will have an argument ``dataloader_idx`` which matches the order here.
+
+
+   .. method:: test_dataloader(self)
+
+      Implement one or multiple PyTorch DataLoaders for testing.
+
+      The dataloader you return will not be called every epoch unless you set
+      :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+
+      For data processing use the following pattern:
+
+          - download in :meth:`prepare_data`
+          - process and split in :meth:`setup`
+
+      However, the above are only necessary for distributed processing.
+
+      .. warning:: do not assign state in prepare_data
+
+
+      - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+      - ...
+      - :meth:`prepare_data`
+      - :meth:`setup`
+      - :meth:`train_dataloader`
+      - :meth:`val_dataloader`
+      - :meth:`test_dataloader`
+
+      .. note::
+
+         Lightning adds the correct sampler for distributed and arbitrary hardware.
+         There is no need to set it yourself.
+
+      :returns: Single or multiple PyTorch DataLoaders.
+
+      Example::
+
+          def test_dataloader(self):
+              transform = transforms.Compose([transforms.ToTensor(),
+                                              transforms.Normalize((0.5,), (1.0,))])
+              dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform,
+                              download=True)
+              loader = torch.utils.data.DataLoader(
+                  dataset=dataset,
+                  batch_size=self.batch_size,
+                  shuffle=False
+              )
+
+              return loader
+
+          # can also return multiple dataloaders
+          def test_dataloader(self):
+              return [loader_a, loader_b, ..., loader_n]
+
+      .. note::
+
+         If you don't need a test dataset and a :meth:`test_step`, you don't need to implement
+         this method.
+
+      .. note::
+
+         In the case where you return multiple test dataloaders, the :meth:`test_step`
+         will have an argument ``dataloader_idx`` which matches the order here.

@@ -1,0 +1,38 @@
+:mod:`biotransformers.utils.logger`
+===================================
+
+.. py:module:: biotransformers.utils.logger
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   biotransformers.utils.logger.logger
+
+
+
+.. function:: logger(module_name: str) -> logging.Logger
+
+   Configure the logger with formatter and handlers.
+
+   The log level depends on the environment variable `BIO_LOG_LEVEL`.
+
+   - 0: NOTSET, will be set to DEBUG
+   - 1: DEBUG
+   - 2: INFO (default)
+   - 3: WARNING
+   - 4: ERROR
+   - 5: CRITICAL
+   https://docs.python.org/3/library/logging.html#levels
+
+   :param module_name: module name
+   :type module_name: str
+
+   :returns: instantiate logger object
+   :rtype: [Logger]
