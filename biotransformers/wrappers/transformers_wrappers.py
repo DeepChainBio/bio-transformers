@@ -76,6 +76,7 @@ class TransformersWrapper:
 
     def init_ray_workers(self):
         if self._multi_gpus:
+            log.info("Init ray workers")
             if self._ray_cls is None:
                 self._ray_cls = ray.remote(num_cpus=2, num_gpus=1)(self.language_model_cls)
             if self._workers is None:
@@ -85,6 +86,7 @@ class TransformersWrapper:
                 ]
 
     def delete_ray_workers(self):
+        _ = [ray.kill(worker) for worker in self._workers]
         self._ray_cls = None
         self._workers = None
 
@@ -319,7 +321,6 @@ class TransformersWrapper:
         ]
         # List of arrays of shape (seq_length, 1)
         self.delete_ray_workers()
-
         return logits
 
     def compute_probabilities(
@@ -371,7 +372,6 @@ class TransformersWrapper:
             tokens_list=tokens_list,
         )
         self.init_ray_workers()
-
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
@@ -461,7 +461,6 @@ class TransformersWrapper:
             List[float]: list of log-likelihoods, one per sequence
         """
         self.init_ray_workers()
-
         if self._language_model.is_msa:
             raise NotImplementedError(
                 "compute_loglikelihood for MSA transformers is not implemented."
