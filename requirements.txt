@@ -1,4 +1,4 @@
-biopython>=1.78
+biopython>=1.78,<2
 fair-esm==0.3.1
 numpy>=1.16,<1.19
 pandas>=1.2.3
