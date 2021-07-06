@@ -83,7 +83,7 @@ class TransformersWrapper:
             ]
 
     def delete_ray_workers(self):
-        if self._multi_gpus
+        if self._multi_gpus:
             # kill worker to free RAM
             _ = [ray.kill(worker) for worker in self._workers]
             self._ray_cls = None
@@ -729,7 +729,7 @@ class TransformersWrapper:
 
         if self._num_gpus == 0:
             raise ValueError("You try to train a transformers without GPU.")
-            
+
         logger = CSVLogger(logs_save_dir, name=logs_name_exp)
         checkpoint_callback = None
 
