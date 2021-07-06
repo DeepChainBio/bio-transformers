@@ -76,19 +76,18 @@ class TransformersWrapper:
 
     def init_ray_workers(self):
         if self._multi_gpus:
-            log.info("Init ray workers")
-            if self._ray_cls is None:
-                self._ray_cls = ray.remote(num_cpus=2, num_gpus=1)(self.language_model_cls)
-            if self._workers is None:
-                self._workers = [
-                    self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
-                    for _ in range(self._num_gpus)
-                ]
+            self._ray_cls = ray.remote(num_cpus=2, num_gpus=1)(self.language_model_cls)
+            self._workers = [
+                self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
+                for _ in range(self._num_gpus)
+            ]
 
     def delete_ray_workers(self):
-        _ = [ray.kill(worker) for worker in self._workers]
-        self._ray_cls = None
-        self._workers = None
+        if self._multi_gpus
+            # kill worker to free RAM
+            _ = [ray.kill(worker) for worker in self._workers]
+            self._ray_cls = None
+            self._workers = None
 
     def get_vocabulary_mask(self, tokens_list: List[str]) -> np.ndarray:
         """Returns a mask ove the model tokens."""
@@ -730,7 +729,7 @@ class TransformersWrapper:
 
         if self._num_gpus == 0:
             raise ValueError("You try to train a transformers without GPU.")
-
+            
         logger = CSVLogger(logs_save_dir, name=logs_name_exp)
         checkpoint_callback = None
 
@@ -757,7 +756,6 @@ class TransformersWrapper:
             resume_from_checkpoint=checkpoint,
             callbacks=checkpoint_callback,
         )
-
         trainer.fit(lightning_model, data_module)
 
         save_path = str(Path(join(logs_save_dir, logs_name_exp)).resolve())
@@ -771,5 +769,4 @@ class TransformersWrapper:
 
         # Load new model
         self._language_model._load_model(save_name)
-
         log.info("Training completed.")
