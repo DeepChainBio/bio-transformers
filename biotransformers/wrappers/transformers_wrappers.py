@@ -70,32 +70,24 @@ class TransformersWrapper:
             self._multi_gpus = False
         else:
             self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
-<<<<<<< HEAD
-            #self._ray_cls = ray.remote(num_cpus=4, num_gpus=1)(language_model_cls)
-            #self._workers = [
-            #    self._ray_cls.remote(model_dir=model_dir, device="cuda:0") for _ in range(num_gpus)
-            #]
-=======
             self._ray_cls = None
             self._workers = None
->>>>>>> develop
             self._multi_gpus = True
 
     def init_ray_workers(self):
         if self._multi_gpus:
-            log.info("Init ray workers")
-            if self._ray_cls is None:
-                self._ray_cls = ray.remote(num_cpus=2, num_gpus=1)(self.language_model_cls)
-            if self._workers is None:
-                self._workers = [
-                    self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
-                    for _ in range(self._num_gpus)
-                ]
+            self._ray_cls = ray.remote(num_cpus=2, num_gpus=1)(self.language_model_cls)
+            self._workers = [
+                self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
+                for _ in range(self._num_gpus)
+            ]
 
     def delete_ray_workers(self):
-        _ = [ray.kill(worker) for worker in self._workers]
-        self._ray_cls = None
-        self._workers = None
+        if self._multi_gpus:
+            # kill worker to free RAM
+            _ = [ray.kill(worker) for worker in self._workers]
+            self._ray_cls = None
+            self._workers = None
 
     def get_vocabulary_mask(self, tokens_list: List[str]) -> np.ndarray:
         """Returns a mask ove the model tokens."""
@@ -708,13 +700,8 @@ class TransformersWrapper:
         if isinstance(train_sequences, str):
             train_sequences = load_fasta(train_sequences)
 
-<<<<<<< HEAD
-        # Free resources used by ray before finetuning with Lightning
-        # del self._workers
-=======
         if self._language_model.is_msa:
             raise NotImplementedError("MSA finetunening not implemented.")
->>>>>>> develop
 
         fit_model = self._language_model.model  # type: ignore
         alphabet = self._language_model.get_alphabet_dataloader()
@@ -770,7 +757,6 @@ class TransformersWrapper:
             resume_from_checkpoint=checkpoint,
             callbacks=checkpoint_callback,
         )
-
         trainer.fit(lightning_model, data_module)
 
         save_path = str(Path(join(logs_save_dir, logs_name_exp)).resolve())
@@ -781,21 +767,7 @@ class TransformersWrapper:
                 save_name = self._save_model(save_path, lightning_model)
         else:
             save_name = self._save_model(save_path, lightning_model)
-
+            
         # Load new model
-        #self._language_model._load_model(save_name)
-
-<<<<<<< HEAD
-        if self._multi_gpus:
-            pass
-            # Create ray workers as they have been deleted at the beginning
-            #self._workers = [
-            #    self._ray_cls.remote(model_dir=self._model_dir, device="cuda:0")
-            #    for _ in range(self._num_gpus)
-            #]
-            # Load new model one ach worker
-            #ray.get([worker._load_model.remote(save_name) for worker in self._workers])
-
-=======
->>>>>>> develop
+        self._language_model._load_model(save_name)
         log.info("Training completed.")

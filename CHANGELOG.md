@@ -1,5 +1,25 @@
 # Change log
 
+# [0.1.3] - 2021-07-01
+
+Features:
+ - Add msa-transformers for methods:
+    - compute_logits
+    - compute_embeddings
+    - compute_probabilities
+    - compute_accuracy
+
+Fixed:
+ - Remove torch DataParallel wrapper.
+
+# [0.1.0] - 2021-07-01
+
+Features:
+ - Add ray worker for multi-gpus inference
+
+Removed:
+ - Remove torch DataParallel wrapper.
+
 # [0.0.10] - 2021-06-14
 Note on the release
 
