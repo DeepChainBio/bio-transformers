@@ -725,6 +725,7 @@ class TransformersWrapper:
             random_token_prob,
             toks_per_batch,
             extra_toks_per_seq,
+            validation=False
         )
 
         if self._num_gpus == 0:
@@ -766,7 +767,7 @@ class TransformersWrapper:
                 save_name = self._save_model(save_path, lightning_model)
         else:
             save_name = self._save_model(save_path, lightning_model)
-
+            
         # Load new model
         self._language_model._load_model(save_name)
         log.info("Training completed.")
