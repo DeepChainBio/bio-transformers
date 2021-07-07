@@ -1,10 +1,7 @@
 """Test module for testing embeddings function"""
 import numpy as np
 import pytest
-
-test_sequences = ["AAAA", "AKKF", "AHHFK", "KKKKKKKLLL"]
-test_fasta = "data/fasta/example_fasta.fasta"
-length_fasta = [538, 508, 393, 328, 354, 223]
+from constants import lengths_sequence_fasta, test_fasta, test_sequences
 
 test_params = [
     (1, ["cls", "mean"]),
