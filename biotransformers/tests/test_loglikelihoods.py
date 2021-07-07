@@ -12,7 +12,9 @@ test_params_fasta = [(1, list("TPHXCWYFEKMISRDVLQGA"), "forward")]
 
 
 @pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params)
-def test_loglikelihoods_type_shape_and_range(init_model,sequences, batch_size, tokens_list, pass_mode):
+def test_loglikelihoods_type_shape_and_range(
+    init_model, sequences, batch_size, tokens_list, pass_mode
+):
     test_trans = init_model
     loglikelihoods = test_trans.compute_loglikelihood(
         sequences,
@@ -26,7 +28,9 @@ def test_loglikelihoods_type_shape_and_range(init_model,sequences, batch_size, t
 
 
 @pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params_fasta)
-def test_loglikelihoods_type_shape_and_range_fasta(init_model, batch_size,fasta_path,lengths_sequence_fasta, tokens_list, pass_mode):
+def test_loglikelihoods_type_shape_and_range_fasta(
+    init_model, fasta_path, lengths_sequence_fasta, batch_size, tokens_list, pass_mode
+):
     test_trans = init_model
     loglikelihoods = test_trans.compute_loglikelihood(
         fasta_path,
