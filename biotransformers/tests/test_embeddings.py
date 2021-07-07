@@ -1,7 +1,6 @@
 """Test module for testing embeddings function"""
 import numpy as np
 import pytest
-from .constants import lengths_sequence_fasta, test_fasta, test_sequences
 
 test_params = [
     (1, ["cls", "mean"]),
@@ -21,7 +20,7 @@ def test_embeddings_type_and_shape(init_model, batch_size, pool_mode):
 
     assert isinstance(embeddings, dict)
     if "full" in pool_mode:
-        for emb, sequence in zip(embeddings["full"], test_sequences):
+        for emb, sequence in zip(embeddings["full"], sequences):
             assert emb.shape[0] == len(sequence)
     if "cls" in pool_mode:
         assert isinstance(embeddings["cls"], np.ndarray)

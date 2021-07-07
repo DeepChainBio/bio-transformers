@@ -18,8 +18,8 @@ def test_logits_type(init_model, batch_size, pass_mode):
         batch_size=batch_size,
         pass_mode=pass_mode,
     )
-    assert len(logits) == len(test_sequences)
-    for logit, sequence in zip(logits, test_sequences):
+    assert len(logits) == len(sequences)
+    for logit, sequence in zip(logits, sequences):
         assert logit.shape[0] == len(sequence)
 
 

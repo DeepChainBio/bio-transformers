@@ -18,19 +18,19 @@ def init_model(request):
 
 
 @pytest.fixture(scope="session")
-def fasta_path(request):
+def fasta_path():
     # thanks to fixture class instance (which takes time) will be reused over tests.
     return fasta_path
 
 
 @pytest.fixture(scope="session")
-def sequences(request):
+def sequences():
     # thanks to fixture class instance (which takes time) will be reused over tests.
     return ["AAAA", "AKKF", "AHHFK", "KKKKKKKLLL"]
 
 
 @pytest.fixture(scope="session")
-def lengths_sequence_fasta(request):
+def lengths_sequence_fasta():
     # thanks to fixture class instance (which takes time) will be reused over tests.
     lengths_sequence_fasta = [
         476,
@@ -113,4 +113,4 @@ def lengths_sequence_fasta(request):
         289,
         169,
     ]
-    return length_fasta_sequences
+    return lengths_sequence_fasta
