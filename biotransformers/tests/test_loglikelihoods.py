@@ -12,7 +12,7 @@ test_params = [
     (10, list("ACDEFGHIKLMNPQRSTVWY") + ["MASK"], "forward"),
 ]
 
-test_params_fasta = [(1, list("ACDEFGHIKLMNPQRSTVWY"), "forward")]
+test_params_fasta = [(1, list("TPHXCWYFEKMISRDVLQGA"), "forward")]
 
 
 @pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params)
@@ -29,7 +29,7 @@ def test_loglikelihoods_type_shape_and_range(init_model, batch_size, tokens_list
         assert loglikelihood <= 0 or np.isnan(loglikelihood)
 
 
-@pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params)
+@pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params_fasta)
 def test_loglikelihoods_type_shape_and_range_fasta(init_model, batch_size, tokens_list, pass_mode):
     test_trans = init_model
     loglikelihoods = test_trans.compute_loglikelihood(
