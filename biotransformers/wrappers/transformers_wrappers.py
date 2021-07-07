@@ -570,7 +570,7 @@ class TransformersWrapper:
         Returns:
             float: model's accuracy over the given sequences
         """
-        sequences, _ = init_model_sequences(
+        sequences, lengths = init_model_sequences(
             sequences=sequences,
             model_dir=self._model_dir,
             model_is_msa=self._language_model.is_msa,
@@ -584,12 +584,32 @@ class TransformersWrapper:
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         # Get length of sequence
-        labels = inputs["input_ids"]
+        labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
+
+        # Remove padded logits
+        logits = [
+            torch.from_numpy(logit.numpy().transpose()[:, :length].transpose())
+            for logit, length in zip(list(logits), lengths)
+        ]
+        labels = [
+            torch.from_numpy(label.numpy().transpose()[:, :length].transpose())
+            for label, length in zip(list(labels), lengths)
+        ]
 
         # Get the predicted labels
-        predicted_labels = torch.argmax(logits, dim=-1)
+        predicted_labels = [torch.argmax(logit, dim=-1) for logit in logits]
         # Compute the accuracy
-        accuracy = float(torch.mean(torch.eq(predicted_labels, labels).float()))
+        accuracy = float(
+            torch.mean(
+                torch.cat(
+                    [
+                        torch.eq(predicted_label, label.squeeze()).float()
+                        for predicted_label, label in zip(predicted_labels, labels)
+                    ],
+                    dim=0,
+                ).float()
+            )
+        )
         self.delete_ray_workers()
         return accuracy
 
