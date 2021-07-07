@@ -1,7 +1,7 @@
 """Test module for testing embeddings function"""
 import numpy as np
 import pytest
-from constants import lengths_sequence_fasta, test_fasta, test_sequences
+from .constants import lengths_sequence_fasta, test_fasta, test_sequences
 
 test_params = [
     (1, ["cls", "mean"]),
