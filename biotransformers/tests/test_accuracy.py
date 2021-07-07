@@ -11,7 +11,7 @@ test_params_fasta = [(2, "forward")]
 
 
 @pytest.mark.parametrize("batch_size, pass_mode", test_params)
-def test_accuracy_type_and_range(init_model, sequences,batch_size, pass_mode):
+def test_accuracy_type_and_range(init_model, sequences, batch_size, pass_mode):
     test_trans = init_model
     accuracy = test_trans.compute_accuracy(
         sequences,
@@ -23,7 +23,7 @@ def test_accuracy_type_and_range(init_model, sequences,batch_size, pass_mode):
 
 
 @pytest.mark.parametrize("batch_size, pass_mode", test_params_fasta)
-def test_accuracy_type_and_range_fasta(init_model,fasta_path, batch_size, pass_mode):
+def test_accuracy_type_and_range_fasta(init_model, fasta_path, batch_size, pass_mode):
     test_trans = init_model
 
     accuracy_fasta = test_trans.compute_accuracy(
