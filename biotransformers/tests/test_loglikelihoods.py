@@ -8,7 +8,7 @@ test_params = [
     (10, list("ACDEFGHIKLMNPQRSTVWY") + ["MASK"], "forward"),
 ]
 
-test_params_fasta = [(1, list("TPHXCWYFEKMISRDVLQGA"), "forward")]
+test_params_fasta = [(1, list("TPHXCWYFEKNMISRDVLQGA"), "forward")]
 
 
 @pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params)
