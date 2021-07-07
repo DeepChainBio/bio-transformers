@@ -1,6 +1,6 @@
 """Test module for testing logits function"""
 import pytest
-from constants import lengths_sequence_fasta, test_fasta, test_sequences
+from .constants import lengths_sequence_fasta, test_fasta, test_sequences
 
 test_params = [
     (1, "forward"),
