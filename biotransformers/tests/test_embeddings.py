@@ -14,7 +14,7 @@ test_params = [
 def test_embeddings_type_and_shape(init_model, batch_size, pool_mode):
     test_trans = init_model
     embeddings = test_trans.compute_embeddings(
-        test_sequences,
+        sequences,
         batch_size=batch_size,
         pool_mode=pool_mode,
     )
@@ -34,7 +34,7 @@ def test_embeddings_type_and_shape(init_model, batch_size, pool_mode):
 def test_embeddings_type_and_shape_fasta(init_model, batch_size, pool_mode):
     test_trans = init_model
     embeddings = test_trans.compute_embeddings(
-        test_fasta,
+        fasta_path,
         batch_size=batch_size,
         pool_mode=pool_mode,
     )

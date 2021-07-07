@@ -1,6 +1,5 @@
 """Test module for testing logits function"""
 import pytest
-from .constants import lengths_sequence_fasta, test_fasta, test_sequences
 
 test_params = [
     (1, "forward"),
@@ -15,7 +14,7 @@ test_params_fasta = [(2, "forward")]
 def test_logits_type(init_model, batch_size, pass_mode):
     test_trans = init_model
     logits = test_trans.compute_logits(
-        test_sequences,
+        sequences,
         batch_size=batch_size,
         pass_mode=pass_mode,
     )
@@ -28,7 +27,7 @@ def test_logits_type(init_model, batch_size, pass_mode):
 def test_logits_type_fasta(init_model, batch_size, pass_mode):
     test_trans = init_model
     logits = test_trans.compute_logits(
-        test_fasta,
+        fasta_path,
         batch_size=batch_size,
         pass_mode=pass_mode,
     )

@@ -16,7 +16,7 @@ test_params_fasta = [(1, list("TPHXCWYFEKMISRDVLQGA"), "forward")]
 def test_loglikelihoods_type_shape_and_range(init_model, batch_size, tokens_list, pass_mode):
     test_trans = init_model
     loglikelihoods = test_trans.compute_loglikelihood(
-        test_sequences,
+        sequences,
         batch_size=batch_size,
         tokens_list=tokens_list,
         pass_mode=pass_mode,
@@ -30,7 +30,7 @@ def test_loglikelihoods_type_shape_and_range(init_model, batch_size, tokens_list
 def test_loglikelihoods_type_shape_and_range_fasta(init_model, batch_size, tokens_list, pass_mode):
     test_trans = init_model
     loglikelihoods = test_trans.compute_loglikelihood(
-        test_fasta,
+        fasta_path,
         batch_size=batch_size,
         tokens_list=tokens_list,
         pass_mode=pass_mode,
