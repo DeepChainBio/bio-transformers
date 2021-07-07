@@ -39,7 +39,7 @@ def test_embeddings_type_and_shape_fasta(init_model, batch_size, pool_mode):
         pool_mode=pool_mode,
     )
     if "full" in pool_mode:
-        for emb, length in zip(embeddings["full"], length_fasta):
+        for emb, length in zip(embeddings["full"], lengths_sequence_fasta):
             assert emb.shape[0] == length
 
     assert isinstance(embeddings, dict)

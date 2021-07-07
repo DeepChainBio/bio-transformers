@@ -35,6 +35,6 @@ def test_loglikelihoods_type_shape_and_range_fasta(init_model, batch_size, token
         tokens_list=tokens_list,
         pass_mode=pass_mode,
     )
-    assert len(loglikelihoods) == len(length_fasta)
+    assert len(loglikelihoods) == len(lengths_sequence_fasta)
     for loglikelihood in loglikelihoods:
         assert loglikelihood <= 0 or np.isnan(loglikelihood)

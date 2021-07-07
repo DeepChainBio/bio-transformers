@@ -32,5 +32,5 @@ def test_logits_type_fasta(init_model, batch_size, pass_mode):
         batch_size=batch_size,
         pass_mode=pass_mode,
     )
-    for logit, length in zip(logits, length_fasta):
+    for logit, length in zip(logits, lengths_sequence_fasta):
         assert logit.shape[0] == length
