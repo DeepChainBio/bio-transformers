@@ -20,7 +20,7 @@ def init_model(request):
 @pytest.fixture(scope="session")
 def fasta_path():
     # thanks to fixture class instance (which takes time) will be reused over tests.
-    return fasta_path
+    return "data/fasta/example_fasta.fasta"
 
 
 @pytest.fixture(scope="session")
