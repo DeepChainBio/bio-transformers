@@ -3,15 +3,15 @@ import numpy as np
 import pytest
 
 test_params = [
-    (1, list("ACDEFGHIKLMNPQRSTVWY"), "forward"),
-    (2, list("ACDEFGHIKLMNPQRSTVWY") + ["MASK"], "masked"),
-    (10, list("ACDEFGHIKLMNPQRSTVWY") + ["MASK"], "forward"),
+    (1, list("ACDEFGHIKLMNPQRSTVWY"), "forward", "params1"),
+    (2, list("ACDEFGHIKLMNPQRSTVWY") + ["MASK"], "masked", "params2"),
+    (10, list("ACDEFGHIKLMNPQRSTVWY") + ["MASK"], "forward", "params3"),
 ]
 
 test_params_fasta = [(1, list("KFQRVACEXWIHYPNGSMTDL"), "forward")]
 
 
-@pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params)
+@pytest.mark.parametrize("batch_size, tokens_list, pass_mode, params", test_params)
 def test_loglikelihoods_type_shape_and_range(
     init_model, sequences, batch_size, tokens_list, pass_mode
 ):

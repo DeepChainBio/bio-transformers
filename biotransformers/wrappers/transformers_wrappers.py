@@ -438,6 +438,7 @@ class TransformersWrapper:
         tokens_list: List[str] = None,
         pass_mode: str = "forward",
         silent: bool = False,
+        normalize: bool = True,
     ) -> List[float]:
         """Function that computes loglikelihoods of sequences.
         It returns a list of float values.
@@ -484,6 +485,8 @@ class TransformersWrapper:
                 [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]  # type: ignore
             )
             log_likelihoods.append(float(log_likelihood))
+        if normalize:
+            log_likelihoods = [log / length for log, length in zip(log_likelihoods, lengths)]
 
         self.delete_ray_workers()
         return log_likelihoods
