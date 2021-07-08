@@ -42,7 +42,7 @@ class BioTransformers(TransformersWrapper):
         if not type(num_gpus) == int:
             raise TypeError(f"num_gpus should be of type int, not {type(num_gpus)}.")
 
-        if backend.__contains__("esm"):
+        if "esm" in backend:
             model_dir = backend
             return TransformersWrapper(
                 model_dir=model_dir, language_model_cls=ESMWrapper, num_gpus=num_gpus

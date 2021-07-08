@@ -22,10 +22,10 @@ def rename_kwargs(func_name, kwargs, aliases):  # noqa
             warnings.warn("{} is deprecated; use {}".format(alias, new), DeprecationWarning, 3)
 
             if alias == "device":
-                if kwargs[alias].__contains__("cuda"):
+                if "cuda" in kwargs[alias]:
                     kwargs.pop(alias)
                     kwargs[new] = 1
-                elif kwargs[alias].__contains__("cpu"):
+                elif "cpu" in kwargs[alias]:
                     kwargs.pop(alias)
                     kwargs[new] = 0
                 else:

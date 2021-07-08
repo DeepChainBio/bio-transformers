@@ -40,7 +40,7 @@ class ESMWrapper(LanguageModel):
         self.hidden_size = self._model.args.embed_dim
         self._model = self._model.to(self._device)
         self.batch_converter = self.alphabet.get_batch_converter()
-        self.is_msa = model_dir.__contains__("msa")
+        self.is_msa = "msa" in model_dir
 
     @property
     def model(self) -> torch.nn.Module:
