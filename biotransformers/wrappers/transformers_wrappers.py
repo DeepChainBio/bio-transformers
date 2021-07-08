@@ -459,6 +459,16 @@ class TransformersWrapper:
         Returns:
             List[float]: list of log-likelihoods, one per sequence
         """
+        tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
+        sequences, lengths = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=0,
+            vocab_size=self._language_model.vocab_size,
+            pass_mode=pass_mode,
+            tokens_list=tokens_list,
+        )
         self.init_ray_workers()
         if self._language_model.is_msa:
             raise NotImplementedError(
