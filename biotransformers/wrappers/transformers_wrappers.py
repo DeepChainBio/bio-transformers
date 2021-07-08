@@ -306,11 +306,11 @@ class TransformersWrapper:
 
         # Remove padded logits
         logits = [
-            torch.from_numpy(logit.numpy().transpose()[:, 1:length].transpose())
+            torch.from_numpy(logit.numpy().transpose()[:, 1 : (length + 1)].transpose())
             for logit, length in zip(list(logits), lengths)
         ]
         labels = [
-            torch.from_numpy(label.numpy().transpose()[:, 1:length].transpose())
+            torch.from_numpy(label.numpy().transpose()[:, 1 : (length + 1)].transpose())
             for label, length in zip(list(labels), lengths)
         ]
 
@@ -377,7 +377,7 @@ class TransformersWrapper:
         # Remove padded logits
         # Use transpose so that function works for MSA and sequence
         logits = [
-            torch.from_numpy(logit.numpy().transpose()[:, 1:length].transpose())
+            torch.from_numpy(logit.numpy().transpose()[:, 1 : (length + 1)].transpose())
             for logit, length in zip(list(logits), lengths)
         ]
         # Set to -inf logits that correspond to tokens that are not in tokens list
