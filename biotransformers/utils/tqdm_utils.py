@@ -1,3 +1,6 @@
+"""This module provides a ProgressBar that works with ray and tqdm.
+Each Ray workers update the progress bar remotly.
+"""
 from asyncio import Event
 from typing import Tuple
 

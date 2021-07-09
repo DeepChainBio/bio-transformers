@@ -449,6 +449,9 @@ class TransformersWrapper:
         we remove them and compute probabilities only over the 20 natural amino-acids.
         This behavior can be overridden through the tokens_list argument that enable
         the user to choose the tokens to consider when computing probabilities.
+        By default, all loglikelihoods are normalized by the sequence length. For
+        example, a loglikelihood of -0.35 means that every amino acids are predicted with
+        a probability of 0.7 in average.
 
         Args:
             sequences: List of sequences
@@ -456,7 +459,7 @@ class TransformersWrapper:
             tokens_list: List of tokens to consider
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
-
+            normalize : If True, loglikelihood are normalize by sequence length.
         Returns:
             List[float]: list of log-likelihoods, one per sequence
         """

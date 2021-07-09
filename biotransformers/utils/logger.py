@@ -1,3 +1,4 @@
+"""This module build a general logger module"""
 import logging
 import os
 
@@ -24,16 +25,16 @@ def logger(module_name: str) -> logging.Logger:
     if module_name.endswith("py"):
         module_name = os.path.splitext(module_name)[0]
 
-    logger = logging.getLogger(module_name)
-    logger.propagate = False
+    logger_ = logging.getLogger(module_name)
+    logger_.propagate = False
     log_level = os.environ.get("BIO_LOG_LEVEL", "2")
     log_level_int = max(int(log_level) * 10, 10)
-    logger.setLevel(log_level_int)
+    logger_.setLevel(log_level_int)
 
     handler = logging.StreamHandler()
     formatter = logging.Formatter("%(levelname)s: %(message)s")
     handler.setFormatter(formatter)
     handler.setLevel(log_level_int)
-    logger.addHandler(handler)
+    logger_.addHandler(handler)
 
-    return logger
+    return logger_
