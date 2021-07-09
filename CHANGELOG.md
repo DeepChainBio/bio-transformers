@@ -1,5 +1,12 @@
 # Change log
 
+# [0.1.3] - 2021-07-09
+
+Fixed:
+ - Fix filtering of logits which impacts loglikelihood computation
+ - Fix fasta file reading in compute_loglikelihood
+
+
 # [0.1.3] - 2021-07-01
 
 Features:
