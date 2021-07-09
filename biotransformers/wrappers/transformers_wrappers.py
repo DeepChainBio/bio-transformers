@@ -6,6 +6,7 @@ sequences, and displays some properties of the transformer model.
 """
 import math
 import os
+import time
 from copy import deepcopy
 from os.path import join
 from pathlib import Path
@@ -86,6 +87,7 @@ class TransformersWrapper:
         if self._multi_gpus:
             # kill worker to free RAM
             _ = [ray.kill(worker) for worker in self._workers]
+            time.sleep(1)  # 1 sec timer to be sure ray workers are killed
             self._ray_cls = None
             self._workers = None
 
