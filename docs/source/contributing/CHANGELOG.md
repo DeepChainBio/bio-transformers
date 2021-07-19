@@ -1,52 +1,59 @@
 # Change log
 
-# [0.1.0] - 2021-06-22
-
-Note on the release
-
-Breaking change:
-
-- Remove `multi_gpu` and `device` arguments. Replace by n_gpus.
+# [0.1.7] - 2021-07-19
 
 Features:
+  - Add esm1v_t33_650M_UR90S_1 model.
 
-- Add Ray parallelization to shorten inference time
-- Add Dockerfile
-
-Docs:
-
- - Improve documentation
+# [0.1.6] - 2021-07-09
 
 Fixed:
-
-- fix `tokens_list` argument: all sequences' token must be in tokens_list.
-
-# [0.0.10] - 2021-06-14
-
-Note on the release
+ - Fix filtering of logits which impacts loglikelihood computation
+ - Fix fasta file reading in compute_loglikelihood
 
 Features:
+  - Add `normalize` mode in compute_loglikelihood.
 
-- Add BIO_LOG_LEVEL environnement variable to control logging message (logger)
-- Check if every unique amino acids in sequences are in tokens_list (compute_probabilities)
+# [0.1.3] - 2021-07-01
+
+Features:
+ - Add msa-transformers for methods:
+    - compute_logits
+    - compute_embeddings
+    - compute_probabilities
+    - compute_accuracy
 
 Fixed:
+ - Remove torch DataParallel wrapper.
 
-- Add shuffling in batch_sampler (lightning_utils)
-- Fix tokens argument for dataloader (lightning_utils)
+# [0.1.0] - 2021-07-01
 
-Changed:
-
-- Modified the signature of some functions to improve clarity (tansformers_wrappers)
-- Update `train_masked` method to `finetune` (tansformers_wrappers)
-- `compute_embeddings` with option `full` return a list of embeddingsn, no matter the size (tansformers_wrappers)
+Features:
+ - Add ray worker for multi-gpus inference
 
 Removed:
+ - Remove torch DataParallel wrapper.
 
-- Remove the tokens_list argument when not necessary and tried to make its usage clearer (tansformers_wrappers)
+# [0.0.10] - 2021-06-14
+Note on the release
 
-- Remove functions (tansformers_wrappers):
+Features:
+ - Add BIO_LOG_LEVEL environnement variable to control logging message (logger)
+ - Check if every unique amino acids in sequences are in tokens_list (compute_probabilities)
 
+Fixed:
+ - Add shuffling in batch_sampler (lightning_utils)
+ - Fix tokens argument for dataloader (lightning_utils)
+ - Fix rtd CI to separates docs and package environment.
+
+Changed:
+ - Modified the signature of some functions to improve clarity (tansformers_wrappers)
+ - Update `train_masked` method to `finetune` (tansformers_wrappers)
+ - `compute_embeddings` with option `full` return a list of embeddingsn, no matter the size (tansformers_wrappers)
+
+Removed:
+ - Remove the tokens_list argument when not necessary and tried to make its usage clearer (tansformers_wrappers)
+ - Remove functions (tansformers_wrappers):
     - _filter_and_pool_embeddings
     - _split_logits
     -  _slabels_remaping
