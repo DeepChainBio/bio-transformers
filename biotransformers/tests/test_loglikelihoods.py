@@ -24,8 +24,9 @@ def test_loglikelihoods_type_shape_and_range(
         normalize=True,
     )
     assert len(loglikelihoods) == len(sequences)
-    results = loglikelihoods_results[test_trans._model_dir][params]
-    assert_allclose(loglikelihoods, results, rtol=0.01)
+    if test_trans._model_dir in loglikelihoods_results.keys():
+        results = loglikelihoods_results[test_trans._model_dir][params]
+        assert_allclose(loglikelihoods, results, rtol=0.01)
 
 
 @pytest.mark.parametrize("batch_size, tokens_list, pass_mode", test_params_fasta)
@@ -47,5 +48,6 @@ def test_loglikelihoods_type_shape_and_range_fasta(
         normalize=True,
     )
     assert len(loglikelihoods) == len(lengths_sequence_fasta)
-    results = loglikelihoods_fasta_results[test_trans._model_dir]
-    assert_allclose(loglikelihoods, results, rtol=0.01)
+    if test_trans._model_dir in loglikelihoods_fasta_results.keys():
+        results = loglikelihoods_fasta_results[test_trans._model_dir]
+        assert_allclose(loglikelihoods, results, rtol=0.01)
