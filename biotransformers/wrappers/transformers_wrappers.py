@@ -10,8 +10,7 @@ import time
 from copy import deepcopy
 from os.path import join
 from pathlib import Path
-from typing import (Any, Dict, Generator, Iterable, List, Optional, Tuple,
-                    Type, Union)
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import pytorch_lightning as pl
@@ -21,8 +20,7 @@ import torch.tensor
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
-from biotransformers.utils.utils import (get_logs_version,
-                                         init_model_sequences, load_fasta)
+from biotransformers.utils.utils import get_logs_version, init_model_sequences, load_fasta
 from biotransformers.wrappers.language_model import LanguageModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -163,7 +161,8 @@ class TransformersWrapper:
 
         return model_inputs_out, mask_ids
 
-    def _mask_inputs_tokens(self, model_inputs: Dict[str, torch.Tensor], token_position: int
+    def _mask_inputs_tokens(
+        self, model_inputs: Dict[str, torch.Tensor], token_position: int
     ) -> Dict[str, torch.Tensor]:
         """Create new tensor by masking a specific token
 
@@ -175,7 +174,7 @@ class TransformersWrapper:
             Tuple[Dict[str, torch.Tensor], List[List]]: [description]
         """
         if not isinstance(token_position, int):
-                raise TypeError("masked_token_position should be of type int.")
+            raise TypeError("masked_token_position should be of type int.")
         new_input_ids = []
         new_attention_mask = []
         new_token_type_ids = []
@@ -188,12 +187,12 @@ class TransformersWrapper:
             if len(sequence) < token_position:
                 raise ValueError("The sequence is smaller than the masked_token_position index.")
             mask_sequence = mask_sequence = torch.tensor(
-                    sequence[:token_position].tolist()
-                    + [self._language_model.token_to_id(mask_token)]
-                    + sequence[token_position + 1 :].tolist(),
-                    dtype=torch.int64,
-                )
-       
+                sequence[: token_position - 1].tolist()
+                + [self._language_model.token_to_id(mask_token)]
+                + sequence[token_position:].tolist(),
+                dtype=torch.int64,
+            )
+
             new_input_ids.append(mask_sequence)
             new_attention_mask.append(binary_mask)
             new_token_type_ids.append(zeros)
@@ -218,9 +217,7 @@ class TransformersWrapper:
             model_outputs (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
         """
         max_length = model_outputs.shape[1]
-        inf_tensor = -float("Inf") * torch.ones(
-            [1, model_outputs.shape[2]], dtype=torch.float32
-        )
+        inf_tensor = -float("Inf") * torch.ones([1, model_outputs.shape[2]], dtype=torch.float32)
         sequences_list = []
         start_id = 0
         for mask_id in masked_ids_list:
@@ -266,9 +263,7 @@ class TransformersWrapper:
             pb = ProgressBar(n_updates)
             actor = pb.actor
             for i, batch_inputs in enumerate(
-                self._generate_chunks(
-                    model_inputs, math.ceil(num_inputs / self._num_gpus)
-                )
+                self._generate_chunks(model_inputs, math.ceil(num_inputs / self._num_gpus))
             ):
                 # Split large batch into smaller batches, when per GPU worker
                 # Send tqdm progress bar
@@ -283,18 +278,12 @@ class TransformersWrapper:
                 embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
                 logits = torch.cat((logits, batch_logits), dim=0)
         else:
-            logits, embeddings = self._language_model.model_pass(
-                model_inputs, batch_size, silent
-            )
+            logits, embeddings = self._language_model.model_pass(model_inputs, batch_size, silent)
 
         return logits, embeddings
 
     def _compute_logits(
-        self,
-        model_inputs: Dict[str, torch.Tensor],
-        batch_size: int,
-        pass_mode: str,
-        **kwargs
+        self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str, **kwargs
     ) -> torch.Tensor:
         """Intermediate function to compute logits
 
@@ -308,18 +297,12 @@ class TransformersWrapper:
         """
         if pass_mode == "masked":
             if self._language_model.is_msa:
-                raise NotImplementedError(
-                    "Masked with msa-transformers is not implemented."
-                )
+                raise NotImplementedError("Masked with msa-transformers is not implemented.")
             model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
-            logits, _ = self._model_evaluation(
-                model_inputs, batch_size=batch_size, **kwargs
-            )
+            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size, **kwargs)
             logits = self._gather_masked_outputs(logits, masked_ids_list)
         elif pass_mode == "forward":
-            logits, _ = self._model_evaluation(
-                model_inputs, batch_size=batch_size, **kwargs
-            )
+            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size, **kwargs)
         return logits
 
     def compute_logits(
@@ -329,7 +312,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         n_seqs_msa: int = 6,
-        masked_token_position: Optional[int] = None
+        masked_token_position: Optional[int] = None,
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
@@ -342,7 +325,8 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent: whether to print progress bar in console
             n_seqs_msa: number of sequence to consider in an msa file.
-            masked_token_position: position of a specific token to mask.
+            masked_token_position: position of a specific token to mask. Index from 1 to N for
+                                   sequence of length N.
         Returns:
             List[np.ndarray]: logits in np.ndarray format
         """
@@ -358,7 +342,9 @@ class TransformersWrapper:
 
         self.init_ray_workers()
         if pass_mode == "masked" and (masked_token_position is not None):
-            raise ValueError("Incompatible arguments. You can not specify a masked_token_position in masked mode.")
+            raise ValueError(
+                "Incompatible arguments. You can not specify a masked_token_position in masked mode."
+            )
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
@@ -379,8 +365,7 @@ class TransformersWrapper:
 
         # Keep only corresponding to amino acids that are in the sequence
         logits = [
-            torch.gather(logit, dim=-1, index=label).numpy()
-            for logit, label in zip(logits, labels)
+            torch.gather(logit, dim=-1, index=label).numpy() for logit, label in zip(logits, labels)
         ]
         # List of arrays of shape (seq_length, 1)
         self.delete_ray_workers()
@@ -394,7 +379,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         n_seqs_msa: int = 6,
-        masked_token_position: Optional[int] = None
+        masked_token_position: Optional[int] = None,
     ) -> Union[sequence_probs_list, List[sequence_probs_list]]:
         """Function that computes the probabilities over amino-acids from sequences.
 
@@ -422,7 +407,8 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
             n_seqs_msa: number of sequence to consider in an msa file.
-            masked_token_position: position of a specific token to mask.
+            masked_token_position: position of a specific token to mask. Index from 1 to N for
+                                   sequence of length N.
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
@@ -438,7 +424,9 @@ class TransformersWrapper:
         )
         self.init_ray_workers()
         if pass_mode == "masked" and (masked_token_position is not None):
-            raise ValueError("Incompatible arguments. You can not specify a masked_token_position in masked mode.")
+            raise ValueError(
+                "Incompatible arguments. You can not specify a masked_token_position in masked mode."
+            )
 
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
@@ -465,9 +453,7 @@ class TransformersWrapper:
                 repeat_dim = (logit.shape[0], logit.shape[1], 1)  # type: ignore
             else:
                 repeat_dim = (logit.shape[0], 1)  # type: ignore
-            masked_logit = logit + torch.from_numpy(
-                np.tile(np.log(vocabulary_mask), repeat_dim)
-            )
+            masked_logit = logit + torch.from_numpy(np.tile(np.log(vocabulary_mask), repeat_dim))
             masked_logits.append(masked_logit)
         # Use softmax to compute probabilities from logits
         # Due to the -inf, probs of tokens that are not in token list will be zero
@@ -512,7 +498,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         normalize: bool = True,
-        masked_token_position: Optional[int] = None
+        masked_token_position: Optional[int] = None,
     ) -> List[float]:
         """Function that computes loglikelihoods of sequences.
         It returns a list of float values.
@@ -534,6 +520,8 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
             normalize : If True, loglikelihood are normalize by sequence length.
+            masked_token_position: position of a specific token to mask. Index from 1 to N for
+                                   sequence of length N.
         Returns:
             List[float]: list of log-likelihoods, one per sequence
         """
@@ -563,9 +551,7 @@ class TransformersWrapper:
             )
             log_likelihoods.append(float(log_likelihood))
         if normalize:
-            log_likelihoods = [
-                log / length for log, length in zip(log_likelihoods, lengths)
-            ]
+            log_likelihoods = [log / length for log, length in zip(log_likelihoods, lengths)]
 
         self.delete_ray_workers()
         return log_likelihoods
@@ -614,9 +600,7 @@ class TransformersWrapper:
         self.init_ray_workers()
         # Compute a forward pass to get the embeddings
         inputs = self._language_model.process_sequences_and_tokens(sequences)
-        _, embeddings = self._model_evaluation(
-            inputs, batch_size=batch_size, silent=silent
-        )
+        _, embeddings = self._model_evaluation(inputs, batch_size=batch_size, silent=silent)
         embeddings = [emb.cpu().numpy() for emb in embeddings]
         # Remove class token and padding
         # Use tranpose to filter on the two last dimensions. Doing this, we don't have to manage
