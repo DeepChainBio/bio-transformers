@@ -174,6 +174,8 @@ class TransformersWrapper:
         Returns:
             Tuple[Dict[str, torch.Tensor], List[List]]: [description]
         """
+        if not isinstance(token_position, int):
+                raise TypeError("masked_token_position should be of type int.")
         new_input_ids = []
         new_attention_mask = []
         new_token_type_ids = []
@@ -184,7 +186,7 @@ class TransformersWrapper:
         ):
             mask_token = self._language_model.mask_token
             if len(sequence) < token_position:
-                raise ValueError("The sequence is smaller than the token position index.")
+                raise ValueError("The sequence is smaller than the masked_token_position index.")
             mask_sequence = mask_sequence = torch.tensor(
                     sequence[:token_position].tolist()
                     + [self._language_model.token_to_id(mask_token)]
@@ -327,7 +329,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         n_seqs_msa: int = 6,
-        masked_token_position: int = None
+        masked_token_position: Optional[int] = None
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
@@ -392,7 +394,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         n_seqs_msa: int = 6,
-        masked_token_position: int = None
+        masked_token_position: Optional[int] = None
     ) -> Union[sequence_probs_list, List[sequence_probs_list]]:
         """Function that computes the probabilities over amino-acids from sequences.
 
@@ -510,6 +512,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         normalize: bool = True,
+        masked_token_position: Optional[int] = None
     ) -> List[float]:
         """Function that computes loglikelihoods of sequences.
         It returns a list of float values.
@@ -551,7 +554,7 @@ class TransformersWrapper:
             )
 
         probabilities = self.compute_probabilities(
-            sequences, batch_size, tokens_list, pass_mode, silent
+            sequences, batch_size, tokens_list, pass_mode, silent, masked_token_position
         )
         log_likelihoods = []
         for sequence, probabilities_dict in zip(sequences, probabilities):
