@@ -192,7 +192,7 @@ class TransformersWrapper:
             mask_token = self._language_model.mask_token
             # Don't forget <CLS> token for index
             # position index start at 1
-            if len(sequence) < max(token_position) - 1:
+            if len(sequence) - 1 < max(token_position):
                 raise ValueError("The sequence is smaller than the masked_token_position index.")
             mask_sequence = sequence.clone()
             for position in token_position:
@@ -537,7 +537,7 @@ class TransformersWrapper:
             model_is_msa=self._language_model.is_msa,
             n_seqs_msa=0,
             vocab_size=self._language_model.vocab_size,
-            pass_mode=pass_mode,
+            pass_mode="forward",
             tokens_list=tokens_list,
         )
         self.init_ray_workers()
@@ -565,6 +565,75 @@ class TransformersWrapper:
 
         self.delete_ray_workers()
         return log_likelihoods
+
+    def compute_mutation_score(
+        self,
+        sequences: Union[List[str], str],
+        mutation_list: List[int],
+        batch_size: int = 1,
+        tokens_list: List[str] = None,
+        silent: bool = False,
+    ) -> Any:
+        """Function that computes loglikelihoods of sequences.
+        It returns a list of float values.
+
+        This function is used to score the a mutation between two amino acids as described in
+        https://www.biorxiv.org/content/10.1101/2021.07.09.450648v1.full.pdf. This metrics is maximized
+        in ESM-1V to assess the interest of a mutation. The mutational score is based on the
+        masked marginal probability (L forward passes) where whe introduce a mask at the mutation
+        position and compute the log difference of probability between native and mutate sequence.
+
+        Args:
+            sequences: List of sequences
+            batch_size: Batch size
+            tokens_list: List of tokens to consider
+            silent : display or not progress bar
+            mutation_list: List of positions to mutate. ex: [1,7] to mutate amino acids at position 1 and 7.
+                           Index from 1 to N for sequence of length N.
+        Returns:
+            List[float]: list of log-likelihoods, one per sequence
+        """
+        tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
+        sequences, lengths = init_model_sequences(
+            sequences=sequences,
+            model_dir=self._model_dir,
+            model_is_msa=self._language_model.is_msa,
+            n_seqs_msa=0,
+            vocab_size=self._language_model.vocab_size,
+            pass_mode=None,
+            tokens_list=tokens_list,
+        )
+        self.init_ray_workers()
+        if self._language_model.is_msa:
+            raise NotImplementedError(
+                "compute_mutation_score for MSA transformers is not implemented."
+            )
+
+        mutate_probabilities = self.compute_probabilities(
+            sequences,
+            batch_size,
+            tokens_list,
+            "forward",
+            silent,
+            masked_token_position=mutation_list,
+        )
+
+        native_probabilities = self.compute_probabilities(
+            sequences,
+            batch_size,
+            tokens_list,
+            "forward",
+            silent,
+        )
+        # mutate_scores = []
+        # for sequence, probabilities_dict in zip(sequences, probabilities):
+        #     log_likelihood = np.sum(
+        #         [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]  # type: ignore
+        #     )
+        #     log_likelihoods.append(float(log_likelihood))
+
+        self.delete_ray_workers()
+        return mutate_probabilities, native_probabilities
 
     def compute_embeddings(
         self,
