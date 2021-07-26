@@ -162,7 +162,7 @@ class TransformersWrapper:
         return model_inputs_out, mask_ids
 
     def _mask_inputs_tokens(
-        self, model_inputs: Dict[str, torch.Tensor], token_position: int
+        self, model_inputs: Dict[str, torch.Tensor], token_position: Optional[List[int]]
     ) -> Dict[str, torch.Tensor]:
         """Create new tensor by masking a specific token
 
@@ -173,8 +173,14 @@ class TransformersWrapper:
         Returns:
             Tuple[Dict[str, torch.Tensor], List[List]]: [description]
         """
-        if not isinstance(token_position, int):
-            raise TypeError("masked_token_position should be of type int.")
+        if not isinstance(token_position, List):
+            raise TypeError("masked_token_position should be of a list of integers.")
+        if not isinstance(token_position[0], int):
+            raise TypeError("index inside masked_token_position should be of type int.")
+        for position in token_position:
+            if position < 1:
+                raise ValueError("Token indexation starts at 1.")
+
         new_input_ids = []
         new_attention_mask = []
         new_token_type_ids = []
@@ -184,14 +190,13 @@ class TransformersWrapper:
             model_inputs["token_type_ids"],
         ):
             mask_token = self._language_model.mask_token
-            if len(sequence) < token_position:
+            # Don't forget <CLS> token for index
+            # position index start at 1
+            if len(sequence) < max(token_position) - 1:
                 raise ValueError("The sequence is smaller than the masked_token_position index.")
-            mask_sequence = mask_sequence = torch.tensor(
-                sequence[: token_position - 1].tolist()
-                + [self._language_model.token_to_id(mask_token)]
-                + sequence[token_position:].tolist(),
-                dtype=torch.int64,
-            )
+            mask_sequence = sequence.clone()
+            for position in token_position:
+                mask_sequence[position] = self._language_model.token_to_id(mask_token)
 
             new_input_ids.append(mask_sequence)
             new_attention_mask.append(binary_mask)
@@ -312,7 +317,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         n_seqs_msa: int = 6,
-        masked_token_position: Optional[int] = None,
+        masked_token_position: Optional[List[int]] = None,
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
@@ -325,7 +330,7 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent: whether to print progress bar in console
             n_seqs_msa: number of sequence to consider in an msa file.
-            masked_token_position: position of a specific token to mask. Index from 1 to N for
+            masked_token_position: List of positions of a specific token to mask. Index from 1 to N for
                                    sequence of length N.
         Returns:
             List[np.ndarray]: logits in np.ndarray format
@@ -379,7 +384,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         n_seqs_msa: int = 6,
-        masked_token_position: Optional[int] = None,
+        masked_token_position: Optional[List[int]] = None,
     ) -> Union[sequence_probs_list, List[sequence_probs_list]]:
         """Function that computes the probabilities over amino-acids from sequences.
 
@@ -407,7 +412,7 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
             n_seqs_msa: number of sequence to consider in an msa file.
-            masked_token_position: position of a specific token to mask. Index from 1 to N for
+            masked_token_position: List of positions of a specific token to mask. Index from 1 to N for
                                    sequence of length N.
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
@@ -498,7 +503,7 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         normalize: bool = True,
-        masked_token_position: Optional[int] = None,
+        masked_token_position: Optional[List[int]] = None,
     ) -> List[float]:
         """Function that computes loglikelihoods of sequences.
         It returns a list of float values.
@@ -520,7 +525,7 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
             normalize : If True, loglikelihood are normalize by sequence length.
-            masked_token_position: position of a specific token to mask. Index from 1 to N for
+            masked_token_position: List of positions of a specific token to mask. Index from 1 to N for
                                    sequence of length N.
         Returns:
             List[float]: list of log-likelihoods, one per sequence
@@ -542,7 +547,12 @@ class TransformersWrapper:
             )
 
         probabilities = self.compute_probabilities(
-            sequences, batch_size, tokens_list, pass_mode, silent, masked_token_position
+            sequences,
+            batch_size,
+            tokens_list,
+            pass_mode,
+            silent,
+            masked_token_position=masked_token_position,
         )
         log_likelihoods = []
         for sequence, probabilities_dict in zip(sequences, probabilities):
