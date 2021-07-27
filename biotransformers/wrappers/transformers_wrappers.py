@@ -584,6 +584,8 @@ class TransformersWrapper:
         masked marginal probability (L forward passes) where whe introduce a mask at the mutation
         position and compute the log difference of probability between native and mutate sequence.
 
+        score -> Sum(log(p(xi=xi_mutate|x-M))-log(p(xi=xi_native|x-M))) over M (M s a mutation set)
+
         Args:
             sequences: List of sequences
             batch_size: Batch size
@@ -592,7 +594,7 @@ class TransformersWrapper:
             mutation_list: List of positions to mutate. ex: [1,7] to mutate amino acids at position 1 and 7.
                            Index from 1 to N for sequence of length N.
         Returns:
-            List[float]: list of log-likelihoods, one per sequence
+            List[float]: list of mutations score of
         """
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
         sequences, _ = init_model_sequences(
@@ -609,6 +611,8 @@ class TransformersWrapper:
             raise NotImplementedError(
                 "compute_mutation_score for MSA transformers is not implemented."
             )
+        if len(mutation_list) > 2:
+            raise TypeError("mutation list must have 2 positions integer")
 
         mutate_probabilities = self.compute_probabilities(
             sequences,
@@ -622,7 +626,6 @@ class TransformersWrapper:
         mutation_score_list = [
             mutation_score(n_probs, m_probs) for n_probs, m_probs in zip(native_probs, mutate_probs)
         ]
-
         self.delete_ray_workers()
         return mutation_score_list
 
