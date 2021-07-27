@@ -17,6 +17,7 @@ import pytorch_lightning as pl
 import ray
 import torch
 import torch.tensor
+from biotransformers.utils.compute_utils import get_list_probs, mutation_score
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
@@ -30,9 +31,9 @@ from ..lightning_utils.data import BioDataModule
 from ..lightning_utils.models import LightningModule
 
 log = logger("transformers_wrapper")
-path_msa_folder = str
-token_probs_dict = Dict[int, Dict[str, float]]
-sequence_probs_list = List[token_probs_dict]
+PathMsaFolder = str
+TokenProbsDict = Dict[int, Dict[str, float]]
+SequenceProbsList = List[TokenProbsDict]
 
 
 class TransformersWrapper:
@@ -385,7 +386,7 @@ class TransformersWrapper:
         silent: bool = False,
         n_seqs_msa: int = 6,
         masked_token_position: Optional[List[int]] = None,
-    ) -> Union[sequence_probs_list, List[sequence_probs_list]]:
+    ) -> Union[SequenceProbsList, List[SequenceProbsList]]:
         """Function that computes the probabilities over amino-acids from sequences.
 
         It takes as inputs a list of sequences and returns a list of dictionaries.
@@ -472,7 +473,7 @@ class TransformersWrapper:
                 if token in tokens_list
             }
 
-        probabilities_dict_type = Union[sequence_probs_list, List[sequence_probs_list]]
+        probabilities_dict_type = Union[SequenceProbsList, List[SequenceProbsList]]
         if self._language_model.is_msa:
             probabilities_dict: probabilities_dict_type = [
                 [
@@ -594,7 +595,7 @@ class TransformersWrapper:
             List[float]: list of log-likelihoods, one per sequence
         """
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
-        sequences, lengths = init_model_sequences(
+        sequences, _ = init_model_sequences(
             sequences=sequences,
             model_dir=self._model_dir,
             model_is_msa=self._language_model.is_msa,
@@ -617,23 +618,13 @@ class TransformersWrapper:
             silent,
             masked_token_position=mutation_list,
         )
-
-        native_probabilities = self.compute_probabilities(
-            sequences,
-            batch_size,
-            tokens_list,
-            "forward",
-            silent,
-        )
-        # mutate_scores = []
-        # for sequence, probabilities_dict in zip(sequences, probabilities):
-        #     log_likelihood = np.sum(
-        #         [np.log(probabilities_dict[i][sequence[i]]) for i in range(len(sequence))]  # type: ignore
-        #     )
-        #     log_likelihoods.append(float(log_likelihood))
+        native_probs, mutate_probs = get_list_probs(sequences, mutation_list, mutate_probabilities)  # type: ignore
+        mutation_score_list = [
+            mutation_score(n_probs, m_probs) for n_probs, m_probs in zip(native_probs, mutate_probs)
+        ]
 
         self.delete_ray_workers()
-        return mutate_probabilities, native_probabilities
+        return mutation_score_list
 
     def compute_embeddings(
         self,
