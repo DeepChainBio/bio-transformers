@@ -17,7 +17,7 @@ import pytorch_lightning as pl
 import ray
 import torch
 import torch.tensor
-from biotransformers.utils.compute_utils import get_list_probs, mutation_score
+from biotransformers.utils.compute_utils import Mutation, get_list_probs, mutation_score, split_list
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
@@ -185,19 +185,17 @@ class TransformersWrapper:
         new_input_ids = []
         new_attention_mask = []
         new_token_type_ids = []
-        for sequence, binary_mask, zeros in zip(
+        for sequence, binary_mask, zeros, position in zip(
             model_inputs["input_ids"],
             model_inputs["attention_mask"],
             model_inputs["token_type_ids"],
+            token_position,
         ):
             mask_token = self._language_model.mask_token
             # Don't forget <CLS> token for index
             # position index start at 1
-            if len(sequence) - 1 < max(token_position):
-                raise ValueError("The sequence is smaller than the masked_token_position index.")
             mask_sequence = sequence.clone()
-            for position in token_position:
-                mask_sequence[position] = self._language_model.token_to_id(mask_token)
+            mask_sequence[position] = self._language_model.token_to_id(mask_token)
 
             new_input_ids.append(mask_sequence)
             new_attention_mask.append(binary_mask)
@@ -318,7 +316,6 @@ class TransformersWrapper:
         pass_mode: str = "forward",
         silent: bool = False,
         n_seqs_msa: int = 6,
-        masked_token_position: Optional[List[int]] = None,
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
@@ -331,8 +328,6 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent: whether to print progress bar in console
             n_seqs_msa: number of sequence to consider in an msa file.
-            masked_token_position: List of positions of a specific token to mask. Index from 1 to N for
-                                   sequence of length N.
         Returns:
             List[np.ndarray]: logits in np.ndarray format
         """
@@ -347,15 +342,8 @@ class TransformersWrapper:
         )
 
         self.init_ray_workers()
-        if pass_mode == "masked" and (masked_token_position is not None):
-            raise ValueError(
-                "Incompatible arguments. You can not specify a masked_token_position in masked mode."
-            )
-
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
-        if masked_token_position is not None:
-            inputs = self._mask_inputs_tokens(inputs, masked_token_position)
         labels = torch.unsqueeze(inputs["input_ids"], dim=-1)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
 
@@ -414,7 +402,8 @@ class TransformersWrapper:
             silent : display or not progress bar
             n_seqs_msa: number of sequence to consider in an msa file.
             masked_token_position: List of positions of a specific token to mask. Index from 1 to N for
-                                   sequence of length N.
+                                   sequence of length N. Number of index to mask should be equal to the
+                                   number of sequences.
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
@@ -527,9 +516,10 @@ class TransformersWrapper:
             silent : display or not progress bar
             normalize : If True, loglikelihood are normalize by sequence length.
             masked_token_position: List of positions of a specific token to mask. Index from 1 to N for
-                                   sequence of length N.
+                                   sequence of length N. Number of index to mask should be equal to the
+                                   number of sequences.
         Returns:
-            List[float]: list of log-likelihoods, one per sequence
+            List[float]: list of loglikelihoods, one per sequence
         """
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
         sequences, lengths = init_model_sequences(
@@ -570,11 +560,11 @@ class TransformersWrapper:
     def compute_mutation_score(
         self,
         sequences: Union[List[str], str],
-        mutation_list: List[int],
+        mutations: List[List[str]],
         batch_size: int = 1,
         tokens_list: List[str] = None,
         silent: bool = False,
-    ) -> Any:
+    ) -> List[float]:
         """Function that computes loglikelihoods of sequences.
         It returns a list of float values.
 
@@ -586,15 +576,24 @@ class TransformersWrapper:
 
         score -> Sum(log(p(xi=xi_mutate|x-M))-log(p(xi=xi_native|x-M))) over M (M s a mutation set)
 
+        The function takes in input a list of mutations for each sequence to evaluate.
+        Mutations are tuple a single mutation, you can provide multiple mutations for a single sequence.
+        Example:
+            mutation: "A8E" to mutate amino acids A by E at position 8.
+            mutation are indexed from 1 to N for sequence of length N.
+
+            Below a mutations list for 3 sequences. We have to provide 3 tuples of single mutation.
+            mutations: [("A3U","A8E"),("B7I"),("I124","E1J")]
+
         Args:
             sequences: List of sequences
             batch_size: Batch size
             tokens_list: List of tokens to consider
             silent : display or not progress bar
-            mutation_list: List of positions to mutate. ex: [1,7] to mutate amino acids at position 1 and 7.
-                           Index from 1 to N for sequence of length N.
+            mutations: List of mutations for each sequence to evaluate. Mutations are tuple a single mutation.
+                           mutation are indexed from 1 to N for sequence of length N.
         Returns:
-            List[float]: list of mutations score of
+            List[float]: list of mutations score for each sequence
         """
         tokens_list = NATURAL_AAS_LIST if tokens_list is None else tokens_list
         sequences, _ = init_model_sequences(
@@ -611,20 +610,33 @@ class TransformersWrapper:
             raise NotImplementedError(
                 "compute_mutation_score for MSA transformers is not implemented."
             )
-        if len(mutation_list) > 2:
-            raise TypeError("mutation list must have 2 positions integer")
+        if len(mutations) != len(sequences):
+            raise ValueError("mutation_list and sequences must have the same length.")
+
+        mutations_list = [tuple((Mutation(mut) for mut in tup)) for tup in mutations]
+        new_sequence = []
+        mutations_index = []
+        for seq, mutation in zip(sequences, mutations_list):
+            for single_mutation in mutation:
+                single_mutation.is_valid_mutation(seq)
+                mutations_index.append(single_mutation.position)
+                new_sequence.append(seq)
 
         mutate_probabilities = self.compute_probabilities(
-            sequences,
+            new_sequence,
             batch_size,
             tokens_list,
             "forward",
-            silent,
-            masked_token_position=mutation_list,
+            silent=silent,
+            masked_token_position=mutations_index,
         )
-        native_probs, mutate_probs = get_list_probs(sequences, mutation_list, mutate_probabilities)  # type: ignore
+        length_mutations = [len(mut) for mut in mutations_list]  # use for reshape all mutations
+        native_probs, mutate_probs = get_list_probs(mutations_list, mutate_probabilities)  # type: ignore
+        native_probs_ = split_list(native_probs, length_mutations)
+        mutate_probs_ = split_list(mutate_probs, length_mutations)
         mutation_score_list = [
-            mutation_score(n_probs, m_probs) for n_probs, m_probs in zip(native_probs, mutate_probs)
+            mutation_score(n_probs, m_probs)
+            for n_probs, m_probs in zip(native_probs_, mutate_probs_)
         ]
         self.delete_ray_workers()
         return mutation_score_list
