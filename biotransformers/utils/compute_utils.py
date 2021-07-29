@@ -57,8 +57,10 @@ class Mutation:
 
 
 def get_list_probs(
-    mutation_list: List[Tuple[Mutation]], mutate_probs: SequenceProbsList
-) -> Tuple[List[float], List[float]]:
+    mutation_list: List[Tuple[Mutation]],
+    mutate_probs: SequenceProbsList,
+    length_mutations: List[int],
+) -> Tuple[List[List[float]], List[List[float]]]:
     """This function build a list of mutate and native probabilities to compute
     the mutate_score. For each position in the mutate list, we catch the native probability
     and the mutate probability of this position. We do this for each sequence and return two
@@ -67,14 +69,16 @@ def get_list_probs(
     Args:
         mutation_list (List[Mutation]): list with integer which are mutations
         mutate_probs (List[Dict[Any]]): probabilities for mutate sequence
-
+        length_mutations (List[int]):  length of indivual mutation for each sequence
     """
     flat_mutation = [mut for tup in mutation_list for mut in tup]
     native_probs_list, mutate_probs_list = [], []
     for prob, mut in zip(mutate_probs, flat_mutation):
         native_probs_list.append(prob[mut.position - 1][mut.native])
         mutate_probs_list.append(prob[mut.position - 1][mut.mutation])
-    return native_probs_list, mutate_probs_list
+    return split_list(native_probs_list, length_mutations), split_list(
+        mutate_probs_list, length_mutations
+    )
 
 
 def mutation_score(native_probs: List[float], mutate_probs: List[float]) -> float:

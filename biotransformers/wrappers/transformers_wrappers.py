@@ -17,7 +17,7 @@ import pytorch_lightning as pl
 import ray
 import torch
 import torch.tensor
-from biotransformers.utils.compute_utils import Mutation, get_list_probs, mutation_score, split_list
+from biotransformers.utils.compute_utils import Mutation, get_list_probs, mutation_score
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
@@ -401,9 +401,9 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
             n_seqs_msa: number of sequence to consider in an msa file.
-            masked_token_position: List of positions of a specific token to mask. Index from 1 to N for
-                                   sequence of length N. Number of index to mask should be equal to the
-                                   number of sequences.
+            masked_token_position: List of positions of a specific token to mask for each sequence.
+                                   Index from 1 to N for sequence of length N. Number of index to mask
+                                   should be equal to the number of sequences.
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
@@ -426,6 +426,8 @@ class TransformersWrapper:
         # Perform inference in model to compute the logits
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         if masked_token_position is not None:
+            if len(masked_token_position) != len(sequences):
+                raise ValueError("masked_token_position and sequences must have the same length.")
             inputs = self._mask_inputs_tokens(inputs, masked_token_position)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         # Remove padded logits
@@ -515,9 +517,10 @@ class TransformersWrapper:
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
             normalize : If True, loglikelihood are normalize by sequence length.
-            masked_token_position: List of positions of a specific token to mask. Index from 1 to N for
-                                   sequence of length N. Number of index to mask should be equal to the
-                                   number of sequences.
+            masked_token_position: List of positions of a specific token to mask for each sequence.
+                                   Index from 1 to N for sequence of length N. Number of index to mask
+                                   should be equal to the number of sequences.
+
         Returns:
             List[float]: list of loglikelihoods, one per sequence
         """
@@ -583,15 +586,15 @@ class TransformersWrapper:
             mutation are indexed from 1 to N for sequence of length N.
 
             Below a mutations list for 3 sequences. We have to provide 3 tuples of single mutation.
-            mutations: [("A3U","A8E"),("B7I"),("I124","E1J")]
+            mutations: [["A3U","A8E"],["B7I"],["I124","E1J"]]
 
         Args:
             sequences: List of sequences
             batch_size: Batch size
             tokens_list: List of tokens to consider
             silent : display or not progress bar
-            mutations: List of mutations for each sequence to evaluate. Mutations are tuple a single mutation.
-                           mutation are indexed from 1 to N for sequence of length N.
+            mutations: List of mutations for each sequence to evaluate. Mutations are list a single mutation.
+                       mutation are indexed from 1 to N for sequence of length N.
         Returns:
             List[float]: list of mutations score for each sequence
         """
@@ -616,12 +619,14 @@ class TransformersWrapper:
         mutations_list = [tuple((Mutation(mut) for mut in tup)) for tup in mutations]
         new_sequence = []
         mutations_index = []
+        # expand sequence based on number of mutations an check mutation
         for seq, mutation in zip(sequences, mutations_list):
             for single_mutation in mutation:
                 single_mutation.is_valid_mutation(seq)
                 mutations_index.append(single_mutation.position)
                 new_sequence.append(seq)
 
+        # compute probas for all mutant in batch
         mutate_probabilities = self.compute_probabilities(
             new_sequence,
             batch_size,
@@ -631,12 +636,9 @@ class TransformersWrapper:
             masked_token_position=mutations_index,
         )
         length_mutations = [len(mut) for mut in mutations_list]  # use for reshape all mutations
-        native_probs, mutate_probs = get_list_probs(mutations_list, mutate_probabilities)  # type: ignore
-        native_probs_ = split_list(native_probs, length_mutations)
-        mutate_probs_ = split_list(mutate_probs, length_mutations)
+        native_probs, mutate_probs = get_list_probs(mutations_list, mutate_probabilities, length_mutations)  # type: ignore
         mutation_score_list = [
-            mutation_score(n_probs, m_probs)
-            for n_probs, m_probs in zip(native_probs_, mutate_probs_)
+            mutation_score(n_probs, m_probs) for n_probs, m_probs in zip(native_probs, mutate_probs)
         ]
         self.delete_ray_workers()
         return mutation_score_list

@@ -13,7 +13,13 @@ test_params_fasta = [(1, list("KFQRVACEXWIHYPNGSMTDL"), "forward")]
 
 @pytest.mark.parametrize("batch_size, tokens_list, pass_mode, params", test_params)
 def test_loglikelihoods_type_shape_and_range(
-    init_model, sequences, loglikelihoods_results, batch_size, tokens_list, pass_mode, params
+    init_model,
+    sequences,
+    loglikelihoods_results,
+    batch_size,
+    tokens_list,
+    pass_mode,
+    params,
 ):
     test_trans = init_model
     loglikelihoods = test_trans.compute_loglikelihood(
