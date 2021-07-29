@@ -73,6 +73,7 @@ class TransformersWrapper:
             self._multi_gpus = True
 
     def init_ray_workers(self):
+        """Initialization of ray workers"""
         if self._multi_gpus:
             self._ray_cls = ray.remote(num_cpus=2, num_gpus=1)(self.language_model_cls)
             self._workers = [
@@ -81,6 +82,7 @@ class TransformersWrapper:
             ]
 
     def delete_ray_workers(self):
+        """Delete ray workers to free RAM"""
         if self._multi_gpus:
             # kill worker to free RAM
             _ = [ray.kill(worker) for worker in self._workers]
@@ -272,7 +274,9 @@ class TransformersWrapper:
                 # Split large batch into smaller batches, when per GPU worker
                 # Send tqdm progress bar
                 jobs.append(
-                    self._workers[i].model_pass.remote(batch_inputs, batch_size, silent, actor)  # type: ignore
+                    self._workers[i].model_pass.remote(  # type: ignore
+                        batch_inputs, batch_size, silent, actor
+                    )
                 )
             pb.print_until_done()
             # Launch parallel execution in background
@@ -287,7 +291,11 @@ class TransformersWrapper:
         return logits, embeddings
 
     def _compute_logits(
-        self, model_inputs: Dict[str, torch.Tensor], batch_size: int, pass_mode: str, **kwargs
+        self,
+        model_inputs: Dict[str, torch.Tensor],
+        batch_size: int,
+        pass_mode: str,
+        **kwargs,
     ) -> torch.Tensor:
         """Intermediate function to compute logits
 
@@ -319,11 +327,12 @@ class TransformersWrapper:
     ) -> List[np.ndarray]:
         """Function that computes the logits from sequences.
 
-        It returns a list of logits arrays for each sequence. If working with MSA, return a list of logits for
-        each sequence of the MSA.
+        It returns a list of logits arrays for each sequence. If working with MSA,
+        return a list of logits for each sequence of the MSA.
 
         Args:
-            sequences : List of sequences, path of fasta file or path to a folder with msa to a3m format.
+            sequences : List of sequences, path of fasta file or path to a folder
+                        with msa to a3m format.
             batch_size: number of sequences to consider for the forward pass
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent: whether to print progress bar in console
@@ -395,15 +404,16 @@ class TransformersWrapper:
         the user to choose the tokens to consider when computing probabilities.
 
         Args:
-            sequences : List of sequences, path of fasta file or path to a folder with msa to a3m format.
+            sequences : List of sequences, path of fasta file or path to a folder
+            with msa to a3m format.
             batch_size: number of sequences to consider for the forward pass
             tokens_list: List of tokens to consider
             pass_mode: Mode of model evaluation ('forward' or 'masked')
             silent : display or not progress bar
             n_seqs_msa: number of sequence to consider in an msa file.
             masked_token_position: List of positions of a specific token to mask for each sequence.
-                                   Index from 1 to N for sequence of length N. Number of index to mask
-                                   should be equal to the number of sequences.
+                                   Index from 1 to N for sequence of length N. Number of index
+                                   to mask should be equal to the number of sequences.
         Returns:
             List[Dict[int, Dict[str, float]]]: dictionaries of probabilities per seq
         """
@@ -420,7 +430,8 @@ class TransformersWrapper:
         self.init_ray_workers()
         if pass_mode == "masked" and (masked_token_position is not None):
             raise ValueError(
-                "Incompatible arguments. You can not specify a masked_token_position in masked mode."
+                "Incompatible arguments. "
+                "You can not specify a masked_token_position in masked mode."
             )
 
         # Perform inference in model to compute the logits
@@ -572,10 +583,11 @@ class TransformersWrapper:
         It returns a list of float values.
 
         This function is used to score the a mutation between two amino acids as described in
-        https://www.biorxiv.org/content/10.1101/2021.07.09.450648v1.full.pdf. This metrics is maximized
-        in ESM-1V to assess the interest of a mutation. The mutational score is based on the
-        masked marginal probability (L forward passes) where whe introduce a mask at the mutation
-        position and compute the log difference of probability between native and mutate sequence.
+        https://www.biorxiv.org/content/10.1101/2021.07.09.450648v1.full.pdf. This metrics is
+        maximizedin ESM-1V to assess the interest of a mutation. The mutational score is based on
+        the masked marginal probability (L forward passes) where whe introduce a mask at the
+        mutation position and compute the log difference of probability between native and
+        mutate sequence.
 
         score -> Sum(log(p(xi=xi_mutate|x-M))-log(p(xi=xi_native|x-M))) over M (M s a mutation set)
 
