@@ -10,7 +10,7 @@ test_params = [
 
 
 @pytest.mark.parametrize("batch_size, pool_mode", test_params)
-def test_embeddings_type_and_shape(init_model,sequences, batch_size, pool_mode):
+def test_embeddings_type_and_shape(init_model, sequences, batch_size, pool_mode):
     test_trans = init_model
     embeddings = test_trans.compute_embeddings(
         sequences,
@@ -30,7 +30,9 @@ def test_embeddings_type_and_shape(init_model,sequences, batch_size, pool_mode):
 
 
 @pytest.mark.parametrize("batch_size, pool_mode", test_params)
-def test_embeddings_type_and_shape_fasta(init_model,fasta_path, lengths_sequence_fasta, batch_size, pool_mode):
+def test_embeddings_type_and_shape_fasta(
+    init_model, fasta_path, lengths_sequence_fasta, batch_size, pool_mode
+):
     test_trans = init_model
     embeddings = test_trans.compute_embeddings(
         fasta_path,
