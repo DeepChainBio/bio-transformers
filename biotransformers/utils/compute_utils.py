@@ -17,7 +17,9 @@ def validate_position_str(position_str: str):
     """Checks positions str format"""
     regex = re.compile(r"[A-Z]{1}[0-9]{1,4}[A-Z]{1}", re.I)
     if not regex.match(position_str):
-        raise InvalidPositionStringError(f"'{position_str}' is not a valid position string")
+        raise InvalidPositionStringError(
+            f"'{position_str}' is not a valid position string"
+        )
 
 
 class Mutation:
@@ -93,7 +95,9 @@ def mutation_score(native_probs: List[float], mutate_probs: List[float]) -> floa
     Returns:
         List[float]: [description]
     """
-    return np.sum([np.log(m_p) - np.log(n_p) for m_p, n_p in zip(mutate_probs, native_probs)])
+    return np.sum(
+        [np.log(m_p) - np.log(n_p) for m_p, n_p in zip(mutate_probs, native_probs)]
+    )
 
 
 def split_list(list_to_split: List, lengths_list: List) -> List[List]:  # type: ignore
@@ -106,7 +110,9 @@ def split_list(list_to_split: List, lengths_list: List) -> List[List]:  # type: 
     Returns:
         [type]: List of sublist
     """
-    assert len(list_to_split) == sum(lengths_list), "Sum of sublist length is not valid."
+    assert len(list_to_split) == sum(
+        lengths_list
+    ), "Sum of sublist length is not valid."
     splitted_list = []
     count = 0
     for length in lengths_list:

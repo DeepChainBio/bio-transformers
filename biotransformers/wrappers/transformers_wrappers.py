@@ -21,7 +21,11 @@ from biotransformers.utils.compute_utils import Mutation, get_list_probs, mutati
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
-from biotransformers.utils.utils import get_logs_version, init_model_sequences, load_fasta
+from biotransformers.utils.utils import (
+    get_logs_version,
+    init_model_sequences,
+    load_fasta,
+)
 from biotransformers.wrappers.language_model import LanguageModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -64,7 +68,9 @@ class TransformersWrapper:
             assert torch.cuda.device_count() >= num_gpus, "Not enough available GPUs."
         if num_gpus <= 1:
             device = "cpu" if num_gpus == 0 else "cuda"
-            self._language_model = language_model_cls(model_dir=model_dir, device=device)
+            self._language_model = language_model_cls(
+                model_dir=model_dir, device=device
+            )
             self._multi_gpus = False
         else:
             self._language_model = language_model_cls(model_dir=model_dir, device="cpu")
@@ -223,7 +229,9 @@ class TransformersWrapper:
             model_outputs (torch.Tensor): shape -> (num_seqs, max_seq_len, vocab_size)
         """
         max_length = model_outputs.shape[1]
-        inf_tensor = -float("Inf") * torch.ones([1, model_outputs.shape[2]], dtype=torch.float32)
+        inf_tensor = -float("Inf") * torch.ones(
+            [1, model_outputs.shape[2]], dtype=torch.float32
+        )
         sequences_list = []
         start_id = 0
         for mask_id in masked_ids_list:
@@ -269,7 +277,9 @@ class TransformersWrapper:
             pb = ProgressBar(n_updates)
             actor = pb.actor
             for i, batch_inputs in enumerate(
-                self._generate_chunks(model_inputs, math.ceil(num_inputs / self._num_gpus))
+                self._generate_chunks(
+                    model_inputs, math.ceil(num_inputs / self._num_gpus)
+                )
             ):
                 # Split large batch into smaller batches, when per GPU worker
                 # Send tqdm progress bar
@@ -286,7 +296,9 @@ class TransformersWrapper:
                 embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
                 logits = torch.cat((logits, batch_logits), dim=0)
         else:
-            logits, embeddings = self._language_model.model_pass(model_inputs, batch_size, silent)
+            logits, embeddings = self._language_model.model_pass(
+                model_inputs, batch_size, silent
+            )
 
         return logits, embeddings
 
@@ -309,12 +321,18 @@ class TransformersWrapper:
         """
         if pass_mode == "masked":
             if self._language_model.is_msa:
-                raise NotImplementedError("Masked with msa-transformers is not implemented.")
+                raise NotImplementedError(
+                    "Masked with msa-transformers is not implemented."
+                )
             model_inputs, masked_ids_list = self._repeat_and_mask_inputs(model_inputs)
-            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size, **kwargs)
+            logits, _ = self._model_evaluation(
+                model_inputs, batch_size=batch_size, **kwargs
+            )
             logits = self._gather_masked_outputs(logits, masked_ids_list)
         elif pass_mode == "forward":
-            logits, _ = self._model_evaluation(model_inputs, batch_size=batch_size, **kwargs)
+            logits, _ = self._model_evaluation(
+                model_inputs, batch_size=batch_size, **kwargs
+            )
         return logits
 
     def compute_logits(
@@ -368,7 +386,8 @@ class TransformersWrapper:
 
         # Keep only corresponding to amino acids that are in the sequence
         logits = [
-            torch.gather(logit, dim=-1, index=label).numpy() for logit, label in zip(logits, labels)
+            torch.gather(logit, dim=-1, index=label).numpy()
+            for logit, label in zip(logits, labels)
         ]
         # List of arrays of shape (seq_length, 1)
         self.delete_ray_workers()
@@ -438,7 +457,9 @@ class TransformersWrapper:
         inputs = self._language_model.process_sequences_and_tokens(sequences)
         if masked_token_position is not None:
             if len(masked_token_position) != len(sequences):
-                raise ValueError("masked_token_position and sequences must have the same length.")
+                raise ValueError(
+                    "masked_token_position and sequences must have the same length."
+                )
             inputs = self._mask_inputs_tokens(inputs, masked_token_position)
         logits = self._compute_logits(inputs, batch_size, pass_mode, silent=silent)
         # Remove padded logits
@@ -461,7 +482,9 @@ class TransformersWrapper:
                 repeat_dim = (logit.shape[0], logit.shape[1], 1)  # type: ignore
             else:
                 repeat_dim = (logit.shape[0], 1)  # type: ignore
-            masked_logit = logit + torch.from_numpy(np.tile(np.log(vocabulary_mask), repeat_dim))
+            masked_logit = logit + torch.from_numpy(
+                np.tile(np.log(vocabulary_mask), repeat_dim)
+            )
             masked_logits.append(masked_logit)
         # Use softmax to compute probabilities from logits
         # Due to the -inf, probs of tokens that are not in token list will be zero
@@ -566,7 +589,9 @@ class TransformersWrapper:
             )
             log_likelihoods.append(float(log_likelihood))
         if normalize:
-            log_likelihoods = [log / length for log, length in zip(log_likelihoods, lengths)]
+            log_likelihoods = [
+                log / length for log, length in zip(log_likelihoods, lengths)
+            ]
 
         self.delete_ray_workers()
         return log_likelihoods
@@ -647,10 +672,13 @@ class TransformersWrapper:
             silent=silent,
             masked_token_position=mutations_index,
         )
-        length_mutations = [len(mut) for mut in mutations_list]  # use for reshape all mutations
+        length_mutations = [
+            len(mut) for mut in mutations_list
+        ]  # use for reshape all mutations
         native_probs, mutate_probs = get_list_probs(mutations_list, mutate_probabilities, length_mutations)  # type: ignore
         mutation_score_list = [
-            mutation_score(n_probs, m_probs) for n_probs, m_probs in zip(native_probs, mutate_probs)
+            mutation_score(n_probs, m_probs)
+            for n_probs, m_probs in zip(native_probs, mutate_probs)
         ]
         self.delete_ray_workers()
         return mutation_score_list
@@ -699,7 +727,9 @@ class TransformersWrapper:
         self.init_ray_workers()
         # Compute a forward pass to get the embeddings
         inputs = self._language_model.process_sequences_and_tokens(sequences)
-        _, embeddings = self._model_evaluation(inputs, batch_size=batch_size, silent=silent)
+        _, embeddings = self._model_evaluation(
+            inputs, batch_size=batch_size, silent=silent
+        )
         embeddings = [emb.cpu().numpy() for emb in embeddings]
         # Remove class token and padding
         # Use tranpose to filter on the two last dimensions. Doing this, we don't have to manage

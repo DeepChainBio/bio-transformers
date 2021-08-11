@@ -55,7 +55,9 @@ def get_msa_list(path_msa: Optional[str]) -> List[str]:
     list_msa = glob(path_msa + "/*.a3m")
     all_a3m_file = all([msa.endswith("a3m") for msa in list_msa])
     if len(list_msa) == 0:
-        raise FileNotFoundError("Can't find any msa files with .a3m format in this folder.")
+        raise FileNotFoundError(
+            "Can't find any msa files with .a3m format in this folder."
+        )
     if not all_a3m_file:
         raise ValueError("All files in msa folder should have a3m format.")
 
@@ -124,5 +126,7 @@ def msa_to_remove(path_msa: str, n_seq) -> List[str]:
     for i, length in enumerate(lengths):
         if len(length) != n_seq:
             msa_to_remove.append(list_msa_filepath[i])
-    print(f"{len(msa_to_remove)}/{len(list_msa)} have insufficient number of sequences in MSA.")
+    print(
+        f"{len(msa_to_remove)}/{len(list_msa)} have insufficient number of sequences in MSA."
+    )
     return msa_to_remove

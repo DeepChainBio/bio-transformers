@@ -9,7 +9,10 @@ from typing import Dict, List, Tuple
 
 import torch
 import copy
-from biotransformers.lightning_utils.data import AlphabetDataLoader, convert_ckpt_to_statedict
+from biotransformers.lightning_utils.data import (
+    AlphabetDataLoader,
+    convert_ckpt_to_statedict,
+)
 from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.utils import _generate_chunks, _get_num_batch_iter
@@ -35,8 +38,12 @@ class RostlabWrapper(LanguageModel):
             )
             model_dir = DEFAULT_ROSTLAB_MODEL
         super().__init__(model_dir=model_dir, device=device)
-        self.tokenizer = BertTokenizer.from_pretrained(model_dir, do_lower_case=False, padding=True)
-        self._model = BertForMaskedLM.from_pretrained(self._model_dir).eval().to(self._device)
+        self.tokenizer = BertTokenizer.from_pretrained(
+            model_dir, do_lower_case=False, padding=True
+        )
+        self._model = (
+            BertForMaskedLM.from_pretrained(self._model_dir).eval().to(self._device)
+        )
         self.hidden_size = self._model.config.hidden_size
         self.mask_pipeline = None
 
@@ -100,7 +107,9 @@ class RostlabWrapper(LanguageModel):
         if path_model.endswith(".pt"):
             loaded_model = torch.load(path_model)
         elif path_model.endswith(".ckpt"):
-            loaded_model = convert_ckpt_to_statedict(torch.load(path_model)["state_dict"])
+            loaded_model = convert_ckpt_to_statedict(
+                torch.load(path_model)["state_dict"]
+            )
         else:
             raise ValueError("Expecting a .pt or .ckpt file")
         self._model.load_state_dict(loaded_model, map_location)
@@ -155,7 +164,9 @@ class RostlabWrapper(LanguageModel):
         embeddings = torch.Tensor()  # [num_seqs, max_len_seqs+1, embedding_size]
         for batch_inputs in batch_generator:
             with torch.no_grad():
-                model_inputs = {key: value.to(self._device) for key, value in batch_inputs.items()}
+                model_inputs = {
+                    key: value.to(self._device) for key, value in batch_inputs.items()
+                }
                 model_outputs = self._model(**model_inputs, output_hidden_states=True)
                 batch_logits = model_outputs.logits.detach().cpu()
                 batch_embeddings = model_outputs.hidden_states[-1].detach().cpu()
