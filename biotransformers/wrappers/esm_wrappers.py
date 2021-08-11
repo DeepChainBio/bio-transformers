@@ -188,7 +188,7 @@ class ESMWrapper(LanguageModel):
             append_eos=True,
             mask_idx=self.alphabet.mask_idx,
             pad_idx=self.alphabet.padding_idx,
-            all_toks=self.alphabet.all_toks,
+            standard_toks=self.alphabet.standard_toks,
             model_dir=self._model_dir,
             lambda_toks_to_ids=lambda x: self.alphabet.tok_to_idx[x],
             lambda_tokenizer=lambda x: tokenize(x),

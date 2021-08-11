@@ -19,7 +19,7 @@ class AlphabetDataLoader:
         append_eos: bool,
         mask_idx: int,
         pad_idx: int,
-        all_toks: List[str],
+        standard_toks: List[str],
         model_dir: str,
         lambda_toks_to_ids: Callable,
         lambda_tokenizer: Callable,
@@ -28,7 +28,7 @@ class AlphabetDataLoader:
         self.append_eos = append_eos
         self.mask_idx = mask_idx
         self.padding_idx = pad_idx
-        self.all_toks = all_toks
+        self.standard_toks = standard_toks
         self.model_dir = model_dir
         self.lambda_toks_to_ids = lambda_toks_to_ids
         self.lambda_tokenizer = lambda_tokenizer
@@ -39,11 +39,6 @@ class AlphabetDataLoader:
     def tokenizer(self):
         """Return seq-token based on sequence"""
         return self.lambda_tokenizer
-
-    @property
-    def standard_toks(self):
-        """return standard token based on all tokens"""
-        return [token for token in self.all_toks if token.isalpha()]
 
 
 class CustomBatchSampler(Sampler):

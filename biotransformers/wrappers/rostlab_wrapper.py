@@ -8,6 +8,7 @@ hugging face
 from typing import Dict, List, Tuple
 
 import torch
+import copy
 from biotransformers.lightning_utils.data import AlphabetDataLoader, convert_ckpt_to_statedict
 from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
 from biotransformers.utils.logger import logger  # noqa
@@ -176,12 +177,20 @@ class RostlabWrapper(LanguageModel):
             tokens = self.tokenizer(x_, return_tensors="pt", padding=True)
             return x, tokens["input_ids"]
 
+        all_tokens = copy.deepcopy(self.tokenizer.vocab)
+        del all_tokens["[PAD]"]
+        del all_tokens["[UNK]"]
+        del all_tokens["[CLS]"]
+        del all_tokens["[SEP]"]
+        del all_tokens["[MASK]"]
+        standard_tokens = list(all_tokens.keys())
+
         alphabet_dl = AlphabetDataLoader(
             prepend_bos=True,
             append_eos=True,
             mask_idx=self.tokenizer.mask_token_id,
             pad_idx=self.tokenizer.pad_token_id,
-            all_toks=list(self.tokenizer.get_vocab().keys()),
+            standard_toks=standard_tokens,
             model_dir=self._model_dir,
             lambda_toks_to_ids=lambda x: self.tokenizer.convert_tokens_to_ids(x),
             lambda_tokenizer=lambda x: tokenize(x),
