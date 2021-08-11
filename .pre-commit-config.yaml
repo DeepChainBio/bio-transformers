@@ -7,7 +7,7 @@ repos:
     hooks:
       - id: black
         args:
-          - --line-length=100
+          - --line-length=88
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
@@ -37,7 +37,7 @@ repos:
     hooks:
       - id: flake8
         args:
-          - --max-line-length=100
+          - --max-line-length=88
           - --max-cognitive-complexity=15
           - --ignore=E203,E266,E501,W503
         additional_dependencies:

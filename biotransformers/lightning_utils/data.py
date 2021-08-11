@@ -19,7 +19,7 @@ class AlphabetDataLoader:
         append_eos: bool,
         mask_idx: int,
         pad_idx: int,
-        all_toks: List[str],
+        standard_toks: List[str],
         model_dir: str,
         lambda_toks_to_ids: Callable,
         lambda_tokenizer: Callable,
@@ -28,7 +28,7 @@ class AlphabetDataLoader:
         self.append_eos = append_eos
         self.mask_idx = mask_idx
         self.padding_idx = pad_idx
-        self.all_toks = all_toks
+        self.standard_toks = standard_toks
         self.model_dir = model_dir
         self.lambda_toks_to_ids = lambda_toks_to_ids
         self.lambda_tokenizer = lambda_tokenizer
@@ -39,11 +39,6 @@ class AlphabetDataLoader:
     def tokenizer(self):
         """Return seq-token based on sequence"""
         return self.lambda_tokenizer
-
-    @property
-    def standard_toks(self):
-        """return standard token based on all tokens"""
-        return [token for token in self.all_toks if token.isalpha()]
 
 
 class CustomBatchSampler(Sampler):
@@ -61,14 +56,19 @@ class CustomBatchSampler(Sampler):
     """
 
     def __init__(self, sampler, batch_size, drop_last):
-        if not (type(batch_size) == int) or isinstance(batch_size, bool) or batch_size <= 0:
+        if (
+            not (type(batch_size) == int)
+            or isinstance(batch_size, bool)
+            or batch_size <= 0
+        ):
             raise ValueError(
                 "batch_size should be a positive integer value, "
                 "but got batch_size={}".format(batch_size)
             )
         if not isinstance(drop_last, bool):
             raise ValueError(
-                "drop_last should be a boolean value, but got " "drop_last={}".format(drop_last)
+                "drop_last should be a boolean value, but got "
+                "drop_last={}".format(drop_last)
             )
         self.sampler = sampler
         self.batch_size = batch_size
@@ -165,7 +165,9 @@ def mask_seq(
     mask_num = int(np.ceil(seq_len * masking_ratio))
     targets = tokens.detach().clone()
     # sample indices
-    mask_indices = sorted(np.random.choice(seq_len, mask_num, replace=False) + int(prepend_bos))
+    mask_indices = sorted(
+        np.random.choice(seq_len, mask_num, replace=False) + int(prepend_bos)
+    )
     # mask tokens
     for idx in mask_indices:
         rand = np.random.random()
@@ -235,7 +237,9 @@ def collate_fn(
     return tokens, targets
 
 
-def _filter_sequence(sequences_list: List[str], model: str, filter_len: int) -> List[str]:
+def _filter_sequence(
+    sequences_list: List[str], model: str, filter_len: int
+) -> List[str]:
     """Function that filter the length of a sequence list
 
     Filtering depends on the type of model. It is automatically enforce as ESM1b
@@ -397,7 +401,9 @@ class BioDataModule(pl.LightningDataModule):
         # Assign train/val datasets for use in dataloaders
         if stage == "fit" or stage is None:
             if self.validation:
-                self.seq_train, self.seq_val = train_test_split(self.train_sequences, test_size=0.2)
+                self.seq_train, self.seq_val = train_test_split(
+                    self.train_sequences, test_size=0.2
+                )
             else:
                 self.seq_train = self.train_sequences
 
