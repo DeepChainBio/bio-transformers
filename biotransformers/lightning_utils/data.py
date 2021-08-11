@@ -5,8 +5,7 @@ from typing import Callable, List, Optional, Sequence, Tuple
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from biotransformers.utils.constant import NATURAL_AAS_LIST
-from esm.data import Alphabet, BatchConverter
+from esm.data import BatchConverter
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset, Sampler
 
@@ -20,6 +19,7 @@ class AlphabetDataLoader:
         append_eos: bool,
         mask_idx: int,
         pad_idx: int,
+        all_toks: List[str],
         model_dir: str,
         lambda_toks_to_ids: Callable,
         lambda_tokenizer: Callable,
@@ -28,6 +28,7 @@ class AlphabetDataLoader:
         self.append_eos = append_eos
         self.mask_idx = mask_idx
         self.padding_idx = pad_idx
+        self.all_toks = all_toks
         self.model_dir = model_dir
         self.lambda_toks_to_ids = lambda_toks_to_ids
         self.lambda_tokenizer = lambda_tokenizer
@@ -38,6 +39,11 @@ class AlphabetDataLoader:
     def tokenizer(self):
         """Return seq-token based on sequence"""
         return self.lambda_tokenizer
+
+    @property
+    def standard_toks(self):
+        """return standard token based on all tokens"""
+        return [token for token in self.all_toks if token.isalpha()]
 
 
 class CustomBatchSampler(Sampler):
@@ -182,7 +188,7 @@ def mask_seq(
 def collate_fn(
     samples: Sequence[Tuple[str, str]],
     tokenizer: BatchConverter,
-    alphabet: Alphabet,
+    alphabet: AlphabetDataLoader,
     masking_ratio: float,
     masking_prob: float,
     random_token_prob: float,
@@ -203,7 +209,7 @@ def collate_fn(
         targets: model target
         mask_indices: indices of masked tokens
     """
-    random_token_indices = [alphabet.tok_to_idx(aa) for aa in NATURAL_AAS_LIST]
+    random_token_indices = [alphabet.tok_to_idx(aa) for aa in alphabet.standard_toks]
     seqs, tokens = tokenizer(
         samples[0]
     )  # take samples[0] because batch_sampler return list of list
