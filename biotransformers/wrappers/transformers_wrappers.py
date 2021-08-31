@@ -31,7 +31,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger
 
-from ..lightning_utils.data import BioDataModule
+from ..lightning_utils.data import create_dataloader
 from ..lightning_utils.models import LightningModule
 
 log = logger("transformers_wrapper")
@@ -861,17 +861,18 @@ class TransformersWrapper:
     def finetune(
         self,
         train_sequences: Union[List[str], str],
+        validation_sequences: Union[List[str], str],
+        num_data_workers: int = 4,
         lr: float = 1.0e-5,
         warmup_updates: int = 1024,
         warmup_init_lr: float = 1e-7,
         epochs: int = 10,
-        batch_size: int = 2,
-        acc_batch_size: int = 256,
+        acc_batch_size: int = 50,
         masking_ratio: float = 0.025,
         masking_prob: float = 0.8,
         random_token_prob: float = 0.15,
         toks_per_batch: int = 2048,
-        filter_len: Optional[int] = None,
+        crop_sizes: Tuple[int, int] = (512, 1024),
         accelerator: str = "ddp",
         amp_level: str = "O2",
         precision: int = 16,
@@ -895,13 +896,15 @@ class TransformersWrapper:
         Args:
             train_sequences : Could be a list of sequences or the path of a
                               fasta file with multiple seqRecords
+            validation_sequences : Could be a list of sequences or the path of a
+                              fasta file with multiple seqRecords
+            num_data_workers: number of cpus workers per gpu to load data
             lr : learning rate for training phase. Defaults to 1.0e-5.
             warmup_updates : Number of warming updates, number of step while increasing
             the leraning rate. Defaults to 1024.
             warmup_init_lr :  Initial lr for warming_update. Defaults to 1e-7.
             epochs :  number of epoch for training. Defaults to 10.
-            batch_size :  mean number of sequence to consider in a batch. Defaults to 2.
-            acc_batch_size : accumulated batch size Defaults to 2048.
+            acc_batch_size : number of batches of toks_per_batch tokens to accumulate ebfore applying gradients.
             masking_ratio : ratio of tokens to be masked. Defaults to 0.025.
             masking_prob :  probability that the chose token is replaced with a mask token.
                             Defaults to 0.8.
@@ -911,8 +914,8 @@ class TransformersWrapper:
                             This argument will set the number of sequences in a batch, which
                             is dynamically computed. Batch size use accumulate_grad_batches
                             to compute accumulate_grad_batches parameter.
+            crop_sizes: range of lengths to crop dynamically sequences when sampling them
             extra_toks_per_seq: Defaults to 2,
-            filter_len : Size of sequence to filter. Defaults to None. (NOT USED)
             accelerator: type of accelerator for mutli-gpu processing (DPP recommanded)
             amp_level: allow mixed precision. Defaults to '02'
             precision: reducing precision allows to decrease the GPU memory needed.
@@ -927,13 +930,23 @@ class TransformersWrapper:
         if isinstance(train_sequences, str):
             train_sequences = load_fasta(train_sequences)
 
+        if isinstance(validation_sequences, str):
+            validation_sequences = load_fasta(validation_sequences)
+
         if self._language_model.is_msa:
             raise NotImplementedError("MSA finetunening not implemented.")
 
         fit_model = self._language_model.model  # type: ignore
         alphabet = self._language_model.get_alphabet_dataloader()
 
-        extra_toks_per_seq = int(alphabet.prepend_bos) + int(alphabet.append_eos)
+        if alphabet.model_dir == "esm1b_t33_650M_UR50S":
+            if crop_sizes[1] > 1024:
+                raise ValueError(
+                    "ESM-1b model works only with sequences of maximum "
+                    "length 1024. Please, be sure to crop to maximum of "
+                    "1024 when using this model."
+                )
+
         lightning_model = LightningModule(
             model=fit_model,
             alphabet=alphabet,
@@ -943,16 +956,26 @@ class TransformersWrapper:
             warmup_end_lr=lr,
         )
 
-        data_module = BioDataModule(
-            train_sequences,
-            alphabet,
-            filter_len,
-            masking_ratio,
-            masking_prob,
-            random_token_prob,
-            toks_per_batch,
-            extra_toks_per_seq,
-            validation=False,
+        train_dataloader = create_dataloader(
+            sequences=train_sequences,
+            alphabet=alphabet,
+            masking_ratio=masking_ratio,
+            masking_prob=masking_prob,
+            random_token_prob=random_token_prob,
+            num_workers=num_data_workers,
+            toks_per_batch=toks_per_batch,
+            crop_sizes=crop_sizes,
+        )
+
+        validation_dataloader = create_dataloader(
+            sequences=validation_sequences,
+            alphabet=alphabet,
+            masking_ratio=masking_ratio,
+            masking_prob=masking_prob,
+            random_token_prob=random_token_prob,
+            num_workers=num_data_workers,
+            toks_per_batch=toks_per_batch,
+            crop_sizes=crop_sizes,
         )
 
         if self._num_gpus == 0:
@@ -976,7 +999,7 @@ class TransformersWrapper:
             gpus=self._num_gpus,
             amp_level=amp_level,
             precision=precision,
-            accumulate_grad_batches=acc_batch_size // batch_size,
+            accumulate_grad_batches=acc_batch_size,
             max_epochs=epochs,
             logger=logger,
             accelerator=accelerator,
@@ -984,7 +1007,7 @@ class TransformersWrapper:
             resume_from_checkpoint=checkpoint,
             callbacks=checkpoint_callback,
         )
-        trainer.fit(lightning_model, data_module)
+        trainer.fit(lightning_model, train_dataloader, [validation_dataloader])
 
         save_path = str(Path(join(logs_save_dir, logs_name_exp)).resolve())
         if accelerator == "ddp":
