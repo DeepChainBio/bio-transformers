@@ -904,7 +904,7 @@ class TransformersWrapper:
             the leraning rate. Defaults to 1024.
             warmup_init_lr :  Initial lr for warming_update. Defaults to 1e-7.
             epochs :  number of epoch for training. Defaults to 10.
-            acc_batch_size : number of batches of toks_per_batch tokens to accumulate ebfore applying gradients.
+            acc_batch_size : number of batches of toks_per_batch tokens to accumulate before applying gradients.
             masking_ratio : ratio of tokens to be masked. Defaults to 0.025.
             masking_prob :  probability that the chose token is replaced with a mask token.
                             Defaults to 0.8.
