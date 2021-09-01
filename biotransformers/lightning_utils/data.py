@@ -235,7 +235,7 @@ def get_batch_indices(
             seq_length = crop_size
         else:
             seq_length = sz
-        if sz + sum([b[1] for b in buffer]) > toks_per_batch:
+        if seq_length + sum([b[1] for b in buffer]) > toks_per_batch:
             _flush_current_buf()
         buffer.append((i, seq_length))
 
@@ -311,7 +311,7 @@ def create_dataloader(
     toks_per_batch: int,
     crop_sizes: Tuple[int, int] = (512, 1024),
 ) -> DataLoader:
-    """Create the PyTorch Dataset.
+    """Create the PyTorch Dataloader.
 
     Args:
         filenames: list of sequences
