@@ -1,12 +1,11 @@
 import functools
+import random
 from collections import OrderedDict
-from typing import Callable, List, Optional, Sequence, Tuple
+from typing import Callable, List, Sequence, Tuple
 
 import numpy as np
-import pytorch_lightning as pl
 import torch
 from esm.data import BatchConverter
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset, Sampler
 
 
@@ -39,69 +38,6 @@ class AlphabetDataLoader:
     def tokenizer(self):
         """Return seq-token based on sequence"""
         return self.lambda_tokenizer
-
-
-class CustomBatchSampler(Sampler):
-    r"""Wraps another sampler to yield a mini-batch of indices.
-
-    This custom BatchSampler is inspired from the torch class BatchSampler.
-    It takes a list of indexes and shuffle the indexes at each epochs.
-
-    Args:
-        sampler (List): List of indexes. indexes are a collections of List[int],
-        corresponding to the index of the protein sequence.
-        batch_size (int): Size of mini-batch. 1 in our case, a batch are already of correct size.
-        drop_last (bool): If ``True``, the sampler will drop the last batch if
-            its size would be less than ``batch_size``
-    """
-
-    def __init__(self, sampler, batch_size, drop_last):
-        if (
-            not (type(batch_size) == int)
-            or isinstance(batch_size, bool)
-            or batch_size <= 0
-        ):
-            raise ValueError(
-                "batch_size should be a positive integer value, "
-                "but got batch_size={}".format(batch_size)
-            )
-        if not isinstance(drop_last, bool):
-            raise ValueError(
-                "drop_last should be a boolean value, but got "
-                "drop_last={}".format(drop_last)
-            )
-        self.sampler = sampler
-        self.batch_size = batch_size
-        self.drop_last = drop_last
-
-    def __iter__(self):
-        batch = []
-        np.random.shuffle(self.sampler)
-        for idx in self.sampler:
-            batch.append(idx)
-            if len(batch) == self.batch_size:
-                yield batch
-                batch = []
-        if len(batch) > 0 and not self.drop_last:
-            yield batch
-
-    def __len__(self):
-        if self.drop_last:
-            return len(self.sampler) // self.batch_size
-        else:
-            return (len(self.sampler) + self.batch_size - 1) // self.batch_size
-
-
-class BatchDataset(Dataset):
-    def __init__(self, sequences: List[str]) -> None:
-        super().__init__()
-        self.sequences = np.array(sequences)
-
-    def __len__(self):
-        return len(self.sequences)
-
-    def __getitem__(self, index):
-        return self.sequences[index].tolist()
 
 
 def convert_ckpt_to_statedict(checkpoint_state_dict: OrderedDict) -> OrderedDict:
@@ -237,93 +173,143 @@ def collate_fn(
     return tokens, targets
 
 
-def _filter_sequence(
-    sequences_list: List[str], model: str, filter_len: int
-) -> List[str]:
-    """Function that filter the length of a sequence list
-
-    Filtering depends on the type of model. It is automatically enforce as ESM1b
-    does'nt manage sequence longer that 1024.
-
-    Args:
-        sequences_list : list of sequences
-        model : name of the model
-        length : length limit to consider
-    Raises:
-        ValueError is model filter_len < 0
-    """
-
-    if model == "esm1b_t33_650M_UR50S":
-        filter_len = min(filter_len, 1024) if filter_len is not None else 1024
-        return [seq for seq in sequences_list if len(seq) < filter_len]
-
-    if filter_len is not None:
-        if filter_len <= 0:
-            raise ValueError("filter_len argument should be > 0")
-        return [seq for seq in sequences_list if len(seq) < filter_len]
-
-    return sequences_list
+def crop_sequence(sequence: str, crop_length: int) -> str:
+    """If the length of the sequence is superior to crop_length, crop randomly
+    the sequence to get the proper length."""
+    if len(sequence) <= crop_length:
+        return sequence
+    else:
+        start_idx = random.randint(0, len(sequence) - crop_length)
+        return sequence[start_idx : (start_idx + crop_length)]
 
 
 def get_batch_indices(
-    sequence_strs,
+    sequence_strs: List[str],
     toks_per_batch: int,
-    extra_toks_per_seq: int = 0,
-) -> List[List[int]]:
-    """Get the batch idx based on the number of tokens in sequences
+    crop_sizes: Tuple[int, int] = (600, 1200),
+) -> List[List[List[Tuple[int, int]]]]:
+    """
+    This sampler aims to create batches that do not contain fixed number of sequences
+    but rather constant number of tokens. Some the batch can contain a few long
+    sequences or multiple small ones.
 
-    It computes a list of list of int which are the list of the indexes to consider
-    to build a batch.
+
+    This sampler returns batches of indices to achieve this property. It also decides
+    if sequences must be cropped and return the desired length. The cropping length is
+    sampled randomly for each sequence at each epoch in the range of crop_sizes values.
+
+    THis sampler computes a list of list of tuple which contains indices and
+    lengths of sequences  inside the batch.
     Example:
-        returning [[1,3,8],[4,7,10],[11],[12]] means that the first batch  will be
-        composed of sequence at index 1,3,8 for the first batch, sequence 11 for the
-        third batch. The idea is to consider a maximum number of tokens per batch.
+        returning [[(1, 100), (3, 600)],[(4, 100), (7, 1200), (10, 600)], [(12, 1000)]]
+        means that the first batch  will be composed of sequence at index 1 and 8 with
+        lengths 100 and  600. The third batch contains only sequence 12 with a length
+        of 1000.
 
     Args:
         sequence_strs: list of string
-        filter_len :
-        toks_per_batch (int): Maxi number of token per batch
+        toks_per_batch (int): Maximum number of token per batch
         extra_toks_per_seq (int, optional): . Defaults to 0.
+        crop_sizes (Tuple[int, int]): min and max sequence lengths when cropping
 
     Returns:
-        List: List of batches indexes
+        List: List of batches indexes and lengths
     """
-    buffer_type = List[int]
+    min_size, max_size = crop_sizes
+    buffer_type = List[Tuple[int, int]]
     sizes = [(len(s), i) for i, s in enumerate(sequence_strs)]
-    sizes.sort()
-    batches: List[buffer_type] = []
+    random.shuffle(sizes)
+    batches: List[List[buffer_type]] = []
     buffer: buffer_type = []
-    max_len = 0
 
     def _flush_current_buf():
-        nonlocal max_len, buffer
+        nonlocal buffer
         if len(buffer) == 0:
             return
-        batches.append(buffer)
+        batches.append([buffer])
         buffer = []
-        max_len = 0
 
     for sz, i in sizes:
-        sz += extra_toks_per_seq
-        if max(sz, max_len) * (len(buffer) + 1) > toks_per_batch:
+        crop_size = random.randint(min_size, max_size) - 2
+        if sz > crop_size:
+            seq_length = crop_size
+        else:
+            seq_length = sz
+        if sz + sum([b[1] for b in buffer]) > toks_per_batch:
             _flush_current_buf()
-        max_len = max(max_len, sz)
-        buffer.append(i)
+        buffer.append((i, seq_length))
 
     _flush_current_buf()
     return batches
 
 
+class BatchWithConstantNumberTokensSampler(Sampler):
+    """
+    Sampler that returns batches of sequences indices in the dataset so that to ensure
+    not a fixed number of sequences per batch but rather a fixed number of tokens per
+    batch. This sampler also takes into account that we may want to crop dynamically
+    sequences when sampling and thus returns in addition to indices, desired cropping
+    lengths to inform the dataloader.
+    """
+
+    def __init__(
+        self,
+        sequence_strs: List[str],
+        toks_per_batch: int,
+        crop_sizes: Tuple[int, int] = (512, 1024),
+    ):
+        Sampler.__init__(self, data_source=None)
+        self._sequence_strs = sequence_strs
+        self._toks_per_batch = toks_per_batch
+        self._crop_sizes = crop_sizes
+        self._init_batches = get_batch_indices(
+            sequence_strs=sequence_strs,
+            toks_per_batch=toks_per_batch,
+            crop_sizes=crop_sizes,
+        )
+
+    def __len__(self):
+        return len(self._init_batches)
+
+    def __iter__(self):
+        yield from get_batch_indices(
+            sequence_strs=self._sequence_strs,
+            toks_per_batch=self._toks_per_batch,
+            crop_sizes=self._crop_sizes,
+        )
+
+
+class BatchWithConstantNumberTokensDataset(Dataset):
+    """
+    Dataset class to work in pair with the BatchWithConstantNumberTokensSampler.
+    """
+
+    def __init__(self, sequences: List[str]):
+        super().__init__()
+        self.sequences = sequences
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def __getitem__(self, sampler_out) -> List[str]:
+        indices = [out[0] for out in sampler_out]
+        lengths = [out[1] for out in sampler_out]
+        sequences = [
+            crop_sequence(self.sequences[i], length)
+            for i, length in zip(indices, lengths)
+        ]
+        return sequences
+
+
 def create_dataloader(
     sequences: List[str],
     alphabet: AlphabetDataLoader,
-    filter_len: int,
     masking_ratio: float,
     masking_prob: float,
     random_token_prob: float,
-    num_workers: int = 0,
-    toks_per_batch: int = 128,
-    extra_toks_per_seq: int = 2,
+    num_workers: int,
+    toks_per_batch: int,
+    crop_sizes: Tuple[int, int] = (512, 1024),
 ) -> DataLoader:
     """Create the PyTorch Dataset.
 
@@ -335,18 +321,17 @@ def create_dataloader(
         masking_ratio: ratio of tokens to be masked.
         masking_prob: probability that the chose token is replaced with a mask token.
         random_token_prob: probability that the chose token is replaced with a random token.
+        toks_per_batch: number of tokens per batch
+        crop_sizes: range of values to crop dynamically sequences when sampling them
 
     Returns:
         torch DataLoader
     """
-    sequences = _filter_sequence(sequences, alphabet.model_dir, filter_len)
 
-    batches = get_batch_indices(
-        sequences, toks_per_batch=toks_per_batch, extra_toks_per_seq=extra_toks_per_seq
+    dataset = BatchWithConstantNumberTokensDataset(sequences)
+    batch_sampler = BatchWithConstantNumberTokensSampler(
+        sequence_strs=sequences, toks_per_batch=toks_per_batch, crop_sizes=crop_sizes
     )
-
-    dataset = BatchDataset(sequences)
-    b_sampler = CustomBatchSampler(batches, batch_size=1, drop_last=False)
 
     loader = DataLoader(
         dataset,
@@ -361,87 +346,7 @@ def create_dataloader(
         ),
         pin_memory=True,
         worker_init_fn=worker_init_fn,
-        batch_sampler=b_sampler,
+        batch_sampler=batch_sampler,
         sampler=None,
     )
     return loader
-
-
-class BioDataModule(pl.LightningDataModule):
-    def __init__(
-        self,
-        train_sequences: List[str],
-        alphabet: AlphabetDataLoader,
-        filter_len: int,
-        masking_ratio: float,
-        masking_prob: float,
-        random_token_prob: float,
-        toks_per_batch: int = 128,
-        extra_toks_per_seq: int = 2,
-        num_workers: int = 0,
-        validation: bool = True,
-    ):
-        super().__init__()
-        self.train_sequences = train_sequences
-        self.alphabet = alphabet
-        self.filter_len = filter_len
-        self.masking_ratio = masking_ratio
-        self.masking_prob = masking_prob
-        self.random_token_prob = random_token_prob
-        self.toks_per_batch = toks_per_batch
-        self.extra_toks_per_seq = extra_toks_per_seq
-        self.num_workers = num_workers
-        self.validation = validation
-
-    def prepare_data(self):
-        pass
-
-    def setup(self, stage: Optional[str] = None):
-
-        # Assign train/val datasets for use in dataloaders
-        if stage == "fit" or stage is None:
-            if self.validation:
-                self.seq_train, self.seq_val = train_test_split(
-                    self.train_sequences, test_size=0.2
-                )
-            else:
-                self.seq_train = self.train_sequences
-
-            # Optionally...
-            # self.dims = tuple(self.mnist_train[0][0].shape)
-
-        # Assign test dataset for use in dataloader(s)
-        # if stage == "test" or stage is None:
-        # self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transform)
-
-    def train_dataloader(self):
-        return create_dataloader(
-            sequences=self.seq_train,
-            alphabet=self.alphabet,
-            filter_len=self.filter_len,
-            num_workers=self.num_workers,
-            masking_ratio=self.masking_ratio,
-            masking_prob=self.masking_prob,
-            random_token_prob=self.random_token_prob,
-            toks_per_batch=self.toks_per_batch,
-            extra_toks_per_seq=self.extra_toks_per_seq,
-        )
-
-    def val_dataloader(self):
-        if self.validation:
-            return create_dataloader(
-                sequences=self.seq_val,
-                alphabet=self.alphabet,
-                filter_len=self.filter_len,
-                num_workers=self.num_workers,
-                masking_ratio=self.masking_ratio,
-                masking_prob=self.masking_prob,
-                random_token_prob=self.random_token_prob,
-                toks_per_batch=self.toks_per_batch,
-                extra_toks_per_seq=self.extra_toks_per_seq,
-            )
-        else:
-            pass
-
-    def test_dataloader(self):
-        pass
