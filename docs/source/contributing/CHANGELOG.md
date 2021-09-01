@@ -1,5 +1,11 @@
 # Change log
 
+# [0.1.8] - 2021-07-29
+
+Features:
+  - Add compute_mutation_score method to evaluate a set of mutation on a sequence.
+    Metric based on [paper](<https://www.biorxiv.org/content/10.1101/2021.07.09.450648v1.full.pdf>)
+
 # [0.1.7] - 2021-07-19
 
 Features:

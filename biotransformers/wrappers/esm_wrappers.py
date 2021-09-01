@@ -30,7 +30,9 @@ class ESMWrapper(LanguageModel):
 
     def __init__(self, model_dir: str, device: str):
         if model_dir not in ESM_LIST:
-            print(f"Model dir '{model_dir}' not recognized. Using '{DEFAULT_ESM_MODEL}' as default")
+            print(
+                f"Model dir '{model_dir}' not recognized. Using '{DEFAULT_ESM_MODEL}' as default"
+            )
             model_dir = DEFAULT_ESM_MODEL
         super().__init__(model_dir=model_dir, device=device)
         self._model, self.alphabet = esm.pretrained.load_model_and_alphabet(model_dir)
@@ -97,12 +99,16 @@ class ESMWrapper(LanguageModel):
         """Returns size of the embeddings"""
         return self.hidden_size
 
-    def process_sequences_and_tokens(self, sequences_list: List[str]) -> Dict[str, torch.Tensor]:
+    def process_sequences_and_tokens(
+        self, sequences_list: List[str]
+    ) -> Dict[str, torch.Tensor]:
         """Function to transform tokens string to IDs; it depends on the model used"""
         if self.is_msa:
             _, _, all_tokens = self.batch_converter(sequences_list)
         else:
-            _, _, all_tokens = self.batch_converter([("", sequence) for sequence in sequences_list])
+            _, _, all_tokens = self.batch_converter(
+                [("", sequence) for sequence in sequences_list]
+            )
 
         all_tokens = all_tokens.to("cpu")
         encoded_inputs = {
@@ -117,7 +123,9 @@ class ESMWrapper(LanguageModel):
         if path_model.endswith(".pt"):
             loaded_model = torch.load(path_model)
         elif path_model.endswith(".ckpt"):
-            loaded_model = convert_ckpt_to_statedict(torch.load(path_model)["state_dict"])
+            loaded_model = convert_ckpt_to_statedict(
+                torch.load(path_model)["state_dict"]
+            )
         else:
             raise ValueError("Expecting a .pt or .ckpt file")
         self._model.load_state_dict(loaded_model, map_location)
@@ -167,7 +175,9 @@ class ESMWrapper(LanguageModel):
                     repr_layers=[self.repr_layers],
                 )
                 batch_logits = model_outputs["logits"].detach().cpu()
-                batch_embeddings = model_outputs["representations"][self.repr_layers].detach().cpu()
+                batch_embeddings = (
+                    model_outputs["representations"][self.repr_layers].detach().cpu()
+                )
                 embeddings = torch.cat((embeddings, batch_embeddings), dim=0)
                 logits = torch.cat((logits, batch_logits), dim=0)
 
@@ -191,6 +201,7 @@ class ESMWrapper(LanguageModel):
             append_eos=True,
             mask_idx=self.alphabet.mask_idx,
             pad_idx=self.alphabet.padding_idx,
+            standard_toks=self.alphabet.standard_toks,
             model_dir=self._model_dir,
             lambda_toks_to_ids=lambda x: self.alphabet.tok_to_idx[x],
             lambda_tokenizer=lambda x: tokenize(x),

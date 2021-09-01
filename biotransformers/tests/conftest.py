@@ -102,3 +102,26 @@ def loglikelihoods_fasta_results():
         ],
     }
     return results
+
+
+@pytest.fixture(scope="session")
+def mutations_score_results():
+    results = {
+        "esm1_t6_43M_UR50S": {
+            "params1": [
+                -2.522218942642212,
+                0.9405336380004883,
+                0.2436962127685547,
+                -17.050978302955627,
+            ],
+        },
+        "Rostlab/prot_bert": {
+            "params1": [
+                -0.496506929397583,
+                1.3073345646262169,
+                0.24045005440711975,
+                -2.4403315782547,
+            ]
+        },
+    }
+    return results

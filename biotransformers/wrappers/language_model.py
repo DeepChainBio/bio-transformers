@@ -2,7 +2,7 @@
 This script defines a generic template class for any language model.
 Both ESM and Rostlab language models should implement this class.
 """
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 
 import torch
@@ -24,52 +24,62 @@ class LanguageModel(ABC):
         """Model ID, as specified in the model directory"""
         return self._model_dir.lower()
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def clean_model_id(self) -> str:
         """Clean model ID (in case the model directory is not)"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def model_vocabulary(self) -> List[str]:
         """Returns the whole vocabulary list"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def vocab_size(self) -> int:
         """Returns the whole vocabulary size"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def mask_token(self) -> str:
         """Representation of the mask token (as a string)"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def pad_token(self) -> str:
         """Representation of the pad token (as a string)"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def begin_token(self) -> str:
         """Representation of the beginning of sentence token (as a string)"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def end_token(self) -> str:
         """Representation of the end of sentence token (as a string)."""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def does_end_token_exist(self) -> bool:
         """Returns true if a end of sequence token exists"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def token_to_id(self):
         """Returns a function which maps tokens to IDs"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def embeddings_size(self) -> int:
         """Returns size of the embeddings"""
         pass
@@ -82,7 +92,8 @@ class LanguageModel(ABC):
         """Function to transform tokens string to IDs; it depends on the model used"""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def model(self) -> torch.nn.Module:
         """Return torch model."""
         pass

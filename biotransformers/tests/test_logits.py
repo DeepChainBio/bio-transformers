@@ -24,7 +24,9 @@ def test_logits_type(init_model, batch_size, sequences, pass_mode):
 
 
 @pytest.mark.parametrize("batch_size, pass_mode", test_params_fasta)
-def test_logits_type_fasta(init_model, batch_size, fasta_path, lengths_sequence_fasta, pass_mode):
+def test_logits_type_fasta(
+    init_model, batch_size, fasta_path, lengths_sequence_fasta, pass_mode
+):
     test_trans = init_model
     logits = test_trans.compute_logits(
         fasta_path,

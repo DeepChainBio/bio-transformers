@@ -107,7 +107,8 @@ def _check_memory_embeddings(
 
     if is_warning:
         log.warning(
-            "Embeddings will need about %s of memory." "Please make sure you have enough space",
+            "Embeddings will need about %s of memory."
+            "Please make sure you have enough space",
             memory_convert_bytes,
         )
 
@@ -185,7 +186,9 @@ def _check_batch_size(batch_size: int, num_gpus: int):
         raise TypeError("batch_size should be of type int")
     if num_gpus > 1:
         if batch_size < num_gpus:
-            raise ValueError("With num_gpus>1, batch_size should be at least equal to num_gpus.")
+            raise ValueError(
+                "With num_gpus>1, batch_size should be at least equal to num_gpus."
+            )
 
 
 def _get_num_batch_iter(model_inputs: Dict[str, Any], batch_size: int) -> int:
@@ -204,7 +207,9 @@ def _generate_chunks(
     """Yield a dictionnary of tensor"""
     num_of_sequences = model_inputs["input_ids"].shape[0]
     for i in range(0, num_of_sequences, batch_size):
-        batch_sequence = {key: value[i : (i + batch_size)] for key, value in model_inputs.items()}
+        batch_sequence = {
+            key: value[i : (i + batch_size)] for key, value in model_inputs.items()
+        }
         yield batch_sequence
 
 
