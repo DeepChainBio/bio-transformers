@@ -54,7 +54,7 @@ class Mutation:
             raise ValueError(
                 f"New amino acid {self.mutation} is not a valid mutation for {self.mutation_str}"
             )
-
+        return True
 
 def get_list_probs(
     mutation_list: List[Tuple[Mutation]],
