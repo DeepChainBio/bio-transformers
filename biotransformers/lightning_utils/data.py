@@ -5,8 +5,7 @@ from typing import Callable, List, Optional, Sequence, Tuple
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from biotransformers.utils.constant import NATURAL_AAS_LIST
-from esm.data import Alphabet, BatchConverter
+from esm.data import BatchConverter
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset, Sampler
 
@@ -20,6 +19,7 @@ class AlphabetDataLoader:
         append_eos: bool,
         mask_idx: int,
         pad_idx: int,
+        standard_toks: List[str],
         model_dir: str,
         lambda_toks_to_ids: Callable,
         lambda_tokenizer: Callable,
@@ -28,6 +28,7 @@ class AlphabetDataLoader:
         self.append_eos = append_eos
         self.mask_idx = mask_idx
         self.padding_idx = pad_idx
+        self.standard_toks = standard_toks
         self.model_dir = model_dir
         self.lambda_toks_to_ids = lambda_toks_to_ids
         self.lambda_tokenizer = lambda_tokenizer
@@ -55,14 +56,19 @@ class CustomBatchSampler(Sampler):
     """
 
     def __init__(self, sampler, batch_size, drop_last):
-        if not (type(batch_size) == int) or isinstance(batch_size, bool) or batch_size <= 0:
+        if (
+            not (type(batch_size) == int)
+            or isinstance(batch_size, bool)
+            or batch_size <= 0
+        ):
             raise ValueError(
                 "batch_size should be a positive integer value, "
                 "but got batch_size={}".format(batch_size)
             )
         if not isinstance(drop_last, bool):
             raise ValueError(
-                "drop_last should be a boolean value, but got " "drop_last={}".format(drop_last)
+                "drop_last should be a boolean value, but got "
+                "drop_last={}".format(drop_last)
             )
         self.sampler = sampler
         self.batch_size = batch_size
@@ -159,7 +165,9 @@ def mask_seq(
     mask_num = int(np.ceil(seq_len * masking_ratio))
     targets = tokens.detach().clone()
     # sample indices
-    mask_indices = sorted(np.random.choice(seq_len, mask_num, replace=False) + int(prepend_bos))
+    mask_indices = sorted(
+        np.random.choice(seq_len, mask_num, replace=False) + int(prepend_bos)
+    )
     # mask tokens
     for idx in mask_indices:
         rand = np.random.random()
@@ -182,7 +190,7 @@ def mask_seq(
 def collate_fn(
     samples: Sequence[Tuple[str, str]],
     tokenizer: BatchConverter,
-    alphabet: Alphabet,
+    alphabet: AlphabetDataLoader,
     masking_ratio: float,
     masking_prob: float,
     random_token_prob: float,
@@ -203,7 +211,7 @@ def collate_fn(
         targets: model target
         mask_indices: indices of masked tokens
     """
-    random_token_indices = [alphabet.tok_to_idx(aa) for aa in NATURAL_AAS_LIST]
+    random_token_indices = [alphabet.tok_to_idx(aa) for aa in alphabet.standard_toks]
     seqs, tokens = tokenizer(
         samples[0]
     )  # take samples[0] because batch_sampler return list of list
@@ -229,7 +237,9 @@ def collate_fn(
     return tokens, targets
 
 
-def _filter_sequence(sequences_list: List[str], model: str, filter_len: int) -> List[str]:
+def _filter_sequence(
+    sequences_list: List[str], model: str, filter_len: int
+) -> List[str]:
     """Function that filter the length of a sequence list
 
     Filtering depends on the type of model. It is automatically enforce as ESM1b
@@ -391,7 +401,9 @@ class BioDataModule(pl.LightningDataModule):
         # Assign train/val datasets for use in dataloaders
         if stage == "fit" or stage is None:
             if self.validation:
-                self.seq_train, self.seq_val = train_test_split(self.train_sequences, test_size=0.2)
+                self.seq_train, self.seq_val = train_test_split(
+                    self.train_sequences, test_size=0.2
+                )
             else:
                 self.seq_train = self.train_sequences
 
