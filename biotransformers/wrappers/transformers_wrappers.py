@@ -979,7 +979,8 @@ class TransformersWrapper:
         )
 
         if self._num_gpus == 0:
-            raise ValueError("You try to train a transformers without GPU.")
+            pass
+            # raise ValueError("You try to train a transformers without GPU.")
 
         logger = CSVLogger(logs_save_dir, name=logs_name_exp)
         checkpoint_callback = None
