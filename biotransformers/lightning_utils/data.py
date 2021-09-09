@@ -217,8 +217,24 @@ def get_batch_indices(
     """
     min_size, max_size = crop_sizes
     buffer_type = List[Tuple[int, int]]
-    sizes = [(len(s), i) for i, s in enumerate(sequence_strs)]
-    random.shuffle(sizes)
+
+    def crop_length(length: int) -> int:
+        crop_size = random.randint(min_size, max_size) - 2
+        if length > crop_size:
+            return crop_size
+        else:
+            return length
+
+    sizes = [(crop_length(len(s)), i) for i, s in enumerate(sequence_strs)]
+    min_length, max_length = min([t[0] for t in sizes]), max([t[0] for t in sizes])
+
+    # if there is a large gap between min and max size, sort the list
+    if min_length < 0.8 * max_length:
+        sizes.sort()
+    # otherwise shuffle it
+    else:
+        random.shuffle(sizes)
+
     batches: List[List[buffer_type]] = []
     buffer: buffer_type = []
 
@@ -229,17 +245,20 @@ def get_batch_indices(
         batches.append([buffer])
         buffer = []
 
-    for sz, i in sizes:
-        crop_size = random.randint(min_size, max_size) - 2
-        if sz > crop_size:
-            seq_length = crop_size
-        else:
-            seq_length = sz
-        if seq_length + sum([b[1] for b in buffer]) > toks_per_batch:
+    for seq_length, i in sizes:
+
+        num_toks_if_seq_is_added = (len(buffer) + 1) * max(
+            [seq_length] + [b[1] for b in buffer]
+        )
+
+        if num_toks_if_seq_is_added > toks_per_batch:
             _flush_current_buf()
+
         buffer.append((i, seq_length))
 
     _flush_current_buf()
+
+    random.shuffle(batches)
     return batches
 
 
