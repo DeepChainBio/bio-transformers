@@ -73,7 +73,7 @@ The commit messages must have the following structure :
         - don't capitalize the first letter
         - no dot (.) at the end
 
-- <body> section :
+- `<body>` section :
     - It is optional
     - It is an extension of the <subject> section used to add a longer description about the changes if relevant
 
