@@ -193,24 +193,23 @@ def get_batch_indices(
     but rather constant number of tokens. Some the batch can contain a few long
     sequences or multiple small ones.
 
-
     This sampler returns batches of indices to achieve this property. It also decides
     if sequences must be cropped and return the desired length. The cropping length is
     sampled randomly for each sequence at each epoch in the range of crop_sizes values.
 
-    THis sampler computes a list of list of tuple which contains indices and
-    lengths of sequences  inside the batch.
+    This sampler computes a list of list of tuple which contains indices and
+    lengths of sequences inside the batch.
+
     Example:
         returning [[(1, 100), (3, 600)],[(4, 100), (7, 1200), (10, 600)], [(12, 1000)]]
-        means that the first batch  will be composed of sequence at index 1 and 8 with
-        lengths 100 and  600. The third batch contains only sequence 12 with a length
+        means that the first batch will be composed of sequence at index 1 and 3 with
+        lengths 100 and 600. The third batch contains only sequence 12 with a length
         of 1000.
 
     Args:
         sequence_strs: list of string
-        toks_per_batch (int): Maximum number of token per batch
-        extra_toks_per_seq (int, optional): . Defaults to 0.
-        crop_sizes (Tuple[int, int]): min and max sequence lengths when cropping
+        toks_per_batch: maximum number of token per batch
+        crop_sizes: min and max sequence lengths when cropping
 
     Returns:
         List: List of batches indexes and lengths
