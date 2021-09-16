@@ -9,6 +9,7 @@ import torch
 import torch.distributed as dist
 from esm.data import BatchConverter
 from torch.utils.data import DataLoader, Dataset, Sampler
+from pytorch_lightning import LightningDataModule
 
 
 class AlphabetDataLoader:
@@ -420,52 +421,58 @@ class BatchWithConstantNumberTokensDataset(Dataset):
         return sequences
 
 
-def create_dataloader(
-    sequences: List[str],
-    alphabet: AlphabetDataLoader,
-    masking_ratio: float,
-    masking_prob: float,
-    random_token_prob: float,
-    num_workers: int,
-    toks_per_batch: int,
-    crop_sizes: Tuple[int, int] = (512, 1024),
-) -> DataLoader:
-    """Create the PyTorch Dataloader.
+class BatchWithConstantNumberTokensDataModule(LightningDataModule):
+    def __init__(
+        self,
+        train_sequences: List[str],
+        validation_sequences: List[str],
+        alphabet: AlphabetDataLoader,
+        masking_ratio: float,
+        masking_prob: float,
+        random_token_prob: float,
+        num_workers: int,
+        toks_per_batch: int,
+        crop_sizes: Tuple[int, int] = (512, 1024),
+    ):
+        LightningDataModule.__init__(self)
+        self._train_sequences = train_sequences
+        self._validation_sequences = validation_sequences
+        self._alphabet = alphabet
+        self._masking_ratio = masking_ratio
+        self._masking_prob = masking_prob
+        self._random_token_prob = random_token_prob
+        self._num_workers = num_workers
+        self._toks_per_batch = toks_per_batch
+        self._crop_sizes = crop_sizes
 
-    Args:
-        filenames: list of sequences
-        alphabet: facebook alphabet.
-        filter_len: whether filter data wrt len.batch_seq
-        num_workers: num of parallel data samplers
-        masking_ratio: ratio of tokens to be masked.
-        masking_prob: probability that the chose token is replaced with a mask token.
-        random_token_prob: probability that the chose token is replaced with a random token.
-        toks_per_batch: number of tokens per batch
-        crop_sizes: range of values to crop dynamically sequences when sampling them
+    def _get_dataloader(self, sequences: List[str]) -> DataLoader:
+        dataset = BatchWithConstantNumberTokensDataset(sequences)
+        batch_sampler = DistributedBatchWithConstantNumberTokensSampler(
+            sequence_strs=sequences,
+            toks_per_batch=self._toks_per_batch,
+            crop_sizes=self._crop_sizes,
+        )
 
-    Returns:
-        torch DataLoader
-    """
+        loader = DataLoader(
+            dataset,
+            num_workers=self._num_workers,
+            collate_fn=functools.partial(
+                collate_fn,
+                tokenizer=self._alphabet.tokenizer(),
+                alphabet=self._alphabet,
+                masking_ratio=self._masking_ratio,
+                masking_prob=self._masking_prob,
+                random_token_prob=self._random_token_prob,
+            ),
+            pin_memory=True,
+            worker_init_fn=worker_init_fn,
+            batch_sampler=batch_sampler,
+            sampler=None,
+        )
+        return loader
 
-    dataset = BatchWithConstantNumberTokensDataset(sequences)
-    batch_sampler = DistributedBatchWithConstantNumberTokensSampler(
-        sequence_strs=sequences, toks_per_batch=toks_per_batch, crop_sizes=crop_sizes
-    )
+    def train_dataloader(self):
+        return self._get_dataloader(self._train_sequences)
 
-    loader = DataLoader(
-        dataset,
-        num_workers=num_workers,
-        collate_fn=functools.partial(
-            collate_fn,
-            tokenizer=alphabet.tokenizer(),
-            alphabet=alphabet,
-            masking_ratio=masking_ratio,
-            masking_prob=masking_prob,
-            random_token_prob=random_token_prob,
-        ),
-        pin_memory=True,
-        worker_init_fn=worker_init_fn,
-        batch_sampler=batch_sampler,
-        sampler=None,
-    )
-    return loader
+    def val_dataloader(self):
+        return self._get_dataloader(self._validation_sequences)

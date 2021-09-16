@@ -5,15 +5,13 @@ It allows to derive probabilities, embeddings and log-likelihoods based on input
 sequences, and displays some properties of the transformer model.
 """
 import math
-import os
 import time
 from copy import deepcopy
-from os.path import join
+
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
-import pytorch_lightning as pl
 import ray
 import torch
 import torch.tensor
@@ -22,7 +20,6 @@ from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
 from biotransformers.utils.utils import (
-    get_logs_version,
     init_model_sequences,
     load_fasta,
 )
@@ -31,7 +28,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger
 
-from ..lightning_utils.data import create_dataloader
+from ..lightning_utils.data import BatchWithConstantNumberTokensDataModule
 from ..lightning_utils.models import LightningModule
 
 log = logger("transformers_wrapper")
@@ -820,43 +817,30 @@ class TransformersWrapper:
         self.delete_ray_workers()
         return accuracy
 
-    def load_model(self, model_dir: str, map_location=None):
-        """Load state_dict a finetune pytorch model ro a checkpoint directory
-
-        More informations about how to load a model with map_location:
-            https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-model-for-inference
+    def load_model(self, checkpoint_path: str):
+        """Load model from a lightning checkpoint.
 
         Args:
-            model_dir: path file of the pt model or checkpoint.
-                       the checkpoint should be a pytorch model checkpoint
+            checkpoint_path: path to lightning checkpoint
         """
-        if not os.path.isfile(model_dir):
-            raise FileNotFoundError
+        assert Path(checkpoint_path).suffix == ".ckpt"
+
+        module = LightningModule.load_from_checkpoint(
+            checkpoint_path=checkpoint_path,
+            model=self._language_model.model,
+            alphabet=self._language_model.get_alphabet_dataloader(),
+            lr=1e-5,
+            warmup_updates=100,
+            warmup_init_lr=1e-7,
+            warmup_end_lr=1e-5,
+        )
+        model = module.model
 
         if self._multi_gpus:
             self.init_ray_workers()
-            ray.get(
-                [worker._load_model.remote(model_dir, map_location) for worker in self._workers]  # type: ignore
-            )
-            pass
+            ray.get([worker.set_model.remote(model) for worker in self._workers])  # type: ignore
         else:
-            self._language_model._load_model(model_dir, map_location)  # type: ignore
-
-    def _save_model(self, exp_path: str, lightning_model: pl.LightningModule):
-        """Save pytorch model in pytorch-lightning logs directory
-        Args:
-            exp_path (str): path of the experiments directory in the logs
-        """
-        version = get_logs_version(exp_path)
-        model_dir = self._model_dir.replace("/", "_")
-        if version is not None:
-            save_name = os.path.join(exp_path, version, model_dir + "_finetuned.pt")
-        else:
-            save_name = os.path.join(exp_path, model_dir + "_finetuned.pt")
-        torch.save(lightning_model.model.state_dict(), save_name)
-        log.info("Model save at %s." % save_name)
-
-        return save_name
+            self._language_model.set_model(model)
 
     def finetune(
         self,
@@ -956,19 +940,9 @@ class TransformersWrapper:
             warmup_end_lr=lr,
         )
 
-        train_dataloader = create_dataloader(
-            sequences=train_sequences,
-            alphabet=alphabet,
-            masking_ratio=masking_ratio,
-            masking_prob=masking_prob,
-            random_token_prob=random_token_prob,
-            num_workers=num_data_workers,
-            toks_per_batch=toks_per_batch,
-            crop_sizes=crop_sizes,
-        )
-
-        validation_dataloader = create_dataloader(
-            sequences=validation_sequences,
+        lightning_data_module = BatchWithConstantNumberTokensDataModule(
+            train_sequences=train_sequences,
+            validation_sequences=validation_sequences,
             alphabet=alphabet,
             masking_ratio=masking_ratio,
             masking_prob=masking_prob,
@@ -1008,17 +982,10 @@ class TransformersWrapper:
             resume_from_checkpoint=checkpoint,
             callbacks=checkpoint_callback,
         )
-        trainer.fit(lightning_model, train_dataloader, [validation_dataloader])
 
-        save_path = str(Path(join(logs_save_dir, logs_name_exp)).resolve())
-        if accelerator == "ddp":
-            rank = os.environ.get("LOCAL_RANK", None)
-            rank = int(rank) if rank is not None else None  # type: ignore
-            if rank == 0:
-                save_name = self._save_model(save_path, lightning_model)
-        else:
-            save_name = self._save_model(save_path, lightning_model)
+        # Launch training
+        trainer.fit(lightning_model, lightning_data_module)
 
         # Load new model
-        self._language_model._load_model(save_name)
+        self._language_model.set_model(lightning_model.model)
         log.info("Training completed.")
