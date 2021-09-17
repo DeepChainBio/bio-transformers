@@ -11,6 +11,7 @@ from typing import Dict, List, Tuple
 import torch
 <<<<<<< Updated upstream
 import copy
+<<<<<<< HEAD
 from biotransformers.lightning_utils.data import (
     AlphabetDataLoader,
     convert_ckpt_to_statedict,
@@ -18,6 +19,9 @@ from biotransformers.lightning_utils.data import (
 =======
 from biotransformers.lightning_utils.data import AlphabetDataLoader
 >>>>>>> Stashed changes
+=======
+from biotransformers.lightning_utils.data import AlphabetDataLoader
+>>>>>>> 8686d794077ccf12863a328d4d2098451b42e956
 from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.utils import _generate_chunks, _get_num_batch_iter
@@ -57,6 +61,7 @@ class RostlabWrapper(LanguageModel):
         """Return torch model."""
         return self._model
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
     def set_model(self, model: torch.nn.Module):
@@ -64,6 +69,12 @@ class RostlabWrapper(LanguageModel):
         self._model = model.to(self._device)
 
 >>>>>>> Stashed changes
+=======
+    def set_model(self, model: torch.nn.Module):
+        """Set torch model."""
+        self._model = model.to(self._model.device)
+
+>>>>>>> 8686d794077ccf12863a328d4d2098451b42e956
     @property
     def clean_model_id(self) -> str:
         """Clean model ID (in case the model directory is not)"""
@@ -113,20 +124,6 @@ class RostlabWrapper(LanguageModel):
     def embeddings_size(self) -> int:
         """Returns size of the embeddings"""
         return self.hidden_size
-
-    def _load_model(self, path_model: str, map_location=None):
-        """Load model."""
-        if path_model.endswith(".pt"):
-            loaded_model = torch.load(path_model)
-        elif path_model.endswith(".ckpt"):
-            loaded_model = convert_ckpt_to_statedict(
-                torch.load(path_model)["state_dict"]
-            )
-        else:
-            raise ValueError("Expecting a .pt or .ckpt file")
-        self._model.load_state_dict(loaded_model, map_location)
-        self._model.eval()
-        log.info("Load model %s" % path_model)
 
     def process_sequences_and_tokens(
         self,
