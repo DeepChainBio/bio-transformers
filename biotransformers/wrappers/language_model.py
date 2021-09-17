@@ -99,8 +99,8 @@ class LanguageModel(ABC):
         pass
 
     @abstractmethod
-    def _load_model(self, path: str):
-        """Load model."""
+    def set_model(self, model: torch.nn.Module):
+        """Set torch model."""
         pass
 
     @abstractmethod

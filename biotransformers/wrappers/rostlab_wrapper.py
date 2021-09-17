@@ -9,10 +9,7 @@ from typing import Dict, List, Tuple
 
 import torch
 import copy
-from biotransformers.lightning_utils.data import (
-    AlphabetDataLoader,
-    convert_ckpt_to_statedict,
-)
+from biotransformers.lightning_utils.data import AlphabetDataLoader
 from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.utils import _generate_chunks, _get_num_batch_iter
@@ -51,6 +48,10 @@ class RostlabWrapper(LanguageModel):
     def model(self) -> torch.nn.Module:
         """Return torch model."""
         return self._model
+
+    def set_model(self, model: torch.nn.Module):
+        """Set torch model."""
+        self._model = model.to(self._model.device)
 
     @property
     def clean_model_id(self) -> str:
@@ -101,20 +102,6 @@ class RostlabWrapper(LanguageModel):
     def embeddings_size(self) -> int:
         """Returns size of the embeddings"""
         return self.hidden_size
-
-    def _load_model(self, path_model: str, map_location=None):
-        """Load model."""
-        if path_model.endswith(".pt"):
-            loaded_model = torch.load(path_model)
-        elif path_model.endswith(".ckpt"):
-            loaded_model = convert_ckpt_to_statedict(
-                torch.load(path_model)["state_dict"]
-            )
-        else:
-            raise ValueError("Expecting a .pt or .ckpt file")
-        self._model.load_state_dict(loaded_model, map_location)
-        self._model.eval()
-        log.info("Load model %s" % path_model)
 
     def process_sequences_and_tokens(
         self,
