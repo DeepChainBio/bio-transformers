@@ -5,10 +5,10 @@ hugging face
 - ProtBert: https://huggingface.co/Rostlab/prot_bert
 - ProtBert BFD: https://huggingface.co/Rostlab/prot_bert_bfd
 """
+import copy
 from typing import Dict, List, Tuple
 
 import torch
-import copy
 from biotransformers.lightning_utils.data import AlphabetDataLoader
 from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
 from biotransformers.utils.logger import logger  # noqa
@@ -51,7 +51,7 @@ class RostlabWrapper(LanguageModel):
 
     def set_model(self, model: torch.nn.Module):
         """Set torch model."""
-        self._model = model.to(self._model.device)
+        self._model = model.to(self._device)
 
     @property
     def clean_model_id(self) -> str:

@@ -48,7 +48,7 @@ class ESMWrapper(LanguageModel):
 
     def set_model(self, model: torch.nn.Module):
         """Set torch model."""
-        self._model = model.to(self._model.device)
+        self._model = model.to(self._device)
 
     @property
     def clean_model_id(self) -> str:
