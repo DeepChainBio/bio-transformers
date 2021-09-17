@@ -9,22 +9,7 @@ import copy
 from typing import Dict, List, Tuple
 
 import torch
-
-<<<<<<< Updated upstream
-import copy
-
-<<<<<<< HEAD
-from biotransformers.lightning_utils.data import (AlphabetDataLoader,
-                                                  convert_ckpt_to_statedict)
-
-=======
 from biotransformers.lightning_utils.data import AlphabetDataLoader
-
->>>>>>> Stashed changes
-=======
-from biotransformers.lightning_utils.data import AlphabetDataLoader
-
->>>>>>> 8686d794077ccf12863a328d4d2098451b42e956
 from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.utils import _generate_chunks, _get_num_batch_iter
