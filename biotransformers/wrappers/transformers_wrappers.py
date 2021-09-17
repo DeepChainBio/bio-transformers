@@ -7,7 +7,6 @@ sequences, and displays some properties of the transformer model.
 import math
 import time
 from copy import deepcopy
-
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Type, Union
 
@@ -19,10 +18,7 @@ from biotransformers.utils.compute_utils import Mutation, get_list_probs, mutati
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.tqdm_utils import ProgressBar
-from biotransformers.utils.utils import (
-    init_model_sequences,
-    load_fasta,
-)
+from biotransformers.utils.utils import init_model_sequences, load_fasta
 from biotransformers.wrappers.language_model import LanguageModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -953,8 +949,7 @@ class TransformersWrapper:
         )
 
         if self._num_gpus == 0:
-            pass
-            # raise ValueError("You try to train a transformers without GPU.")
+            raise ValueError("You try to train a transformers without GPU.")
 
         logger = CSVLogger(logs_save_dir, name=logs_name_exp)
         checkpoint_callback = None
