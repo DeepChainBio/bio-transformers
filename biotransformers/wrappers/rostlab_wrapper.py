@@ -5,14 +5,19 @@ hugging face
 - ProtBert: https://huggingface.co/Rostlab/prot_bert
 - ProtBert BFD: https://huggingface.co/Rostlab/prot_bert_bfd
 """
+import copy
 from typing import Dict, List, Tuple
 
 import torch
+<<<<<<< Updated upstream
 import copy
 from biotransformers.lightning_utils.data import (
     AlphabetDataLoader,
     convert_ckpt_to_statedict,
 )
+=======
+from biotransformers.lightning_utils.data import AlphabetDataLoader
+>>>>>>> Stashed changes
 from biotransformers.utils.constant import DEFAULT_ROSTLAB_MODEL, ROSTLAB_LIST
 from biotransformers.utils.logger import logger  # noqa
 from biotransformers.utils.utils import _generate_chunks, _get_num_batch_iter
@@ -52,6 +57,13 @@ class RostlabWrapper(LanguageModel):
         """Return torch model."""
         return self._model
 
+<<<<<<< Updated upstream
+=======
+    def set_model(self, model: torch.nn.Module):
+        """Set torch model."""
+        self._model = model.to(self._device)
+
+>>>>>>> Stashed changes
     @property
     def clean_model_id(self) -> str:
         """Clean model ID (in case the model directory is not)"""
