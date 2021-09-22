@@ -81,6 +81,7 @@ def mask_seq(
     masking_prob: float,
     random_token_prob: float,
     random_token_indices: List[int],
+    k_mers_sizes: Tuple[int, int],
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Mask one sequence randomly.
 
@@ -94,34 +95,53 @@ def mask_seq(
         masking_prob: probability that the chose token is replaced with a mask token.
         random_token_prob: probability that the chose token is replaced with a random token.
         random_token_indices: list of token indices that random replacement selects from.
+        k_mers_sizes: tuple with min and max sizes when masking with k-mers
 
     Returns:
         tokens: masked tokens
         targets: same length as tokens
     """
+    min_k_mers_size, max_k_mers_size = k_mers_sizes
+    assert max_k_mers_size >= min_k_mers_size
+    assert masking_prob + random_token_prob == 1.0
+
     # init
     seq_len = len(seq)
     mask_num = int(np.ceil(seq_len * masking_ratio))
     targets = tokens.detach().clone()
-    # sample indices
-    mask_indices = sorted(
-        np.random.choice(seq_len, mask_num, replace=False) + int(prepend_bos)
-    )
+
+    # sample k-mers
+    k_mers_lengths: List[int] = []
+    while sum(k_mers_lengths) <= mask_num:
+        k_mers_lengths.append(random.randint(min_k_mers_size, max_k_mers_size))
+
+    # create a list of all positions in the sequence
+    indices = {idx + int(prepend_bos): 1.0 for idx in np.arange(seq_len)}
+
     # mask tokens
-    for idx in mask_indices:
-        rand = np.random.random()
+    for k_mers_length in k_mers_lengths:
+        index = int(np.random.choice(list(indices.keys()), size=1))
 
-        # replace with mask
-        if rand < masking_prob:
-            tokens[idx] = mask_idx
+        for i in range(k_mers_length):
+            rand = float(np.random.random())
+            idx = i + index
 
-        # replace with random token
-        elif rand < masking_prob + random_token_prob:
-            tokens[idx] = np.random.choice(random_token_indices, 1)[0]
+            # remove from the list the positions that have been masked
+            del indices[idx]
+
+            # replace with mask
+            if rand < masking_prob:
+                tokens[idx] = mask_idx
+
+            # replace with random token
+            elif rand < masking_prob + random_token_prob:
+                tokens[idx] = np.random.choice(random_token_indices, 1)[0]
 
     # generate targets
-    non_mask_indices = [i for i in range(seq_len) if i not in mask_indices]
+    non_mask_indices = list(indices.keys())
     targets[non_mask_indices] = pad_idx
+    if prepend_bos:
+        targets[0] = pad_idx
 
     return tokens, targets
 
@@ -133,6 +153,7 @@ def collate_fn(
     masking_ratio: float,
     masking_prob: float,
     random_token_prob: float,
+    k_mers_sizes: Tuple[int, int],
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Collate function to mask tokens.
 
@@ -144,6 +165,7 @@ def collate_fn(
         masking_ratio: ratio of tokens to be masked.
         masking_prob: probability that the chose token is replaced with a mask token.
         random_token_prob: probability that the chose token is replaced with a random token.
+        k_mers_sizes: tuple with min and max sizes when masking with k-mers
 
     Returns:
         tokens: model input
@@ -166,6 +188,7 @@ def collate_fn(
             masking_prob=masking_prob,
             random_token_prob=random_token_prob,
             random_token_indices=random_token_indices,
+            k_mers_sizes=k_mers_sizes,
         )
         tokens_list.append(tokens_i)
         targets_list.append(targets_i)
@@ -433,6 +456,7 @@ class BatchWithConstantNumberTokensDataModule(LightningDataModule):
         num_workers: int,
         toks_per_batch: int,
         crop_sizes: Tuple[int, int] = (512, 1024),
+        k_mers_sizes: Tuple[int, int] = (1, 1),
     ):
         LightningDataModule.__init__(self)
         self._train_sequences = train_sequences
@@ -444,6 +468,7 @@ class BatchWithConstantNumberTokensDataModule(LightningDataModule):
         self._num_workers = num_workers
         self._toks_per_batch = toks_per_batch
         self._crop_sizes = crop_sizes
+        self._k_mers_sizes = k_mers_sizes
 
     def _get_dataloader(self, sequences: List[str]) -> DataLoader:
         dataset = BatchWithConstantNumberTokensDataset(sequences)
@@ -463,6 +488,7 @@ class BatchWithConstantNumberTokensDataModule(LightningDataModule):
                 masking_ratio=self._masking_ratio,
                 masking_prob=self._masking_prob,
                 random_token_prob=self._random_token_prob,
+                k_mers_sizes=self._k_mers_sizes,
             ),
             pin_memory=True,
             worker_init_fn=worker_init_fn,
