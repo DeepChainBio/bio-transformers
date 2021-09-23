@@ -199,21 +199,23 @@ def collate_fn(
     return tokens, targets
 
 
-def crop_sequence(sequence: str, crop_length: int) -> str:
+def crop_sequence(
+    sequence: str, crop_length: int, random_generator: random.Random
+) -> str:
     """If the length of the sequence is superior to crop_length, crop randomly
     the sequence to get the proper length."""
     if len(sequence) <= crop_length:
         return sequence
     else:
-        start_idx = random.randint(0, len(sequence) - crop_length)
+        start_idx = random_generator.randint(0, len(sequence) - crop_length)
         return sequence[start_idx : (start_idx + crop_length)]
 
 
 def get_batch_indices(
     sequence_strs: List[str],
     toks_per_batch: int,
-    crop_sizes: Tuple[int, int] = (600, 1200),
-    seed: int = 0,
+    crop_sizes: Tuple[int, int],
+    seed: int,
 ) -> List[List[List[Tuple[int, int]]]]:
     """
     This sampler aims to create batches that do not contain fixed number of sequences
@@ -307,16 +309,19 @@ class BatchWithConstantNumberTokensSampler(Sampler):
         self,
         sequence_strs: List[str],
         toks_per_batch: int,
-        crop_sizes: Tuple[int, int] = (512, 1024),
+        crop_sizes: Tuple[int, int],
+        seed: int,
     ):
         Sampler.__init__(self, data_source=None)
         self._sequence_strs = sequence_strs
         self._toks_per_batch = toks_per_batch
         self._crop_sizes = crop_sizes
+        self._seed = seed
         self._init_batches = get_batch_indices(
             sequence_strs=sequence_strs,
             toks_per_batch=toks_per_batch,
             crop_sizes=crop_sizes,
+            seed=seed,
         )
 
     def __len__(self):
@@ -327,6 +332,7 @@ class BatchWithConstantNumberTokensSampler(Sampler):
             sequence_strs=self._sequence_strs,
             toks_per_batch=self._toks_per_batch,
             crop_sizes=self._crop_sizes,
+            seed=self._seed,
         )
 
 
@@ -344,10 +350,10 @@ class DistributedBatchWithConstantNumberTokensSampler(Sampler):
         self,
         sequence_strs: List[str],
         toks_per_batch: int,
-        crop_sizes: Tuple[int, int] = (512, 1024),
+        crop_sizes: Tuple[int, int],
+        seed: int,
         num_replicas: Optional[int] = None,
         rank: Optional[int] = None,
-        seed: int = 0,
     ):
         Sampler.__init__(self, data_source=None)
 
@@ -427,18 +433,20 @@ class BatchWithConstantNumberTokensDataset(Dataset):
     Dataset class to work in pair with the BatchWithConstantNumberTokensSampler.
     """
 
-    def __init__(self, sequences: List[str]):
+    def __init__(self, sequences: List[str], seed: int):
         super().__init__()
-        self.sequences = sequences
+        self._sequences = sequences
+        self._seed = seed
+        self._random_generator = random.Random(seed)
 
     def __len__(self):
-        return len(self.sequences)
+        return len(self._sequences)
 
-    def __getitem__(self, sampler_out) -> List[str]:
+    def __getitem__(self, sampler_out: List[Tuple[int, int]]) -> List[str]:
         indices = [out[0] for out in sampler_out]
         lengths = [out[1] for out in sampler_out]
         sequences = [
-            crop_sequence(self.sequences[i], length)
+            crop_sequence(self._sequences[i], length, self._random_generator)
             for i, length in zip(indices, lengths)
         ]
         return sequences
@@ -455,6 +463,7 @@ class BatchWithConstantNumberTokensDataModule(LightningDataModule):
         random_token_prob: float,
         num_workers: int,
         toks_per_batch: int,
+        seed: int = 0,
         crop_sizes: Tuple[int, int] = (512, 1024),
         k_mers_sizes: Tuple[int, int] = (1, 1),
     ):
@@ -467,15 +476,17 @@ class BatchWithConstantNumberTokensDataModule(LightningDataModule):
         self._random_token_prob = random_token_prob
         self._num_workers = num_workers
         self._toks_per_batch = toks_per_batch
+        self._seed = seed
         self._crop_sizes = crop_sizes
         self._k_mers_sizes = k_mers_sizes
 
     def _get_dataloader(self, sequences: List[str]) -> DataLoader:
-        dataset = BatchWithConstantNumberTokensDataset(sequences)
+        dataset = BatchWithConstantNumberTokensDataset(sequences, self._seed)
         batch_sampler = DistributedBatchWithConstantNumberTokensSampler(
             sequence_strs=sequences,
             toks_per_batch=self._toks_per_batch,
             crop_sizes=self._crop_sizes,
+            seed=self._seed,
         )
 
         loader = DataLoader(
