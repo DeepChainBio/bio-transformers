@@ -412,8 +412,7 @@ class BatchWithConstantNumberTokensDataset(Dataset):
         return len(self.sequences)
 
     def __getitem__(self, sampler_out) -> List[str]:
-        indices = [out[0] for out in sampler_out]
-        lengths = [out[1] for out in sampler_out]
+        indices, lengths = zip(*sampler_out)
         sequences = [
             crop_sequence(self.sequences[i], length)
             for i, length in zip(indices, lengths)
