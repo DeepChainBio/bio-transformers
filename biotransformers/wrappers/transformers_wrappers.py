@@ -13,7 +13,6 @@ from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Type, 
 import numpy as np
 import ray
 import torch
-import torch.tensor
 from biotransformers.utils.compute_utils import Mutation, get_list_probs, mutation_score
 from biotransformers.utils.constant import NATURAL_AAS_LIST
 from biotransformers.utils.logger import logger  # noqa
@@ -242,7 +241,7 @@ class TransformersWrapper:
         return torch.stack(sequences_list)
 
     def _model_evaluation(
-        self, model_inputs: Dict[str, torch.tensor], batch_size: int = 1, **kwargs
+        self, model_inputs: Dict[str, torch.Tensor], batch_size: int = 1, **kwargs
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute logits and embeddings
 
