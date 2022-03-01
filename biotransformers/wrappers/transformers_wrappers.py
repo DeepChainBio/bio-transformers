@@ -722,6 +722,7 @@ class TransformersWrapper:
         _, embeddings = self._model_evaluation(
             inputs, batch_size=batch_size, silent=silent
         )
+        self.delete_ray_workers()
         embeddings = [emb.cpu().numpy() for emb in embeddings]
         # Remove class token and padding
         # Use tranpose to filter on the two last dimensions. Doing this, we don't have to manage
@@ -746,7 +747,7 @@ class TransformersWrapper:
             embeddings_dict["mean"] = np.stack(
                 [e.transpose().mean(1).transpose() for e in filtered_embeddings]
             )
-        self.delete_ray_workers()
+
         return embeddings_dict
 
     def compute_accuracy(

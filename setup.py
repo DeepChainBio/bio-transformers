@@ -6,7 +6,7 @@ from typing import List
 from setuptools import find_packages, setup
 
 HERE = pathlib.Path(__file__).parent
-README = (HERE / "README.md").read_text()
+README = (HERE / "README.md").read_text(encoding="utf-8")
 
 with open("biotransformers/version.py") as v:
     exec(v.readline())
