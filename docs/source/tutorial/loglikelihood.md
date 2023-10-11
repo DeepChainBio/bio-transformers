@@ -57,7 +57,7 @@ from biotransformers import BioTransformers
 bio_trans = BioTransformers(backend="protbert",num_gpus=1)
 
 sequence = ["MKT"]
-probabilities = bio_trans.compute_(sequence, batch_size=1)
+probabilities = bio_trans.compute_loglikelihood(sequence, batch_size=1)
 
 print(probabilities)
 ```
